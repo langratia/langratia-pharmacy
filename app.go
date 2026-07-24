@@ -18,6 +18,8 @@ type App struct {
 	authService     *services.AuthService
 	medicineService *services.MedicineService
 	batchService    *services.BatchService
+	supplierService *services.SupplierService
+	purchaseService *services.PurchaseService
 }
 
 // NewApp creates a new App application struct
@@ -53,6 +55,8 @@ func (a *App) startup(ctx context.Context) {
 	a.authService = services.NewAuthService(database)
 	a.medicineService = services.NewMedicineService(database)
 	a.batchService = services.NewBatchService(database)
+	a.supplierService = services.NewSupplierService(database)
+	a.purchaseService = services.NewPurchaseService(database, a.batchService)
 }
 
 // Auth API Bindings
@@ -133,4 +137,41 @@ func (a *App) AdjustStock(medicineID int64, batchID *int64, userID int64, userna
 		return fmt.Errorf("service not initialized")
 	}
 	return a.batchService.AdjustStock(medicineID, batchID, userID, username, qtyAdjusted, reason, notes)
+}
+
+// Supplier API Bindings
+func (a *App) AddSupplier(sup models.Supplier, userID int64, username string) (*models.Supplier, error) {
+	if a.supplierService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.supplierService.AddSupplier(sup, userID, username)
+}
+
+func (a *App) UpdateSupplier(sup models.Supplier, userID int64, username string) error {
+	if a.supplierService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.supplierService.UpdateSupplier(sup, userID, username)
+}
+
+func (a *App) ListSuppliers() ([]models.Supplier, error) {
+	if a.supplierService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.supplierService.ListSuppliers()
+}
+
+// Purchase / Stock Receiving API Bindings
+func (a *App) RecordPurchase(invoiceNumber string, supplierID *int64, items []services.IncomingStockItem, notes string, userID int64, username string) (*models.Purchase, error) {
+	if a.purchaseService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.purchaseService.RecordPurchase(invoiceNumber, supplierID, items, notes, userID, username)
+}
+
+func (a *App) ListPurchases() ([]models.Purchase, error) {
+	if a.purchaseService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.purchaseService.ListPurchases()
 }
