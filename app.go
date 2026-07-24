@@ -118,6 +118,14 @@ func (a *App) ListMedicines(search, category string, includeArchived bool) ([]mo
 	return a.medicineService.ListMedicines(search, category, includeArchived)
 }
 
+func (a *App) BulkImportMedicines(medicines []models.Medicine, userID int64, username string) (int, error) {
+	if a.medicineService == nil {
+		return 0, fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.BulkImportMedicines(medicines, userID, username)
+}
+
+
 // Batch & FEFO API Bindings
 func (a *App) AddBatch(batch models.Batch, userID int64, username string) (*models.Batch, error) {
 	if a.batchService == nil {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Pill, 
   Search, 
@@ -9,7 +9,8 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Filter,
-  X
+  X,
+  Upload
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -32,11 +33,16 @@ const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'cre
 
 export const InventoryPage: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [includeArchived, setIncludeArchived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // CSV file ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,10 +58,10 @@ export const InventoryPage: React.FC = () => {
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp && typeof wailsApp.ListMedicines === 'function') {
-        const data: Medicine[] = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, includeArchived);
+        const data: Medicine[] = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, includeArchived && isAdmin);
         setMedicines(data || []);
       } else {
-        // Sample dev data for browser preview
+        // Mock data for preview
         const mockData: Medicine[] = [
           {
             id: 1,
@@ -92,24 +98,6 @@ export const InventoryPage: React.FC = () => {
             description: 'Analgesic and antipyretic',
             is_archived: false,
             created_at: new Date().toISOString()
-          },
-          {
-            id: 3,
-            name: 'Coartem',
-            generic_name: 'Artemether + Lumefantrine',
-            brand_name: 'Coartem 20/120',
-            category: 'Antimalarials',
-            dosage_strength: '20/120mg',
-            medicine_form: 'Tablet',
-            pack_size: '24s',
-            buying_price: 12000,
-            selling_price: 20000,
-            current_stock: 0,
-            reorder_level: 10,
-            manufacturer: 'Novartis',
-            description: 'First-line ACT for malaria treatment',
-            is_archived: false,
-            created_at: new Date().toISOString()
           }
         ];
         const filtered = mockData.filter(m => {
@@ -137,6 +125,7 @@ export const InventoryPage: React.FC = () => {
   }, [search, category, includeArchived]);
 
   const handleOpenAddModal = () => {
+    if (!isAdmin) return;
     setEditingMedicine(null);
     setFormData(INITIAL_FORM);
     setModalError(null);
@@ -144,6 +133,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleOpenEditModal = (med: Medicine) => {
+    if (!isAdmin) return;
     setEditingMedicine(med);
     setFormData({
       name: med.name,
@@ -166,6 +156,7 @@ export const InventoryPage: React.FC = () => {
 
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
     if (!formData.name.trim()) {
       setModalError('Medicine Name is required.');
       return;
@@ -200,6 +191,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleToggleArchive = async (med: Medicine) => {
+    if (!isAdmin) return;
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp && typeof wailsApp.ArchiveMedicine === 'function') {
@@ -213,8 +205,95 @@ export const InventoryPage: React.FC = () => {
     }
   };
 
+  // CSV Bulk Import Handler
+  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !isAdmin) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) return;
+
+        const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+        if (lines.length <= 1) {
+          alert('CSV file is empty or missing data rows.');
+          return;
+        }
+
+        // Simple CSV parser
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const importedMeds: Medicine[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+          if (cols.length === 0 || !cols[0]) continue;
+
+          // Helper to get column value by potential header names
+          const getVal = (possibleKeys: string[]) => {
+            const idx = headers.findIndex(h => possibleKeys.includes(h));
+            return idx !== -1 ? cols[idx] : '';
+          };
+
+          const name = getVal(['name', 'medicine', 'medicine_name', 'item']) || cols[0];
+          if (!name) continue;
+
+          importedMeds.push({
+            id: 0,
+            name: name,
+            generic_name: getVal(['generic_name', 'generic', 'composition']),
+            brand_name: getVal(['brand_name', 'brand']),
+            category: getVal(['category']) || 'General',
+            dosage_strength: getVal(['dosage_strength', 'strength', 'dosage']),
+            medicine_form: getVal(['medicine_form', 'form']) || 'Tablet',
+            pack_size: getVal(['pack_size', 'pack']) || '10x10',
+            buying_price: parseFloat(getVal(['buying_price', 'cost_price', 'buying'])) || 0,
+            selling_price: parseFloat(getVal(['selling_price', 'price', 'selling'])) || 0,
+            current_stock: parseInt(getVal(['current_stock', 'stock', 'quantity', 'qty'])) || 0,
+            reorder_level: parseInt(getVal(['reorder_level', 'reorder', 'min_stock'])) || 10,
+            manufacturer: getVal(['manufacturer', 'company']),
+            description: getVal(['description', 'notes']),
+            is_archived: false,
+            created_at: new Date().toISOString()
+          });
+        }
+
+        if (importedMeds.length === 0) {
+          alert('No valid medicine records found in CSV.');
+          return;
+        }
+
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.BulkImportMedicines === 'function') {
+          const count = await wailsApp.BulkImportMedicines(importedMeds, user?.id || 1, user?.username || 'admin');
+          alert(`Successfully imported ${count} medicines from CSV!`);
+          fetchMedicines();
+        } else {
+          alert(`Simulated import of ${importedMeds.length} medicines in browser preview.`);
+          setMedicines(prev => [...prev, ...importedMeds]);
+        }
+      } catch (err: any) {
+        alert('Failed to parse and import CSV: ' + (err.message || err));
+      } finally {
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept=".csv"
+        onChange={handleCSVImport}
+        style={{ display: 'none' }}
+      />
+
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -227,28 +306,56 @@ export const InventoryPage: React.FC = () => {
             Medicine Inventory
           </h1>
           <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            Manage pharmaceutical products, stock thresholds, pricing, and master registry.
+            {isAdmin 
+              ? 'Manage pharmaceutical products, stock thresholds, pricing, and master registry.' 
+              : 'Search medicine prices, stock levels, categories, and dosage forms.'}
           </p>
         </div>
-        <button
-          onClick={handleOpenAddModal}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 20px',
-            backgroundColor: 'var(--color-primary-teal)',
-            color: '#ffffff',
-            borderRadius: '10px',
-            fontWeight: 600,
-            fontSize: '14px',
-            boxShadow: '0 4px 12px rgba(26, 157, 139, 0.25)',
-            border: 'none'
-          }}
-        >
-          <Plus size={18} />
-          <span>Add New Medicine</span>
-        </button>
+
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 18px',
+                backgroundColor: '#ffffff',
+                color: 'var(--color-charcoal-navy)',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '14px',
+                border: '1px solid var(--color-border-subtle)',
+                cursor: 'pointer'
+              }}
+            >
+              <Upload size={18} />
+              <span>Import CSV</span>
+            </button>
+
+            <button
+              onClick={handleOpenAddModal}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 20px',
+                backgroundColor: 'var(--color-primary-teal)',
+                color: '#ffffff',
+                borderRadius: '10px',
+                fontWeight: 600,
+                fontSize: '14px',
+                boxShadow: '0 4px 12px rgba(26, 157, 139, 0.25)',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={18} />
+              <span>Add New Medicine</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Search & Filters */}
@@ -307,16 +414,18 @@ export const InventoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Include Archived Checkbox */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-charcoal-navy)', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={includeArchived}
-            onChange={(e) => setIncludeArchived(e.target.checked)}
-            style={{ accentColor: 'var(--color-primary-teal)', width: '16px', height: '16px' }}
-          />
-          <span>Include Archived Medicines</span>
-        </label>
+        {/* Include Archived Checkbox (Admin Only) */}
+        {isAdmin && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--color-charcoal-navy)', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(e) => setIncludeArchived(e.target.checked)}
+              style={{ accentColor: 'var(--color-primary-teal)', width: '16px', height: '16px' }}
+            />
+            <span>Include Archived Medicines</span>
+          </label>
+        )}
       </div>
 
       {/* Medicine Table */}
@@ -334,17 +443,18 @@ export const InventoryPage: React.FC = () => {
               <th style={{ padding: '14px 16px' }}>Generic / Brand</th>
               <th style={{ padding: '14px 16px' }}>Category</th>
               <th style={{ padding: '14px 16px' }}>Strength / Form</th>
+              {isAdmin && <th style={{ padding: '14px 16px' }}>Buying Price</th>}
               <th style={{ padding: '14px 16px' }}>Selling Price</th>
               <th style={{ padding: '14px 16px' }}>Current Stock</th>
               <th style={{ padding: '14px 16px' }}>Status</th>
-              <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>
+              {isAdmin && <th style={{ padding: '14px 16px', textAlign: 'right' }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {medicines.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                  No medicines found. Click "Add New Medicine" to create a record.
+                <td colSpan={isAdmin ? 9 : 7} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  No medicines found.
                 </td>
               </tr>
             ) : (
@@ -371,6 +481,11 @@ export const InventoryPage: React.FC = () => {
                       <div>{med.dosage_strength}</div>
                       <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{med.medicine_form}</div>
                     </td>
+                    {isAdmin && (
+                      <td style={{ padding: '16px', color: 'var(--color-text-muted)' }}>
+                        UGX {med.buying_price.toLocaleString()}
+                      </td>
+                    )}
                     <td style={{ padding: '16px', fontWeight: 600, color: 'var(--color-primary-teal)' }}>
                       UGX {med.selling_price.toLocaleString()}
                     </td>
@@ -399,24 +514,26 @@ export const InventoryPage: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button
-                          onClick={() => handleOpenEditModal(med)}
-                          title="Edit Medicine"
-                          style={{ padding: '6px', borderRadius: '6px', backgroundColor: '#F1F5F9', color: 'var(--color-charcoal-navy)' }}
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleToggleArchive(med)}
-                          title={med.is_archived ? "Restore Medicine" : "Archive Medicine"}
-                          style={{ padding: '6px', borderRadius: '6px', backgroundColor: med.is_archived ? '#E0F2FE' : '#FEE2E2', color: med.is_archived ? '#0284C7' : '#DC2626' }}
-                        >
-                          {med.is_archived ? <RotateCcw size={16} /> : <Archive size={16} />}
-                        </button>
-                      </div>
-                    </td>
+                    {isAdmin && (
+                      <td style={{ padding: '16px', textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleOpenEditModal(med)}
+                            title="Edit Medicine"
+                            style={{ padding: '6px', borderRadius: '6px', backgroundColor: '#F1F5F9', color: 'var(--color-charcoal-navy)', cursor: 'pointer' }}
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleToggleArchive(med)}
+                            title={med.is_archived ? "Restore Medicine" : "Archive Medicine"}
+                            style={{ padding: '6px', borderRadius: '6px', backgroundColor: med.is_archived ? '#E0F2FE' : '#FEE2E2', color: med.is_archived ? '#0284C7' : '#DC2626', cursor: 'pointer' }}
+                          >
+                            {med.is_archived ? <RotateCcw size={16} /> : <Archive size={16} />}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })
@@ -426,7 +543,7 @@ export const InventoryPage: React.FC = () => {
       </div>
 
       {/* Modal Dialog for Add / Edit Medicine */}
-      {isModalOpen && (
+      {isModalOpen && isAdmin && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -454,7 +571,7 @@ export const InventoryPage: React.FC = () => {
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-charcoal-navy)' }}>
                 {editingMedicine ? 'Edit Medicine Record' : 'Add New Medicine'}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--color-text-muted)' }}>
+              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--color-text-muted)', border: 'none', background: 'none', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -609,13 +726,13 @@ export const InventoryPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', backgroundColor: '#ffffff' }}
+                  style={{ padding: '10px 18px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', backgroundColor: '#ffffff', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--color-primary-teal)', color: '#ffffff', fontWeight: 600 }}
+                  style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--color-primary-teal)', color: '#ffffff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {editingMedicine ? 'Update Record' : 'Save Medicine'}
                 </button>

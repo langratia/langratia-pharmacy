@@ -30,7 +30,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'pos', label: 'Point of Sale', icon: ShoppingCart },
-  { key: 'inventory', label: 'Inventory', icon: Pill, adminOnly: true },
+  { key: 'inventory', label: 'Inventory', icon: Pill, adminOnly: false },
   { key: 'purchases', label: 'Purchases', icon: Truck, adminOnly: true },
   { key: 'suppliers', label: 'Suppliers', icon: Users, adminOnly: true },
   { key: 'reports', label: 'Reports', icon: BarChart3, adminOnly: true },

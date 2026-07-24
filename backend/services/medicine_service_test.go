@@ -89,3 +89,43 @@ func TestMedicineService(t *testing.T) {
 		t.Errorf("expected 0 active medicines, got %d", len(listActive))
 	}
 }
+
+func TestBulkImportMedicines(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "langratia_med_bulk_*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	dbPath := filepath.Join(tempDir, "pharmacy_bulk.db")
+	database, err := db.InitDB(dbPath)
+	if err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	defer database.Close()
+
+	medService := NewMedicineService(database)
+
+	bulkData := []models.Medicine{
+		{Name: "Amoxicillin", Category: "Antibiotics", SellingPrice: 15000},
+		{Name: "Ibuprofen", Category: "Analgesics", SellingPrice: 5000},
+		{Name: "Ciprofloxacin", Category: "Antibiotics", SellingPrice: 20000},
+	}
+
+	count, err := medService.BulkImportMedicines(bulkData, 1, "admin")
+	if err != nil {
+		t.Fatalf("BulkImportMedicines failed: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("expected 3 imported medicines, got %d", count)
+	}
+
+	list, err := medService.ListMedicines("", "", false)
+	if err != nil {
+		t.Fatalf("ListMedicines failed: %v", err)
+	}
+	if len(list) != 3 {
+		t.Errorf("expected 3 medicines in DB, got %d", len(list))
+	}
+}
+

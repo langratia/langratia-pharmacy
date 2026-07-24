@@ -184,9 +184,57 @@ func (s *MedicineService) GetMedicineByID(id int64) (*models.Medicine, error) {
 	return &m, nil
 }
 
+// BulkImportMedicines imports multiple medicines within a single transaction.
+func (s *MedicineService) BulkImportMedicines(medicines []models.Medicine, userID int64, username string) (int, error) {
+	if len(medicines) == 0 {
+		return 0, nil
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`
+		INSERT INTO medicines (
+			name, generic_name, brand_name, category, dosage_strength,
+			medicine_form, pack_size, buying_price, selling_price,
+			current_stock, reorder_level, manufacturer, description, is_archived
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
+	if err != nil {
+		return 0, fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	importedCount := 0
+	for _, med := range medicines {
+		if med.Name == "" {
+			continue
+		}
+		_, err := stmt.Exec(
+			med.Name, med.GenericName, med.BrandName, med.Category, med.DosageStrength,
+			med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
+			med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.Description,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("failed to insert medicine %s: %w", med.Name, err)
+		}
+		importedCount++
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	s.logAction(userID, username, "BULK_IMPORT_MEDICINES", fmt.Sprintf("Bulk imported %d medicines", importedCount))
+	return importedCount, nil
+}
+
 func (s *MedicineService) logAction(userID int64, username, action, details string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
 		userID, username, action, details,
 	)
 }
+
