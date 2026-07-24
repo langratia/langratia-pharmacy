@@ -20,6 +20,7 @@ type App struct {
 	batchService    *services.BatchService
 	supplierService *services.SupplierService
 	purchaseService *services.PurchaseService
+	salesService    *services.SalesService
 }
 
 // NewApp creates a new App application struct
@@ -57,6 +58,7 @@ func (a *App) startup(ctx context.Context) {
 	a.batchService = services.NewBatchService(database)
 	a.supplierService = services.NewSupplierService(database)
 	a.purchaseService = services.NewPurchaseService(database, a.batchService)
+	a.salesService = services.NewSalesService(database, a.batchService)
 }
 
 // Auth API Bindings
@@ -174,4 +176,19 @@ func (a *App) ListPurchases() ([]models.Purchase, error) {
 		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.purchaseService.ListPurchases()
+}
+
+// Sales / POS API Bindings
+func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string) (*models.Sale, error) {
+	if a.salesService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.salesService.ProcessSale(userID, username, items, paymentMethod)
+}
+
+func (a *App) ListRecentSales(limit int) ([]models.Sale, error) {
+	if a.salesService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.salesService.ListRecentSales(limit)
 }
