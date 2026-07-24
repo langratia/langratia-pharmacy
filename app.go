@@ -17,6 +17,7 @@ type App struct {
 	database        *db.DB
 	authService     *services.AuthService
 	medicineService *services.MedicineService
+	batchService    *services.BatchService
 }
 
 // NewApp creates a new App application struct
@@ -51,6 +52,7 @@ func (a *App) startup(ctx context.Context) {
 	a.database = database
 	a.authService = services.NewAuthService(database)
 	a.medicineService = services.NewMedicineService(database)
+	a.batchService = services.NewBatchService(database)
 }
 
 // Auth API Bindings
@@ -102,4 +104,33 @@ func (a *App) ListMedicines(search, category string, includeArchived bool) ([]mo
 		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.medicineService.ListMedicines(search, category, includeArchived)
+}
+
+// Batch & FEFO API Bindings
+func (a *App) AddBatch(batch models.Batch, userID int64, username string) (*models.Batch, error) {
+	if a.batchService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.batchService.AddBatch(batch, userID, username)
+}
+
+func (a *App) GetBatchesByMedicine(medicineID int64) ([]models.Batch, error) {
+	if a.batchService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.batchService.GetBatchesByMedicine(medicineID)
+}
+
+func (a *App) GetExpiringBatches(withinDays int) ([]models.Batch, error) {
+	if a.batchService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.batchService.GetExpiringBatches(withinDays)
+}
+
+func (a *App) AdjustStock(medicineID int64, batchID *int64, userID int64, username string, qtyAdjusted int, reason, notes string) error {
+	if a.batchService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.batchService.AdjustStock(medicineID, batchID, userID, username, qtyAdjusted, reason, notes)
 }
