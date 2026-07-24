@@ -7,8 +7,11 @@ import {
   Users, 
   BarChart3, 
   Settings,
-  Cross
+  Cross,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export type NavItemKey = 'dashboard' | 'pos' | 'inventory' | 'purchases' | 'suppliers' | 'reports' | 'settings';
 
@@ -21,19 +24,29 @@ interface NavItem {
   key: NavItemKey;
   label: string;
   icon: React.ComponentType<{ size?: number; color?: string; className?: string }>;
+  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'pos', label: 'Point of Sale', icon: ShoppingCart },
-  { key: 'inventory', label: 'Inventory', icon: Pill },
-  { key: 'purchases', label: 'Purchases', icon: Truck },
-  { key: 'suppliers', label: 'Suppliers', icon: Users },
-  { key: 'reports', label: 'Reports', icon: BarChart3 },
-  { key: 'settings', label: 'Settings', icon: Settings },
+  { key: 'inventory', label: 'Inventory', icon: Pill, adminOnly: true },
+  { key: 'purchases', label: 'Purchases', icon: Truck, adminOnly: true },
+  { key: 'suppliers', label: 'Suppliers', icon: Users, adminOnly: true },
+  { key: 'reports', label: 'Reports', icon: BarChart3, adminOnly: true },
+  { key: 'settings', label: 'Settings', icon: Settings, adminOnly: true },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView }) => {
+  const { user, logout } = useAuth();
+
+  const filteredNavItems = navItems.filter(item => {
+    if (item.adminOnly && user?.role !== 'admin') {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <aside style={{
       width: 'var(--sidebar-width)',
@@ -78,9 +91,69 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView }) =>
         </div>
       </div>
 
+      {/* User Profile Summary */}
+      {user && (
+        <div style={{
+          padding: '14px 16px',
+          margin: '12px 12px 0 12px',
+          backgroundColor: '#F8FAFC',
+          borderRadius: '10px',
+          border: '1px solid var(--color-border-subtle)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--color-accent-mint)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff'
+            }}>
+              <UserCheck size={16} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-charcoal-navy)' }}>
+                {user.full_name || user.username}
+              </div>
+              <span style={{
+                display: 'inline-block',
+                fontSize: '10px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                backgroundColor: user.role === 'admin' ? '#FEF3C7' : '#E0F2FE',
+                color: user.role === 'admin' ? '#92400E' : '#075985'
+              }}>
+                {user.role}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            title="Logout"
+            style={{
+              padding: '6px',
+              borderRadius: '6px',
+              color: '#EF4444',
+              transition: 'background-color 0.15s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEE2E2'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Navigation List */}
       <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.key;
 

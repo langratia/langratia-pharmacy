@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginPage } from './features/auth/LoginPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { NavItemKey } from './components/layout/Sidebar';
 
@@ -10,8 +12,13 @@ import { SuppliersPage } from './features/suppliers/SuppliersPage';
 import { ReportsPage } from './features/reports/ReportsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 
-function App() {
+const MainApp: React.FC = () => {
+  const { user } = useAuth();
   const [activeView, setActiveView] = useState<NavItemKey>('dashboard');
+
+  if (!user) {
+    return <LoginPage />;
+  }
 
   const renderContent = () => {
     switch (activeView) {
@@ -38,6 +45,14 @@ function App() {
     <MainLayout activeView={activeView} onSelectView={setActiveView}>
       {renderContent()}
     </MainLayout>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }
 
