@@ -290,7 +290,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       />
 
       {/* Filter Toolbar */}
-      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+      <Panel noPadding style={{ padding: '6px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
           <SearchBar
             value={searchQuery}

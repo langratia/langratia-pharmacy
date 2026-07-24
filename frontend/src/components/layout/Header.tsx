@@ -8,9 +8,12 @@ import {
   ShoppingCart, 
   Users, 
   ChevronRight,
-  Plus
+  Plus,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { NavItemKey } from './Sidebar';
 import { getUserAvatarUrl, saveCustomAvatar } from '../../utils/avatar';
 import { SearchBar } from '../ui/SearchBar';
@@ -28,6 +31,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [todaySales, setTodaySales] = useState<number>(0);
   
   // Notification State
@@ -267,6 +271,23 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
 
       {/* Right Toolbar Controls & User Profile Badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Dark / Light Mode Toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to Light Teal Workstation' : 'Switch to Dark Workstation Mode'}
+          style={{
+            width: '26px',
+            height: '26px',
+            padding: 0,
+            borderRadius: '2px',
+            border: '1px solid var(--color-border)',
+            backgroundColor: 'var(--color-panel-bg)',
+            color: 'var(--color-text-primary)'
+          }}
+        >
+          {theme === 'dark' ? <Sun size={14} style={{ color: '#F59E0B' }} /> : <Moon size={14} style={{ color: '#6366F1' }} />}
+        </button>
+
         {/* Today's Sales Counter */}
         <div
           style={{

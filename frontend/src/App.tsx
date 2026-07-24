@@ -95,36 +95,40 @@ const MainApp: React.FC = () => {
   );
 };
 
+import { ThemeProvider } from './context/ThemeContext';
+
 function App() {
   return (
-    <AuthProvider>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#1F2937',
-            color: '#FFFFFF',
-            borderRadius: '6px',
-            fontSize: '13px',
-            fontWeight: 500,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-          },
-          success: {
-            iconTheme: {
-              primary: '#0F8A6A',
-              secondary: '#FFFFFF'
+    <ThemeProvider>
+      <AuthProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#1F2937',
+              color: '#FFFFFF',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: 500,
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+            },
+            success: {
+              iconTheme: {
+                primary: '#0F8A6A',
+                secondary: '#FFFFFF'
+              }
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#FFFFFF'
+              }
             }
-          },
-          error: {
-            iconTheme: {
-              primary: '#EF4444',
-              secondary: '#FFFFFF'
-            }
-          }
-        }}
-      />
-      <MainApp />
-    </AuthProvider>
+          }}
+        />
+        <MainApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

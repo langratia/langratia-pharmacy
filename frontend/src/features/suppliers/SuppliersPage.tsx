@@ -140,7 +140,7 @@ export const SuppliersPage: React.FC = () => {
         }
       />
 
-      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+      <Panel noPadding style={{ padding: '6px 10px' }}>
         <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact representative..." width="320px" showShortcut={false} />
       </Panel>
 

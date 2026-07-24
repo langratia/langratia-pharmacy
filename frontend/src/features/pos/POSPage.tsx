@@ -11,14 +11,15 @@ import {
   CheckCircle,
   CreditCard,
   Banknote,
-  Smartphone
+  Smartphone,
+  Pill,
+  PackageCheck
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
 import { SearchBar } from '../../components/ui/SearchBar';
-import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 
@@ -188,67 +189,20 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
   };
 
-  // Columns for medicine catalog DataGrid
-  const catalogColumns: Column<Medicine>[] = [
-    {
-      key: 'name',
-      header: 'Medicine Name',
-      width: '40%',
-      accessor: (med) => (
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <span style={{ fontWeight: 600, color: '#0F172A' }}>{med.name}</span>
-          <span style={{ fontSize: '10px', color: '#64748B', marginLeft: '6px' }}>({med.dosage_strength || med.medicine_form})</span>
-        </div>
-      )
-    },
-    {
-      key: 'category',
-      header: 'Category',
-      width: '22%',
-      accessor: (med) => (
-        <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '2px' }}>
-          {med.category}
-        </span>
-      )
-    },
-    {
-      key: 'selling_price',
-      header: 'Price (UGX)',
-      width: '20%',
-      align: 'right' as const,
-      accessor: (med) => (
-        <span style={{ fontWeight: 700, color: '#0F8A6A' }}>
-          {med.selling_price.toLocaleString()}
-        </span>
-      )
-    },
-    {
-      key: 'stock',
-      header: 'Stock',
-      width: '18%',
-      align: 'center' as const,
-      accessor: (med) => (
-        <span style={{ fontWeight: 700, color: med.current_stock <= 0 ? '#EF4444' : med.current_stock <= med.reorder_level ? '#D97706' : '#10B981' }}>
-          {med.current_stock}
-        </span>
-      )
-    }
-  ];
-
   const handlePrintReceipt = () => {
     window.print();
   };
 
-  // Primary Pane Content
+  // Primary Pane Content - High Density Desktop Product Cards Grid
   const primaryContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <SectionHeader
         title="Checkout Workstation"
-        subtitle="Search medicine inventory & add line items to cart"
+        subtitle="Search medicine catalog & add product items to cart"
       />
 
       {/* Filter & Search Bar */}
-      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+      <Panel noPadding style={{ padding: '6px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <SearchBar
             value={search}
@@ -258,7 +212,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             showShortcut={false}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Filter size={12} style={{ color: '#64748B' }} />
+            <Filter size={12} style={{ color: 'var(--color-text-muted)' }} />
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -272,19 +226,117 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         </div>
       </Panel>
 
-      {/* Medicine DataGrid Catalog */}
-      <DataGrid
-        columns={catalogColumns}
-        data={medicines}
-        keyExtractor={(row) => row.id}
-        isLoading={isLoading}
-        emptyMessage="No medicines found in catalog."
-        onRowClick={(med) => handleAddToCart(med)}
-        compactRows={true}
-        zebraStriping={true}
-        maxHeight="calc(100vh - 165px)"
-        style={{ flex: 1 }}
-      />
+      {/* Desktop Workspace Product Cards Grid */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          maxHeight: 'calc(100vh - 165px)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))',
+          gap: '8px',
+          padding: '2px',
+          alignContent: 'start'
+        }}
+      >
+        {isLoading ? (
+          <div style={{ gridColumn: '1 / -1', padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            Loading catalog items...
+          </div>
+        ) : medicines.length === 0 ? (
+          <div style={{ gridColumn: '1 / -1', padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            No medicines matching search query.
+          </div>
+        ) : (
+          medicines.map((med) => {
+            const isOutOfStock = med.current_stock <= 0;
+            const isLowStock = med.current_stock > 0 && med.current_stock <= med.reorder_level;
+            const inCart = cart.find(c => c.medicine.id === med.id);
+
+            return (
+              <div
+                key={med.id}
+                className="product-card"
+                onClick={() => handleAddToCart(med)}
+                style={{
+                  opacity: isOutOfStock ? 0.6 : 1,
+                  borderColor: inCart ? 'var(--color-accent)' : undefined
+                }}
+              >
+                {/* Card Top Strip */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      padding: '1px 5px',
+                      backgroundColor: 'var(--color-border-subtle)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '2px',
+                      color: 'var(--color-text-secondary)'
+                    }}
+                  >
+                    {med.category}
+                  </span>
+                  <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                    {med.medicine_form}
+                  </span>
+                </div>
+
+                {/* Medicine Title & Generic Name */}
+                <div style={{ marginBottom: '6px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+                    {med.name}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
+                    {med.generic_name || med.brand_name || '-'} ({med.pack_size || '10x10'})
+                  </div>
+                </div>
+
+                {/* Card Bottom: Price Tag & Add Button */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '4px', borderTop: '1px solid var(--color-border-subtle)' }}>
+                  <div>
+                    <div style={{ fontSize: '9px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Price</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-accent)' }}>
+                      UGX {med.selling_price.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        color: isOutOfStock ? '#EF4444' : isLowStock ? '#D97706' : '#10B981'
+                      }}
+                    >
+                      {isOutOfStock ? 'OUT OF STOCK' : `Stock: ${med.current_stock}`}
+                    </span>
+
+                    <button
+                      disabled={isOutOfStock}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(med);
+                      }}
+                      className="desktop-btn-primary"
+                      style={{
+                        height: '22px',
+                        padding: '0 6px',
+                        fontSize: '10px',
+                        gap: '3px'
+                      }}
+                    >
+                      {inCart ? <PackageCheck size={11} /> : <Plus size={11} />}
+                      <span>{inCart ? `+${inCart.quantity}` : 'Add'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 
@@ -292,11 +344,11 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   const cartContent = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '10px', boxSizing: 'border-box' }}>
       {/* Cart Items List */}
-      <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #CBD5E1', borderRadius: '2px', backgroundColor: '#FFFFFF', padding: '4px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: '2px', backgroundColor: 'var(--color-panel-bg)', padding: '4px' }}>
         {cart.length === 0 ? (
-          <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
+          <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '11px' }}>
             <ShoppingCart size={28} style={{ margin: '0 auto 6px', opacity: 0.5 }} />
-            Cart is empty. Click items in the catalog to add.
+            Cart is empty. Click product cards to add to sale.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -308,16 +360,16 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '6px 8px',
-                  borderBottom: '1px solid #F1F5F9',
-                  backgroundColor: '#F8FAFC'
+                  borderBottom: '1px solid var(--color-border-subtle)',
+                  backgroundColor: 'var(--color-desktop-bg)'
                 }}
               >
                 <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.medicine.name}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#64748B' }}>
-                    UGX {item.medicine.selling_price.toLocaleString()} x {item.quantity} = <strong style={{ color: '#0F8A6A' }}>UGX {(item.medicine.selling_price * item.quantity).toLocaleString()}</strong>
+                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                    UGX {item.medicine.selling_price.toLocaleString()} x {item.quantity} = <strong style={{ color: 'var(--color-accent)' }}>UGX {(item.medicine.selling_price * item.quantity).toLocaleString()}</strong>
                   </div>
                 </div>
 
@@ -352,7 +404,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
       {/* Payment Selection & Total Calculation */}
       <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ fontSize: '10px', fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>
           Payment Method
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
@@ -363,9 +415,9 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               fontSize: '10px',
               fontWeight: 600,
               gap: '4px',
-              backgroundColor: paymentMethod === 'Cash' ? '#ECFDF5' : '#FFFFFF',
-              borderColor: paymentMethod === 'Cash' ? '#0F8A6A' : '#CBD5E1',
-              color: paymentMethod === 'Cash' ? '#065F46' : '#334155'
+              backgroundColor: paymentMethod === 'Cash' ? 'var(--color-accent-light)' : 'var(--color-panel-bg)',
+              borderColor: paymentMethod === 'Cash' ? 'var(--color-accent)' : 'var(--color-border)',
+              color: paymentMethod === 'Cash' ? '#065F46' : 'var(--color-text-primary)'
             }}
           >
             <Banknote size={11} /> Cash
@@ -377,9 +429,9 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               fontSize: '10px',
               fontWeight: 600,
               gap: '4px',
-              backgroundColor: paymentMethod === 'Mobile Money' ? '#ECFDF5' : '#FFFFFF',
-              borderColor: paymentMethod === 'Mobile Money' ? '#0F8A6A' : '#CBD5E1',
-              color: paymentMethod === 'Mobile Money' ? '#065F46' : '#334155'
+              backgroundColor: paymentMethod === 'Mobile Money' ? 'var(--color-accent-light)' : 'var(--color-panel-bg)',
+              borderColor: paymentMethod === 'Mobile Money' ? 'var(--color-accent)' : 'var(--color-border)',
+              color: paymentMethod === 'Mobile Money' ? '#065F46' : 'var(--color-text-primary)'
             }}
           >
             <Smartphone size={11} /> MoMo
@@ -391,9 +443,9 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               fontSize: '10px',
               fontWeight: 600,
               gap: '4px',
-              backgroundColor: paymentMethod === 'Card' ? '#ECFDF5' : '#FFFFFF',
-              borderColor: paymentMethod === 'Card' ? '#0F8A6A' : '#CBD5E1',
-              color: paymentMethod === 'Card' ? '#065F46' : '#334155'
+              backgroundColor: paymentMethod === 'Card' ? 'var(--color-accent-light)' : 'var(--color-panel-bg)',
+              borderColor: paymentMethod === 'Card' ? 'var(--color-accent)' : 'var(--color-border)',
+              color: paymentMethod === 'Card' ? '#065F46' : 'var(--color-text-primary)'
             }}
           >
             <CreditCard size={11} /> Card
@@ -454,25 +506,25 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         >
           <div
             style={{
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #CBD5E1',
+              backgroundColor: 'var(--color-panel-bg)',
+              border: '1px solid var(--color-border)',
               borderRadius: '2px',
               width: '380px',
               padding: '16px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>POS RECEIPT #{completedSale.invoice_number}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
               <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'none' }}><X size={14} /></button>
             </div>
 
-            <div style={{ padding: '12px 0', fontSize: '11px', color: '#334155' }}>
+            <div style={{ padding: '12px 0', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
               <div>Operator: <strong>{completedSale.username}</strong></div>
               <div>Payment Method: <strong>{completedSale.payment_method}</strong></div>
               <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
 
-              <div style={{ margin: '10px 0', borderTop: '1px dashed #CBD5E1', borderBottom: '1px dashed #CBD5E1', padding: '6px 0' }}>
+              <div style={{ margin: '10px 0', borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '6px 0' }}>
                 {completedSale.items?.map((it: any, idx: number) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>{it.medicine_name} x{it.quantity}</span>
@@ -481,7 +533,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, color: '#0F8A6A' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, color: 'var(--color-accent)' }}>
                 <span>TOTAL PAID:</span>
                 <span>UGX {completedSale.total_amount?.toLocaleString()}</span>
               </div>

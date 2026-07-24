@@ -371,7 +371,7 @@ export const InventoryPage: React.FC = () => {
       />
 
       {/* Filter Strip Panel */}
-      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+      <Panel noPadding style={{ padding: '6px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
             <SearchBar

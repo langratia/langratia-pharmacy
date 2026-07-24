@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Desktop Workstation Color Palette */
-  --color-desktop-bg: #E9ECEF;
+  /* Default: Soft Light-Teal Workstation Color Palette */
+  --color-desktop-bg: #EDF7F5;
   --color-panel-bg: #FFFFFF;
-  --color-header-bg: #1E293B;
+  --color-header-bg: #FFFFFF;
   --color-sidebar-bg: #0F172A;
   --color-sidebar-hover: #1E293B;
   --color-sidebar-active: #0F8A6A;
@@ -26,22 +26,7 @@
   --color-text-muted: #64748B;
   --color-text-inverse: #F8FAFC;
 
-  /* Legacy & Compatibility Aliases */
-  --color-emerald-teal: #0F8A6A;
-  --color-mint-teal: #21B39B;
-  --color-deep-teal: #0B6B52;
-  --color-slate-blue: #1E293B;
-  --color-charcoal-navy: #0F172A;
-  --color-soft-white: #E9ECEF;
-  --color-light-silver: #CBD5E1;
-  --color-cool-gray: #64748B;
-  --color-primary-teal: #0F8A6A;
-  --color-secondary-teal: #0B6B52;
-  --color-accent-mint: #21B39B;
-  --color-soft-bg: #E9ECEF;
-  --color-surface-white: #FFFFFF;
-
-  /* Desktop Density & Sizing Tokens */
+  /* Desktop Sizing Tokens */
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 52px;
@@ -49,13 +34,13 @@
   --titlebar-height: 30px;
   --statusbar-height: 24px;
 
-  /* Crisp Desktop Radii (No soft web rounding) */
+  /* Crisp Desktop Radii */
   --radius-sm: 2px;
   --radius-md: 3px;
   --radius-lg: 4px;
   --radius-full: 9999px;
 
-  /* Elevation (No floating drop shadows in desktop workstation) */
+  /* Elevation */
   --shadow-subtle: none;
   --shadow-panel: none;
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -63,6 +48,24 @@
   /* Transitions */
   --transition-fast: all 100ms ease-out;
   --transition-normal: all 150ms ease-out;
+}
+
+/* Dark Mode Theme Tokens */
+[data-theme='dark'] {
+  --color-desktop-bg: #090D16;
+  --color-panel-bg: #151D2A;
+  --color-header-bg: #151D2A;
+  --color-sidebar-bg: #0A0E17;
+  --color-sidebar-hover: #1E293B;
+  --color-sidebar-active: #0F8A6A;
+  --color-border: #2A364F;
+  --color-border-subtle: #1E293B;
+  --color-statusbar-bg: #0A0E17;
+
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted: #94A3B8;
+  --color-selection: #1E3A8A;
 }
 
 html, body, #root {
@@ -106,7 +109,7 @@ button {
 }
 
 button:hover {
-  background-color: #F1F5F9;
+  background-color: rgba(15, 138, 106, 0.08);
 }
 
 button:focus-visible {
@@ -118,7 +121,7 @@ input, select, textarea {
   font-family: inherit;
   font-size: 12px;
   color: var(--color-text-primary);
-  background-color: #FFFFFF;
+  background-color: var(--color-panel-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
@@ -137,7 +140,7 @@ select {
   appearance: auto;
   cursor: pointer;
   font-weight: 500;
-  background-color: #FFFFFF;
+  background-color: var(--color-panel-bg);
 }
 
 a {
@@ -151,14 +154,14 @@ a {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: var(--color-desktop-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--color-border);
   border-radius: 0px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--color-text-muted);
 }
 
 /* Desktop Workstation Layout Classes */
@@ -207,11 +210,11 @@ a {
   transition: background-color 50ms ease-out;
 }
 .datagrid-row:hover {
-  background-color: #F1F5F9 !important;
+  background-color: rgba(15, 138, 106, 0.08) !important;
 }
 .datagrid-row.selected {
-  background-color: #E0F2FE !important;
-  color: #0369A1 !important;
+  background-color: var(--color-selection) !important;
+  color: var(--color-text-primary) !important;
 }
 
 /* Global Utility Classes */
@@ -226,20 +229,32 @@ a {
 }
 
 .desktop-btn-secondary {
-  background-color: #F8FAFC;
-  color: #334155;
+  background-color: var(--color-panel-bg);
+  color: var(--color-text-primary);
   border: 1px solid var(--color-border);
 }
 .desktop-btn-secondary:hover {
-  background-color: #E2E8F0;
+  background-color: rgba(15, 138, 106, 0.08);
 }
 
-.desktop-toolbar {
-  height: var(--header-height);
+/* Workstation Product Card Sizing */
+.product-card {
   background-color: var(--color-panel-bg);
-  border-bottom: 1px solid var(--color-border);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  padding: 0 10px;
+  cursor: pointer;
+  transition: all 120ms ease-out;
+  user-select: none;
+}
+.product-card:hover {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-light);
+  transform: translateY(-1px);
+}
+[data-theme='dark'] .product-card:hover {
+  background-color: rgba(15, 138, 106, 0.15);
 }

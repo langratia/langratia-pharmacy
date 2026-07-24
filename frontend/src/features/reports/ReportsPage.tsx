@@ -139,7 +139,7 @@ export const ReportsPage: React.FC = () => {
       />
 
       {/* Tabs Toolbar */}
-      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+      <Panel noPadding style={{ padding: '6px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
             <button
