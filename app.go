@@ -13,9 +13,10 @@ import (
 
 // App struct
 type App struct {
-	ctx         context.Context
-	database    *db.DB
-	authService *services.AuthService
+	ctx             context.Context
+	database        *db.DB
+	authService     *services.AuthService
+	medicineService *services.MedicineService
 }
 
 // NewApp creates a new App application struct
@@ -49,28 +50,56 @@ func (a *App) startup(ctx context.Context) {
 
 	a.database = database
 	a.authService = services.NewAuthService(database)
+	a.medicineService = services.NewMedicineService(database)
 }
 
-// Login authenticates a user
+// Auth API Bindings
 func (a *App) Login(username, password string) (*models.User, error) {
 	if a.authService == nil {
-		return nil, fmt.Errorf("auth service not initialized")
+		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.authService.Login(username, password)
 }
 
-// CreateUser registers a new user (Admin access required)
 func (a *App) CreateUser(username, password, role, fullName string) (*models.User, error) {
 	if a.authService == nil {
-		return nil, fmt.Errorf("auth service not initialized")
+		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.authService.CreateUser(username, password, role, fullName)
 }
 
-// ListUsers retrieves all registered users
 func (a *App) ListUsers() ([]models.User, error) {
 	if a.authService == nil {
-		return nil, fmt.Errorf("auth service not initialized")
+		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.authService.ListUsers()
+}
+
+// Medicine API Bindings
+func (a *App) AddMedicine(med models.Medicine, userID int64, username string) (*models.Medicine, error) {
+	if a.medicineService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.AddMedicine(med, userID, username)
+}
+
+func (a *App) UpdateMedicine(med models.Medicine, userID int64, username string) error {
+	if a.medicineService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.UpdateMedicine(med, userID, username)
+}
+
+func (a *App) ArchiveMedicine(id int64, archive bool, userID int64, username string) error {
+	if a.medicineService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.ArchiveMedicine(id, archive, userID, username)
+}
+
+func (a *App) ListMedicines(search, category string, includeArchived bool) ([]models.Medicine, error) {
+	if a.medicineService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.ListMedicines(search, category, includeArchived)
 }
