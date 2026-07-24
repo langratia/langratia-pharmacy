@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Medicine, Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
 
@@ -176,25 +177,30 @@ export const PurchasesPage: React.FC = () => {
   // Primary Workspace Pane
   const primaryContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
-      <SectionHeader
-        title="Procurement Workspace"
-        subtitle="Manage supplier invoices, purchase orders, and stock batch receiving logs"
-        actions={
-          <button
-            onClick={() => {
-              setIsCreatingPO(true);
-              setSelectedPurchase(null);
-              setItems([]);
-              setInvoiceNumber(`PO-${Date.now().toString().slice(-6)}`);
-            }}
-            className="desktop-btn-primary"
-            style={{ height: '24px', fontSize: '11px', gap: '4px' }}
-          >
-            <Plus size={12} />
-            <span>New Purchase Order</span>
-          </button>
-        }
-      />
+      {/* 1-Line Compact Application Command Toolbar */}
+      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+            Procurement & Purchase Orders
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => {
+                setIsCreatingPO(true);
+                setSelectedPurchase(null);
+                setItems([]);
+                setInvoiceNumber(`PO-${Date.now().toString().slice(-6)}`);
+              }}
+              className="desktop-btn-primary"
+              style={{ height: '24px', fontSize: '11px', gap: '4px' }}
+            >
+              <Plus size={12} />
+              <span>New Purchase Order</span>
+            </button>
+          </div>
+        </div>
+      </Panel>
 
       <DataGrid
         columns={columns}

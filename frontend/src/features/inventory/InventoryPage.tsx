@@ -342,73 +342,56 @@ export const InventoryPage: React.FC = () => {
         style={{ display: 'none' }}
       />
 
-      {/* Toolbar Header */}
-      <SectionHeader
-        title="Inventory Management Workspace"
-        subtitle={`${medicines.length} Pharmaceutical Master Items Registered`}
-        actions={
-          isAdmin ? (
-            <>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="desktop-btn-secondary"
-                style={{ height: '24px', fontSize: '11px', gap: '4px' }}
-              >
-                <Upload size={12} />
-                <span>Import CSV</span>
-              </button>
-              <button
-                onClick={handleCreateNewRecord}
-                className="desktop-btn-primary"
-                style={{ height: '24px', fontSize: '11px', gap: '4px' }}
-              >
-                <Plus size={12} />
-                <span>Add Medicine</span>
-              </button>
-            </>
-          ) : undefined
-        }
-      />
+      {/* 1-Line Compact Application Command Toolbar */}
+      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+            Inventory Management
+          </div>
 
-      {/* Filter Strip Panel */}
-      <Panel noPadding style={{ padding: '6px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
             <SearchBar
               value={search}
               onChange={setSearch}
-              placeholder="Search medicine, generic composition, brand..."
-              width="300px"
+              placeholder="Search medicine, generic, brand..."
+              width="240px"
               showShortcut={false}
             />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={12} style={{ color: '#64748B' }} />
+              <Filter size={12} style={{ color: 'var(--color-text-muted)' }} />
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                style={{ height: '26px', fontSize: '11px', padding: '2px 6px' }}
+                style={{ height: '26px', fontSize: '11px', padding: '2px 4px' }}
               >
                 {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
+                  <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
             </div>
-          </div>
 
-          {isAdmin && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#334155', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={includeArchived}
-                onChange={(e) => setIncludeArchived(e.target.checked)}
-                style={{ accentColor: '#0F8A6A', width: '13px', height: '13px' }}
-              />
-              <span>Include Archived</span>
-            </label>
-          )}
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="desktop-btn-secondary"
+                  style={{ height: '24px', fontSize: '11px', gap: '4px' }}
+                >
+                  <Upload size={12} />
+                  <span>Import CSV</span>
+                </button>
+                <button
+                  onClick={handleCreateNewRecord}
+                  className="desktop-btn-primary"
+                  style={{ height: '24px', fontSize: '11px', gap: '4px' }}
+                >
+                  <Plus size={12} />
+                  <span>Add Medicine</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </Panel>
 

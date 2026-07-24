@@ -274,43 +274,42 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   // Primary Workspace Content
   const primaryContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
-      <SectionHeader
-        title="Prescription Processing Workspace"
-        subtitle="Manage doctor prescriptions, verify medications, and transfer to checkout"
-        actions={
-          <button
-            onClick={handleOpenNewModal}
-            className="desktop-btn-primary"
-            style={{ height: '24px', fontSize: '11px', gap: '4px' }}
-          >
-            <Plus size={12} />
-            <span>New Prescription</span>
-          </button>
-        }
-      />
+      {/* 1-Line Compact Application Command Toolbar */}
+      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+            Prescription Processing
+          </div>
 
-      {/* Filter Toolbar */}
-      <Panel noPadding style={{ padding: '6px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Search RX number, patient, or doctor..."
-            width="320px"
-            showShortcut={false}
-          />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Filter size={12} style={{ color: '#64748B' }} />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ height: '26px', fontSize: '11px' }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search RX number, patient, doctor..."
+              width="260px"
+              showShortcut={false}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Filter size={12} style={{ color: 'var(--color-text-muted)' }} />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ height: '26px', fontSize: '11px', padding: '2px 4px' }}
+              >
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Dispensed">Dispensed</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+            <button
+              onClick={handleOpenNewModal}
+              className="desktop-btn-primary"
+              style={{ height: '24px', fontSize: '11px', gap: '4px' }}
             >
-              <option value="All">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Dispensed">Dispensed</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+              <Plus size={12} />
+              <span>New Prescription</span>
+            </button>
           </div>
         </div>
       </Panel>

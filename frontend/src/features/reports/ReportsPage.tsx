@@ -127,51 +127,51 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
-      <SectionHeader
-        title="Analytics & Financial Reports Workspace"
-        subtitle="Auditing stock valuations, inventory turn rate, and batch expiration risk matrix"
-        actions={
-          <button onClick={handlePrint} className="desktop-btn-primary" style={{ height: '24px', fontSize: '11px', gap: '4px' }}>
-            <Printer size={12} />
-            <span>Print Report</span>
-          </button>
-        }
-      />
-
-      {/* Tabs Toolbar */}
-      <Panel noPadding style={{ padding: '6px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: '4px' }}>
-            <button
-              onClick={() => setActiveTab('inventory')}
-              style={{
-                height: '24px',
-                fontSize: '11px',
-                fontWeight: 600,
-                backgroundColor: activeTab === 'inventory' ? '#ECFDF5' : '#FFFFFF',
-                borderColor: activeTab === 'inventory' ? '#0F8A6A' : '#CBD5E1',
-                color: activeTab === 'inventory' ? '#065F46' : '#334155'
-              }}
-            >
-              <Package size={12} /> Inventory Valuation ({medicines.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('expiry')}
-              style={{
-                height: '24px',
-                fontSize: '11px',
-                fontWeight: 600,
-                backgroundColor: activeTab === 'expiry' ? '#FEF3C7' : '#FFFFFF',
-                borderColor: activeTab === 'expiry' ? '#F59E0B' : '#CBD5E1',
-                color: activeTab === 'expiry' ? '#B45309' : '#334155'
-              }}
-            >
-              <AlertCircle size={12} /> Expiration Risk ({expiringBatches.length})
-            </button>
+      {/* 1-Line Compact Application Command Toolbar */}
+      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+              Analytics & Financial Reports
+            </div>
+            <div style={{ display: 'flex', gap: '4px', marginLeft: '10px' }}>
+              <button
+                onClick={() => setActiveTab('inventory')}
+                style={{
+                  height: '24px',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  backgroundColor: activeTab === 'inventory' ? 'var(--color-accent-light)' : 'var(--color-panel-bg)',
+                  borderColor: activeTab === 'inventory' ? 'var(--color-accent)' : 'var(--color-border)',
+                  color: activeTab === 'inventory' ? '#065F46' : 'var(--color-text-primary)'
+                }}
+              >
+                <Package size={11} /> Inventory ({medicines.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('expiry')}
+                style={{
+                  height: '24px',
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  backgroundColor: activeTab === 'expiry' ? '#FEF3C7' : 'var(--color-panel-bg)',
+                  borderColor: activeTab === 'expiry' ? '#F59E0B' : 'var(--color-border)',
+                  color: activeTab === 'expiry' ? '#B45309' : 'var(--color-text-primary)'
+                }}
+              >
+                <AlertCircle size={11} /> Expiry Risk ({expiringBatches.length})
+              </button>
+            </div>
           </div>
 
-          <div style={{ fontSize: '11px', color: '#0F172A' }}>
-            Total Inventory Valuation: <strong style={{ color: '#0F8A6A' }}>UGX {totalValuation.toLocaleString()}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-primary)' }}>
+              Valuation: <strong style={{ color: 'var(--color-accent)' }}>UGX {totalValuation.toLocaleString()}</strong>
+            </div>
+            <button onClick={handlePrint} className="desktop-btn-primary" style={{ height: '24px', fontSize: '11px', gap: '4px' }}>
+              <Printer size={12} />
+              <span>Print</span>
+            </button>
           </div>
         </div>
       </Panel>

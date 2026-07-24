@@ -155,10 +155,14 @@ export const SettingsPage: React.FC = () => {
   // Category Sidebar Pane
   const primaryContent = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
-      <SectionHeader
-        title="System Administration Workspace"
-        subtitle="Configure user access control, security policies, database backups, and audit logs"
-      />
+      {/* 1-Line Compact Application Command Toolbar */}
+      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+            System Administration & Control
+          </div>
+        </div>
+      </Panel>
 
       <div style={{ display: 'flex', gap: '8px', flex: 1, overflow: 'hidden' }}>
         {/* Navigation Categories Pane */}
