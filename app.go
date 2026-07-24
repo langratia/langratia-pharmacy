@@ -15,12 +15,15 @@ import (
 type App struct {
 	ctx             context.Context
 	database        *db.DB
+	dbPath          string
 	authService     *services.AuthService
 	medicineService *services.MedicineService
 	batchService    *services.BatchService
 	supplierService *services.SupplierService
 	purchaseService *services.PurchaseService
 	salesService    *services.SalesService
+	reportService   *services.ReportService
+	backupService   *services.BackupService
 }
 
 // NewApp creates a new App application struct
@@ -53,12 +56,15 @@ func (a *App) startup(ctx context.Context) {
 	}
 
 	a.database = database
+	a.dbPath = dbPath
 	a.authService = services.NewAuthService(database)
 	a.medicineService = services.NewMedicineService(database)
 	a.batchService = services.NewBatchService(database)
 	a.supplierService = services.NewSupplierService(database)
 	a.purchaseService = services.NewPurchaseService(database, a.batchService)
 	a.salesService = services.NewSalesService(database, a.batchService)
+	a.reportService = services.NewReportService(database)
+	a.backupService = services.NewBackupService(database, dbPath)
 }
 
 // Auth API Bindings
@@ -191,4 +197,34 @@ func (a *App) ListRecentSales(limit int) ([]models.Sale, error) {
 		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.salesService.ListRecentSales(limit)
+}
+
+// Report & Dashboard API Bindings
+func (a *App) GetDashboardSummary() (*services.DashboardSummary, error) {
+	if a.reportService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.reportService.GetDashboardSummary()
+}
+
+// Backup & Audit Log API Bindings
+func (a *App) ExportDatabase(destPath string, userID int64, username string) error {
+	if a.backupService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.backupService.ExportDatabase(destPath, userID, username)
+}
+
+func (a *App) RestoreDatabase(sourceBackupPath string, userID int64, username string) error {
+	if a.backupService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.backupService.RestoreDatabase(sourceBackupPath, userID, username)
+}
+
+func (a *App) ListAuditLogs(limit int) ([]models.AuditLog, error) {
+	if a.backupService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.backupService.ListAuditLogs(limit)
 }
