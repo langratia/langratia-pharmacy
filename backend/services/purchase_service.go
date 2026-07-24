@@ -151,6 +151,57 @@ func (s *PurchaseService) ListPurchases() ([]models.Purchase, error) {
 	return purchases, nil
 }
 
+// ListPurchasesPaginated retrieves past purchase invoices with pagination support.
+func (s *PurchaseService) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurchases, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	var totalCount int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM purchases`).Scan(&totalCount); err != nil {
+		return nil, fmt.Errorf("failed to count purchases: %w", err)
+	}
+
+	query := `
+		SELECT p.id, p.invoice_number, p.supplier_id, COALESCE(sup.name, ''), p.purchase_date, p.total_amount, COALESCE(p.notes, '')
+		FROM purchases p
+		LEFT JOIN suppliers sup ON p.supplier_id = sup.id
+		ORDER BY p.purchase_date DESC
+		LIMIT ? OFFSET ?`
+
+	rows, err := s.db.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var purchases []models.Purchase
+	for rows.Next() {
+		var p models.Purchase
+		var supplierID sql.NullInt64
+		err := rows.Scan(&p.ID, &p.InvoiceNumber, &supplierID, &p.SupplierName, &p.PurchaseDate, &p.TotalAmount, &p.Notes)
+		if err != nil {
+			return nil, err
+		}
+		if supplierID.Valid {
+			p.SupplierID = &supplierID.Int64
+		}
+		purchases = append(purchases, p)
+	}
+
+	return &models.PaginatedPurchases{
+		Items:      purchases,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+	}, nil
+}
+
+
 func (s *PurchaseService) logAction(userID int64, username, action, details string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,

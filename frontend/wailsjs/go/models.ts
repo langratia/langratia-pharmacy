@@ -155,6 +155,100 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class NotificationItem {
+	    id: string;
+	    type: string;
+	    title: string;
+	    message: string;
+	    severity: string;
+	    target: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NotificationItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.type = source["type"];
+	        this.title = source["title"];
+	        this.message = source["message"];
+	        this.severity = source["severity"];
+	        this.target = source["target"];
+	    }
+	}
+	export class NotificationSummary {
+	    total_count: number;
+	    low_stock_count: number;
+	    expiring_count: number;
+	    items: NotificationItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new NotificationSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.total_count = source["total_count"];
+	        this.low_stock_count = source["low_stock_count"];
+	        this.expiring_count = source["expiring_count"];
+	        this.items = this.convertValues(source["items"], NotificationItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class PaginatedMedicines {
+	    items: Medicine[];
+	    total_count: number;
+	    page: number;
+	    page_size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PaginatedMedicines(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], Medicine);
+	        this.total_count = source["total_count"];
+	        this.page = source["page"];
+	        this.page_size = source["page_size"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class PurchaseItem {
 	    id: number;
 	    purchase_id: number;
@@ -222,6 +316,131 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class PaginatedPurchases {
+	    items: Purchase[];
+	    total_count: number;
+	    page: number;
+	    page_size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PaginatedPurchases(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.items = this.convertValues(source["items"], Purchase);
+	        this.total_count = source["total_count"];
+	        this.page = source["page"];
+	        this.page_size = source["page_size"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class PrescriptionItem {
+	    id: number;
+	    prescription_id: number;
+	    medicine_id: number;
+	    medicine_name?: string;
+	    medicine_price?: number;
+	    current_stock?: number;
+	    dosage: string;
+	    frequency: string;
+	    duration_days: number;
+	    quantity_prescribed: number;
+	    quantity_dispensed: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrescriptionItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.prescription_id = source["prescription_id"];
+	        this.medicine_id = source["medicine_id"];
+	        this.medicine_name = source["medicine_name"];
+	        this.medicine_price = source["medicine_price"];
+	        this.current_stock = source["current_stock"];
+	        this.dosage = source["dosage"];
+	        this.frequency = source["frequency"];
+	        this.duration_days = source["duration_days"];
+	        this.quantity_prescribed = source["quantity_prescribed"];
+	        this.quantity_dispensed = source["quantity_dispensed"];
+	    }
+	}
+	export class Prescription {
+	    id: number;
+	    prescription_number: string;
+	    patient_name: string;
+	    patient_age: number;
+	    patient_phone: string;
+	    doctor_name: string;
+	    doctor_contact: string;
+	    status: string;
+	    notes: string;
+	    created_by?: number;
+	    created_by_name?: string;
+	    // Go type: time
+	    created_at: any;
+	    items?: PrescriptionItem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Prescription(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.prescription_number = source["prescription_number"];
+	        this.patient_name = source["patient_name"];
+	        this.patient_age = source["patient_age"];
+	        this.patient_phone = source["patient_phone"];
+	        this.doctor_name = source["doctor_name"];
+	        this.doctor_contact = source["doctor_contact"];
+	        this.status = source["status"];
+	        this.notes = source["notes"];
+	        this.created_by = source["created_by"];
+	        this.created_by_name = source["created_by_name"];
+	        this.created_at = this.convertValues(source["created_at"], null);
+	        this.items = this.convertValues(source["items"], PrescriptionItem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	
 	
 	export class SaleItem {
 	    id: number;
@@ -297,6 +516,26 @@ export namespace models {
 		}
 	}
 	
+	export class SearchResultItem {
+	    id: number;
+	    category: string;
+	    title: string;
+	    subtitle: string;
+	    target_view: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SearchResultItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.category = source["category"];
+	        this.title = source["title"];
+	        this.subtitle = source["subtitle"];
+	        this.target_view = source["target_view"];
+	    }
+	}
 	export class Supplier {
 	    id: number;
 	    name: string;
@@ -462,6 +701,26 @@ export namespace services {
 	        this.buying_price = source["buying_price"];
 	        this.mfg_date = source["mfg_date"];
 	        this.expiry_date = source["expiry_date"];
+	    }
+	}
+	export class PrescriptionItemInput {
+	    medicine_id: number;
+	    dosage: string;
+	    frequency: string;
+	    duration_days: number;
+	    quantity_prescribed: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrescriptionItemInput(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.medicine_id = source["medicine_id"];
+	        this.dosage = source["dosage"];
+	        this.frequency = source["frequency"];
+	        this.duration_days = source["duration_days"];
+	        this.quantity_prescribed = source["quantity_prescribed"];
 	    }
 	}
 

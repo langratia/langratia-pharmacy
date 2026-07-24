@@ -50,10 +50,42 @@ func InitDB(dbPath string) (*DB, error) {
 	return db, nil
 }
 
-// Migrate executes schema creation scripts.
+// Migrate executes base schema creation scripts and applies versioned incremental migrations.
 func (db *DB) Migrate() error {
-	_, err := db.Exec(Schema)
-	return err
+	if _, err := db.Exec(Schema); err != nil {
+		return fmt.Errorf("failed to execute base schema: %w", err)
+	}
+
+	for _, m := range Migrations {
+		var count int
+		err := db.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE version = ?", m.Version).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("failed to check migration version %d: %w", m.Version, err)
+		}
+
+		if count == 0 {
+			tx, err := db.Begin()
+			if err != nil {
+				return err
+			}
+
+			if _, err := tx.Exec(m.Script); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("failed to apply migration %d (%s): %w", m.Version, m.Description, err)
+			}
+
+			if _, err := tx.Exec("INSERT INTO schema_migrations (version) VALUES (?)", m.Version); err != nil {
+				tx.Rollback()
+				return fmt.Errorf("failed to record migration version %d: %w", m.Version, err)
+			}
+
+			if err := tx.Commit(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // seedDefaultAdmin checks if the users table is empty and creates an admin user (admin / admin123).

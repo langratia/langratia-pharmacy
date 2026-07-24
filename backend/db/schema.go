@@ -124,4 +124,54 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS prescriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    prescription_number TEXT UNIQUE NOT NULL,
+    patient_name TEXT NOT NULL,
+    patient_age INTEGER,
+    patient_phone TEXT,
+    doctor_name TEXT NOT NULL,
+    doctor_contact TEXT,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    notes TEXT,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS prescription_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    prescription_id INTEGER NOT NULL,
+    medicine_id INTEGER NOT NULL,
+    dosage TEXT NOT NULL,
+    frequency TEXT NOT NULL,
+    duration_days INTEGER NOT NULL DEFAULT 1,
+    quantity_prescribed INTEGER NOT NULL,
+    quantity_dispensed INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(prescription_id) REFERENCES prescriptions(id) ON DELETE CASCADE,
+    FOREIGN KEY(medicine_id) REFERENCES medicines(id)
+);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 `
+
+type Migration struct {
+	Version     int
+	Description string
+	Script      string
+}
+
+// Migrations contains incremental versioned database upgrades
+var Migrations = []Migration{
+	// Example future migration:
+	// {
+	// 	Version:     1,
+	// 	Description: "Add notes column to suppliers",
+	// 	Script:      "ALTER TABLE suppliers ADD COLUMN notes TEXT;",
+	// },
+}
+

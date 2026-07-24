@@ -120,3 +120,73 @@ type AuditLog struct {
 	Details   string    `json:"details"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+type PaginatedMedicines struct {
+	Items      []Medicine `json:"items"`
+	TotalCount int        `json:"total_count"`
+	Page       int        `json:"page"`
+	PageSize   int        `json:"page_size"`
+}
+
+type PaginatedPurchases struct {
+	Items      []Purchase `json:"items"`
+	TotalCount int        `json:"total_count"`
+	Page       int        `json:"page"`
+	PageSize   int        `json:"page_size"`
+}
+
+type PrescriptionItem struct {
+	ID                 int64   `json:"id"`
+	PrescriptionID     int64   `json:"prescription_id"`
+	MedicineID         int64   `json:"medicine_id"`
+	MedicineName       string  `json:"medicine_name,omitempty"`
+	MedicinePrice      float64 `json:"medicine_price,omitempty"`
+	CurrentStock       int     `json:"current_stock,omitempty"`
+	Dosage             string  `json:"dosage"`
+	Frequency          string  `json:"frequency"`
+	DurationDays       int     `json:"duration_days"`
+	QuantityPrescribed int     `json:"quantity_prescribed"`
+	QuantityDispensed  int     `json:"quantity_dispensed"`
+}
+
+type Prescription struct {
+	ID                 int64              `json:"id"`
+	PrescriptionNumber string             `json:"prescription_number"`
+	PatientName        string             `json:"patient_name"`
+	PatientAge         int                `json:"patient_age"`
+	PatientPhone       string             `json:"patient_phone"`
+	DoctorName         string             `json:"doctor_name"`
+	DoctorContact      string             `json:"doctor_contact"`
+	Status             string             `json:"status"` // "Pending", "Dispensed", "Cancelled"
+	Notes              string             `json:"notes"`
+	CreatedBy          *int64             `json:"created_by,omitempty"`
+	CreatedByName      string             `json:"created_by_name,omitempty"`
+	CreatedAt          time.Time          `json:"created_at"`
+	Items              []PrescriptionItem `json:"items,omitempty"`
+}
+
+type NotificationItem struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"` // "low_stock", "expiring_batch"
+	Title    string `json:"title"`
+	Message  string `json:"message"`
+	Severity string `json:"severity"` // "warning", "danger"
+	Target   string `json:"target"`   // "inventory", "pos"
+}
+
+type NotificationSummary struct {
+	TotalCount    int                `json:"total_count"`
+	LowStockCount int                `json:"low_stock_count"`
+	ExpiringCount int                `json:"expiring_count"`
+	Items         []NotificationItem `json:"items"`
+}
+
+type SearchResultItem struct {
+	ID         int64  `json:"id"`
+	Category   string `json:"category"` // "Medicine", "Sale", "Prescription", "Supplier"
+	Title      string `json:"title"`
+	Subtitle   string `json:"subtitle"`
+	TargetView string `json:"target_view"`
+}
+
+

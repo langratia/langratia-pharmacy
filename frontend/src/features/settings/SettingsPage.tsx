@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Database, FileText, Download, Upload, Shield } from 'lucide-react';
-import { ListUsers, CreateUser, ExportDatabase, RestoreDatabase, ListAuditLogs } from '../../../wailsjs/go/main/App';
+import { Users, Database, FileText, Download, Upload, Shield, AlertTriangle } from 'lucide-react';
+import { ListUsers, CreateUser, ExportDatabase, RestoreDatabase, ListAuditLogs, ResetAndSeedDatabase } from '../../../wailsjs/go/main/App';
 import { models } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
+
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -107,6 +108,23 @@ export const SettingsPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  const handleSeedDatabase = async () => {
+    const confirmSeed = window.confirm("CRITICAL WARNING: This will WIPE ALL EXISTING DATA and replace it with ~100 realistic testing records. This action cannot be undone. Are you absolutely sure you want to proceed?");
+    if (!confirmSeed) return;
+
+    try {
+      setIsLoading(true);
+      showMessage('success', 'Wiping database and seeding realistic test data... Please wait.');
+      await ResetAndSeedDatabase();
+      showMessage('success', 'Database successfully reset and seeded with realistic test data! Please refresh or navigate to other tabs to see the new data.');
+    } catch (err: any) {
+      showMessage('error', err.message || 'Failed to seed database');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -300,8 +318,27 @@ export const SettingsPage: React.FC = () => {
                 Restore from Backup
               </button>
             </div>
+
+            <div style={{ padding: '24px', border: '1px solid #FCD34D', backgroundColor: '#FFFBEB', borderRadius: '8px', marginTop: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ padding: '10px', backgroundColor: '#FEF3C7', color: '#D97706', borderRadius: '8px' }}>
+                  <AlertTriangle size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#B45309' }}>Factory Reset & Seed Test Data</h3>
+                  <p style={{ fontSize: '13px', color: '#92400E' }}>Wipes existing DB and populates 100 realistic testing records (Medicines, Batches, Sales).</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleSeedDatabase} disabled={isLoading}
+                style={{ padding: '10px 20px', backgroundColor: '#D97706', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Reset & Seed Database
+              </button>
+            </div>
           </div>
         )}
+
 
         {/* AUDIT TAB */}
         {activeTab === 'audit' && (

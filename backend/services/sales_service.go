@@ -162,9 +162,28 @@ func (s *SalesService) ListRecentSales(limit int) ([]models.Sale, error) {
 	return sales, nil
 }
 
+// GetUserTodaySalesTotal retrieves the sum of total_amount for sales made by the user today.
+func (s *SalesService) GetUserTodaySalesTotal(userID int64) (float64, error) {
+	var total sql.NullFloat64
+	query := `
+		SELECT SUM(total_amount) 
+		FROM sales 
+		WHERE user_id = ? AND DATE(sale_date, 'localtime') = DATE('now', 'localtime')`
+	
+	err := s.db.QueryRow(query, userID).Scan(&total)
+	if err != nil && err != sql.ErrNoRows {
+		return 0.0, err
+	}
+	if !total.Valid {
+		return 0.0, nil
+	}
+	return total.Float64, nil
+}
+
 func (s *SalesService) logAction(userID int64, username, action, details string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
 		userID, username, action, details,
 	)
 }
+

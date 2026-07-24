@@ -88,3 +88,26 @@ func TestMedicineAndBatchSchema(t *testing.T) {
 		t.Errorf("expected stock 100, got %d", stock)
 	}
 }
+
+func TestSchemaMigrations(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "langratia_test_*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	dbPath := filepath.Join(tempDir, "pharmacy_test.db")
+	database, err := InitDB(dbPath)
+	if err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	defer database.Close()
+
+	// Verify schema_migrations table exists
+	var count int
+	err = database.QueryRow("SELECT COUNT(*) FROM schema_migrations").Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to query schema_migrations table: %v", err)
+	}
+}
+

@@ -13,6 +13,10 @@ export function AdjustStock(arg1:number,arg2:any,arg3:number,arg4:string,arg5:nu
 
 export function ArchiveMedicine(arg1:number,arg2:boolean,arg3:number,arg4:string):Promise<void>;
 
+export function BulkImportMedicines(arg1:Array<models.Medicine>,arg2:number,arg3:string):Promise<number>;
+
+export function CreatePrescription(arg1:number,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:string,arg9:Array<services.PrescriptionItemInput>):Promise<models.Prescription>;
+
 export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string):Promise<models.User>;
 
 export function ExportDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
@@ -23,11 +27,25 @@ export function GetDashboardSummary():Promise<services.DashboardSummary>;
 
 export function GetExpiringBatches(arg1:number):Promise<Array<models.Batch>>;
 
+export function GetNotificationsSummary():Promise<models.NotificationSummary>;
+
+export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>;
+
+export function GetUserTodaySalesTotal(arg1:number):Promise<number>;
+
+export function GlobalSearch(arg1:string,arg2:string):Promise<Array<models.SearchResultItem>>;
+
 export function ListAuditLogs(arg1:number):Promise<Array<models.AuditLog>>;
 
 export function ListMedicines(arg1:string,arg2:string,arg3:boolean):Promise<Array<models.Medicine>>;
 
+export function ListMedicinesPaginated(arg1:string,arg2:string,arg3:boolean,arg4:number,arg5:number):Promise<models.PaginatedMedicines>;
+
+export function ListPrescriptions(arg1:string,arg2:number):Promise<Array<models.Prescription>>;
+
 export function ListPurchases():Promise<Array<models.Purchase>>;
+
+export function ListPurchasesPaginated(arg1:number,arg2:number):Promise<models.PaginatedPurchases>;
 
 export function ListRecentSales(arg1:number):Promise<Array<models.Sale>>;
 
@@ -41,8 +59,12 @@ export function ProcessSale(arg1:number,arg2:string,arg3:Array<services.CartItem
 
 export function RecordPurchase(arg1:string,arg2:any,arg3:Array<services.IncomingStockItem>,arg4:string,arg5:number,arg6:string):Promise<models.Purchase>;
 
+export function ResetAndSeedDatabase():Promise<void>;
+
 export function RestoreDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
 
 export function UpdateMedicine(arg1:models.Medicine,arg2:number,arg3:string):Promise<void>;
+
+export function UpdatePrescriptionStatus(arg1:number,arg2:string,arg3:number,arg4:string):Promise<void>;
 
 export function UpdateSupplier(arg1:models.Supplier,arg2:number,arg3:string):Promise<void>;

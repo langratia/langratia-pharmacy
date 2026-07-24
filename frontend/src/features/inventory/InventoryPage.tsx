@@ -1,19 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { 
   Pill, 
-  Search, 
   Plus, 
+  Search, 
   Edit, 
   Archive, 
   RotateCcw, 
-  AlertTriangle, 
-  CheckCircle2, 
-  Filter,
+  Upload, 
+  AlertCircle,
   X,
-  Upload
+  Layers,
+  Calendar,
+  Building,
+  DollarSign,
+  Filter,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { ListMedicines, AddMedicine, UpdateMedicine, ArchiveMedicine, BulkImportMedicines } from '../../../wailsjs/go/main/App';
+
 
 const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'created_at'> & { current_stock?: number } = {
   name: '',
@@ -56,69 +66,24 @@ export const InventoryPage: React.FC = () => {
   const fetchMedicines = async () => {
     setIsLoading(true);
     try {
-      const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp && typeof wailsApp.ListMedicines === 'function') {
-        const data: Medicine[] = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, includeArchived && isAdmin);
-        setMedicines(data || []);
-      } else {
-        // Mock data for preview
-        const mockData: Medicine[] = [
-          {
-            id: 1,
-            name: 'Amoxicillin',
-            generic_name: 'Amoxicillin Trihydrate',
-            brand_name: 'Amoxil',
-            category: 'Antibiotics',
-            dosage_strength: '500mg',
-            medicine_form: 'Capsule',
-            pack_size: '10x10',
-            buying_price: 15000,
-            selling_price: 25000,
-            current_stock: 45,
-            reorder_level: 20,
-            manufacturer: 'GSK',
-            description: 'Broad-spectrum antibiotic',
-            is_archived: false,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            name: 'Paracetamol',
-            generic_name: 'Acetaminophen',
-            brand_name: 'Panadol',
-            category: 'Analgesics',
-            dosage_strength: '500mg',
-            medicine_form: 'Tablet',
-            pack_size: '100s',
-            buying_price: 4000,
-            selling_price: 8000,
-            current_stock: 8,
-            reorder_level: 15,
-            manufacturer: 'GlaxoSmithKline',
-            description: 'Analgesic and antipyretic',
-            is_archived: false,
-            created_at: new Date().toISOString()
-          }
-        ];
-        const filtered = mockData.filter(m => {
-          if (!includeArchived && m.is_archived) return false;
-          if (category !== 'All' && m.category !== category) return false;
-          if (search) {
-            const query = search.toLowerCase();
-            return m.name.toLowerCase().includes(query) ||
-              m.generic_name.toLowerCase().includes(query) ||
-              m.brand_name.toLowerCase().includes(query);
-          }
-          return true;
-        });
-        setMedicines(filtered);
+      let data: Medicine[] = [];
+      try {
+        data = await ListMedicines(search, category === 'All' ? '' : category, includeArchived && isAdmin);
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.ListMedicines === 'function') {
+          data = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, includeArchived && isAdmin);
+        }
       }
-    } catch (err) {
+      setMedicines(data || []);
+    } catch (err: any) {
       console.error('Failed to fetch medicines', err);
+      toast.error('Failed to load medicines from backend database');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchMedicines();
@@ -305,7 +270,7 @@ export const InventoryPage: React.FC = () => {
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
             Medicine Inventory
           </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+          <p style={{ color: 'var(--color-cool-gray)', fontSize: '14px' }}>
             {isAdmin 
               ? 'Manage pharmaceutical products, stock thresholds, pricing, and master registry.' 
               : 'Search medicine prices, stock levels, categories, and dosage forms.'}
@@ -321,42 +286,31 @@ export const InventoryPage: React.FC = () => {
                 alignItems: 'center',
                 gap: '8px',
                 padding: '12px 18px',
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--color-surface-white)',
                 color: 'var(--color-charcoal-navy)',
-                borderRadius: '10px',
+                borderRadius: 'var(--radius-md)',
                 fontWeight: 600,
                 fontSize: '14px',
-                border: '1px solid var(--color-border-subtle)',
+                border: '1px solid var(--color-light-silver)',
+                boxShadow: 'var(--shadow-sm)',
                 cursor: 'pointer'
               }}
             >
-              <Upload size={18} />
+              <Upload size={18} color="var(--color-emerald-teal)" />
               <span>Import CSV</span>
             </button>
 
             <button
               onClick={handleOpenAddModal}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 20px',
-                backgroundColor: 'var(--color-primary-teal)',
-                color: '#ffffff',
-                borderRadius: '10px',
-                fontWeight: 600,
-                fontSize: '14px',
-                boxShadow: '0 4px 12px rgba(26, 157, 139, 0.25)',
-                border: 'none',
-                cursor: 'pointer'
-              }}
+              className="btn-primary"
             >
               <Plus size={18} />
-              <span>Add New Medicine</span>
+              <span>Add Medicine</span>
             </button>
           </div>
         )}
       </div>
+
 
       {/* Search & Filters */}
       <div style={{

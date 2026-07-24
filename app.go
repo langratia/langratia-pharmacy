@@ -13,17 +13,20 @@ import (
 
 // App struct
 type App struct {
-	ctx             context.Context
-	database        *db.DB
-	dbPath          string
-	authService     *services.AuthService
-	medicineService *services.MedicineService
-	batchService    *services.BatchService
-	supplierService *services.SupplierService
-	purchaseService *services.PurchaseService
-	salesService    *services.SalesService
-	reportService   *services.ReportService
-	backupService   *services.BackupService
+	ctx                 context.Context
+	database            *db.DB
+	dbPath              string
+	authService         *services.AuthService
+	medicineService     *services.MedicineService
+	batchService        *services.BatchService
+	supplierService     *services.SupplierService
+	purchaseService     *services.PurchaseService
+	salesService        *services.SalesService
+	reportService       *services.ReportService
+	backupService       *services.BackupService
+	prescriptionService *services.PrescriptionService
+	notificationService *services.NotificationService
+	searchService       *services.SearchService
 }
 
 // NewApp creates a new App application struct
@@ -65,6 +68,9 @@ func (a *App) startup(ctx context.Context) {
 	a.salesService = services.NewSalesService(database, a.batchService)
 	a.reportService = services.NewReportService(database)
 	a.backupService = services.NewBackupService(database, dbPath)
+	a.prescriptionService = services.NewPrescriptionService(database)
+	a.notificationService = services.NewNotificationService(database)
+	a.searchService = services.NewSearchService(database)
 }
 
 // Auth API Bindings
@@ -117,6 +123,14 @@ func (a *App) ListMedicines(search, category string, includeArchived bool) ([]mo
 	}
 	return a.medicineService.ListMedicines(search, category, includeArchived)
 }
+
+func (a *App) ListMedicinesPaginated(search, category string, includeArchived bool, page, pageSize int) (*models.PaginatedMedicines, error) {
+	if a.medicineService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.ListMedicinesPaginated(search, category, includeArchived, page, pageSize)
+}
+
 
 func (a *App) BulkImportMedicines(medicines []models.Medicine, userID int64, username string) (int, error) {
 	if a.medicineService == nil {
@@ -192,6 +206,14 @@ func (a *App) ListPurchases() ([]models.Purchase, error) {
 	return a.purchaseService.ListPurchases()
 }
 
+func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurchases, error) {
+	if a.purchaseService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.purchaseService.ListPurchasesPaginated(page, pageSize)
+}
+
+
 // Sales / POS API Bindings
 func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string) (*models.Sale, error) {
 	if a.salesService == nil {
@@ -236,3 +258,66 @@ func (a *App) ListAuditLogs(limit int) ([]models.AuditLog, error) {
 	}
 	return a.backupService.ListAuditLogs(limit)
 }
+
+// ResetAndSeedDatabase drops all table contents and seeds realistic testing records.
+func (a *App) ResetAndSeedDatabase() error {
+	if a.database == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	return a.database.SeedDatabase()
+}
+
+// User Daily Sales API Binding
+func (a *App) GetUserTodaySalesTotal(userID int64) (float64, error) {
+	if a.salesService == nil {
+		return 0.0, fmt.Errorf("service not initialized")
+	}
+	return a.salesService.GetUserTodaySalesTotal(userID)
+}
+
+// Notification API Binding
+func (a *App) GetNotificationsSummary() (*models.NotificationSummary, error) {
+	if a.notificationService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.notificationService.GetNotificationsSummary()
+}
+
+// Global Search API Binding
+func (a *App) GlobalSearch(query string, userRole string) ([]models.SearchResultItem, error) {
+	if a.searchService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.searchService.GlobalSearch(query, userRole)
+}
+
+// Prescription API Bindings
+func (a *App) CreatePrescription(userID int64, username string, patientName string, patientAge int, patientPhone string, doctorName string, doctorContact string, notes string, items []services.PrescriptionItemInput) (*models.Prescription, error) {
+	if a.prescriptionService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.prescriptionService.CreatePrescription(userID, username, patientName, patientAge, patientPhone, doctorName, doctorContact, notes, items)
+}
+
+func (a *App) ListPrescriptions(status string, limit int) ([]models.Prescription, error) {
+	if a.prescriptionService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.prescriptionService.ListPrescriptions(status, limit)
+}
+
+func (a *App) GetPrescriptionDetails(prescriptionID int64) (*models.Prescription, error) {
+	if a.prescriptionService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.prescriptionService.GetPrescriptionDetails(prescriptionID)
+}
+
+func (a *App) UpdatePrescriptionStatus(userID int64, username string, prescriptionID int64, status string) error {
+	if a.prescriptionService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.prescriptionService.UpdatePrescriptionStatus(userID, username, prescriptionID, status)
+}
+
+

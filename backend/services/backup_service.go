@@ -57,7 +57,7 @@ func (s *BackupService) ExportDatabase(destPath string, userID int64, username s
 	return nil
 }
 
-// RestoreDatabase restores database from backup file.
+// RestoreDatabase safely closes the active database pool, overwrites the DB file, and re-initializes the pool.
 func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, username string) error {
 	if sourceBackupPath == "" {
 		return errors.New("source backup path is required")
@@ -69,24 +69,49 @@ func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, u
 	}
 	defer srcFile.Close()
 
-	// Close active DB connections temporarily
+	// 1. Flush WAL logs
 	if _, err := s.db.Exec("PRAGMA wal_checkpoint(FULL);"); err != nil {
-		return err
+		// Ignore error if checkpoint fails, attempt close anyway
 	}
 
+	// 2. Close active connection pool to release OS file locks
+	if err := s.db.Close(); err != nil {
+		return fmt.Errorf("failed to close active database connection: %w", err)
+	}
+
+	// 3. Overwrite database file
 	destFile, err := os.Create(s.dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open target db for overwrite: %w", err)
 	}
-	defer destFile.Close()
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
+		destFile.Close()
 		return fmt.Errorf("failed to write restored database: %w", err)
 	}
+	destFile.Close()
+
+	// 4. Re-open SQLite connection pool
+	newSqlDB, err := sql.Open("sqlite", s.dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to re-open restored database: %w", err)
+	}
+
+	// Re-enable WAL & Foreign Keys
+	if _, err := newSqlDB.Exec("PRAGMA journal_mode = WAL;"); err != nil {
+		return fmt.Errorf("failed to set WAL mode on restored db: %w", err)
+	}
+	if _, err := newSqlDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		return fmt.Errorf("failed to enable foreign keys on restored db: %w", err)
+	}
+
+	// Mutate underlying *sql.DB in the shared *db.DB reference
+	s.db.DB = newSqlDB
 
 	s.logAction(userID, username, "DATABASE_RESTORE", fmt.Sprintf("Restored database from %s", sourceBackupPath))
 	return nil
 }
+
 
 // ListAuditLogs retrieves audit trail entries.
 func (s *BackupService) ListAuditLogs(limit int) ([]models.AuditLog, error) {

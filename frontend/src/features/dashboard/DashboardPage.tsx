@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { 
   TrendingUp, 
   Pill, 
@@ -8,10 +10,13 @@ import {
   Truck, 
   ArrowUpRight, 
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
+import { GetDashboardSummary } from '../../../wailsjs/go/main/App';
 
 export const DashboardPage: React.FC = () => {
+  const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<any>({
     sales_today: 0,
     total_medicines: 0,
@@ -23,35 +28,43 @@ export const DashboardPage: React.FC = () => {
   });
 
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp && typeof wailsApp.GetDashboardSummary === 'function') {
-        const data = await wailsApp.GetDashboardSummary();
-        setSummary(data || {});
-      } else {
-        setSummary({
-          sales_today: 485000,
-          total_medicines: 124,
-          low_stock_count: 5,
-          out_of_stock_count: 2,
-          expiring_soon_count: 4,
-          recent_sales: [
-            { id: 101, invoice_number: 'INV-POS-2026-001', username: 'cashier', sale_date: new Date().toISOString(), total_amount: 45000, payment_method: 'Cash' },
-            { id: 102, invoice_number: 'INV-POS-2026-002', username: 'admin', sale_date: new Date().toISOString(), total_amount: 120000, payment_method: 'Mobile Money' }
-          ],
-          recent_purchases: [
-            { id: 501, invoice_number: 'INV-SUP-882', supplier_name: 'Quality Chemicals Uganda', purchase_date: new Date().toISOString(), total_amount: 1250000, notes: 'Restock Antibiotics' }
-          ]
-        });
+      let data: any = null;
+      try {
+        data = await GetDashboardSummary();
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.GetDashboardSummary === 'function') {
+          data = await wailsApp.GetDashboardSummary();
+        }
       }
-    } catch (err) {
+      setSummary(data || {
+        sales_today: 485000,
+        total_medicines: 124,
+        low_stock_count: 5,
+        out_of_stock_count: 2,
+        expiring_soon_count: 4,
+        recent_sales: [
+          { id: 101, invoice_number: 'INV-POS-2026-001', username: 'cashier', sale_date: new Date().toISOString(), total_amount: 45000, payment_method: 'Cash' },
+          { id: 102, invoice_number: 'INV-POS-2026-002', username: 'admin', sale_date: new Date().toISOString(), total_amount: 120000, payment_method: 'Mobile Money' }
+        ],
+        recent_purchases: [
+          { id: 501, invoice_number: 'INV-SUP-882', supplier_name: 'Quality Chemicals Uganda', purchase_date: new Date().toISOString(), total_amount: 1250000, notes: 'Restock Antibiotics' }
+        ]
+      });
+    } catch (err: any) {
       console.error(err);
+      toast.error('Failed to load live metrics from backend');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
 
   const kpiCards = [
     {
@@ -60,7 +73,7 @@ export const DashboardPage: React.FC = () => {
       subtitle: "Completed POS transactions",
       icon: TrendingUp,
       bgColor: '#F0FDF9',
-      iconColor: 'var(--color-primary-teal)',
+      iconColor: 'var(--color-emerald-teal)',
       borderColor: '#CCFBF1'
     },
     {
@@ -69,8 +82,8 @@ export const DashboardPage: React.FC = () => {
       subtitle: "Active stock items",
       icon: Pill,
       bgColor: '#F1F5F9',
-      iconColor: '#475569',
-      borderColor: '#E2E8F0'
+      iconColor: 'var(--color-slate-blue)',
+      borderColor: 'var(--color-light-silver)'
     },
     {
       title: "Low Stock Alert",
@@ -86,7 +99,7 @@ export const DashboardPage: React.FC = () => {
       value: summary.out_of_stock_count || 0,
       subtitle: "Zero inventory count",
       icon: ShieldAlert,
-      bgColor: '#FEE2E2',
+      bgColor: '#FEF2F2',
       iconColor: '#DC2626',
       borderColor: '#FCA5A5'
     },
@@ -102,50 +115,49 @@ export const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: '28px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
+      <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
           Pharmacy Dashboard
         </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
+        <p style={{ color: 'var(--color-cool-gray)', fontSize: '14px' }}>
           Real-time operational summary, stock health indicators, and recent transactions.
         </p>
       </div>
 
       {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px', marginBottom: '28px' }}>
         {kpiCards.map((card, idx) => {
           const Icon = card.icon;
           return (
             <div
               key={idx}
+              className="card-container"
               style={{
-                backgroundColor: '#fff',
-                borderRadius: '14px',
+                borderRadius: 'var(--radius-lg)',
                 border: `1px solid ${card.borderColor}`,
                 padding: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
               }}
             >
               <div>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-cool-gray)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {card.title}
                 </span>
                 <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginTop: '4px', marginBottom: '4px' }}>
                   {card.value}
                 </div>
-                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-cool-gray)' }}>
                   {card.subtitle}
                 </span>
               </div>
               <div style={{
                 width: '44px',
                 height: '44px',
-                borderRadius: '12px',
+                borderRadius: 'var(--radius-md)',
                 backgroundColor: card.bgColor,
                 display: 'flex',
                 alignItems: 'center',
@@ -158,6 +170,7 @@ export const DashboardPage: React.FC = () => {
           );
         })}
       </div>
+
 
       {/* Tables Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>

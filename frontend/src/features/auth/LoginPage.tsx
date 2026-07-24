@@ -19,45 +19,46 @@ export const LoginPage: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'var(--color-soft-bg)',
+      backgroundColor: 'var(--color-soft-white)',
       padding: '20px',
-      background: 'linear-gradient(135deg, #F8FAFC 0%, #E6F4F1 100%)'
+      background: 'linear-gradient(135deg, #F8FAFC 0%, #E6F4F1 50%, #E2E8F0 100%)'
     }}>
       <div style={{
         width: '100%',
         maxWidth: '420px',
         backgroundColor: 'var(--color-surface-white)',
-        borderRadius: '16px',
-        boxShadow: '0 20px 40px rgba(15, 118, 110, 0.08), 0 2px 8px rgba(0,0,0,0.04)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-lg), 0 20px 40px rgba(15, 118, 110, 0.08)',
         padding: '40px 32px',
-        border: '1px solid var(--color-border-subtle)'
+        border: '1px solid var(--color-light-silver)'
       }}>
         {/* Header Logo */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '14px',
-            backgroundColor: 'var(--color-primary-teal)',
+            width: '60px',
+            height: '60px',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--color-emerald-teal)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#ffffff',
-            boxShadow: '0 8px 16px rgba(26, 157, 139, 0.25)',
+            boxShadow: 'var(--shadow-emerald)',
             marginBottom: '16px'
           }}>
-            <Cross size={32} />
+            <Cross size={34} />
           </div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '6px' }}>
             Langratia Pharmacy
           </h1>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-            Offline Management System • Login
+          <p style={{ fontSize: '13px', color: 'var(--color-cool-gray)', fontWeight: 500 }}>
+            Enterprise POS • Offline Authentication
           </p>
         </div>
 
         {/* Error Alert */}
         {error && (
+
           <div style={{
             display: 'flex',
             alignItems: 'center',

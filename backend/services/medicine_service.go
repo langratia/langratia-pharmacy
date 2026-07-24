@@ -159,6 +159,79 @@ func (s *MedicineService) ListMedicines(search, category string, includeArchived
 	return medicines, nil
 }
 
+// ListMedicinesPaginated retrieves medicines with pagination support.
+func (s *MedicineService) ListMedicinesPaginated(search, category string, includeArchived bool, page, pageSize int) (*models.PaginatedMedicines, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	baseWhere := ` WHERE 1=1`
+	var args []interface{}
+
+	if !includeArchived {
+		baseWhere += ` AND is_archived = 0`
+	}
+	if category != "" && category != "All" {
+		baseWhere += ` AND category = ?`
+		args = append(args, category)
+	}
+	if search != "" {
+		baseWhere += ` AND (name LIKE ? OR generic_name LIKE ? OR brand_name LIKE ?)`
+		pattern := "%" + search + "%"
+		args = append(args, pattern, pattern, pattern)
+	}
+
+	// 1. Get total count
+	countQuery := `SELECT COUNT(*) FROM medicines` + baseWhere
+	var totalCount int
+	if err := s.db.QueryRow(countQuery, args...).Scan(&totalCount); err != nil {
+		return nil, fmt.Errorf("failed to count medicines: %w", err)
+	}
+
+	// 2. Query paginated records
+	query := `
+		SELECT id, name, generic_name, brand_name, category, dosage_strength,
+		       medicine_form, pack_size, buying_price, selling_price, current_stock,
+		       reorder_level, manufacturer, description, is_archived, created_at
+		FROM medicines` + baseWhere + ` ORDER BY name ASC LIMIT ? OFFSET ?`
+
+	queryArgs := append(args, pageSize, offset)
+
+	rows, err := s.db.Query(query, queryArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query medicines: %w", err)
+	}
+	defer rows.Close()
+
+	var medicines []models.Medicine
+	for rows.Next() {
+		var m models.Medicine
+		var isArchivedInt int
+		err := rows.Scan(
+			&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Category, &m.DosageStrength,
+			&m.MedicineForm, &m.PackSize, &m.BuyingPrice, &m.SellingPrice, &m.CurrentStock,
+			&m.ReorderLevel, &m.Manufacturer, &m.Description, &isArchivedInt, &m.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		m.IsArchived = isArchivedInt == 1
+		medicines = append(medicines, m)
+	}
+
+	return &models.PaginatedMedicines{
+		Items:      medicines,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+	}, nil
+}
+
+
 // GetMedicineByID fetches a single medicine by ID.
 func (s *MedicineService) GetMedicineByID(id int64) (*models.Medicine, error) {
 	query := `

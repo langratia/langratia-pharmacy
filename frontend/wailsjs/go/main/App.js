@@ -22,6 +22,14 @@ export function ArchiveMedicine(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchiveMedicine'](arg1, arg2, arg3, arg4);
 }
 
+export function BulkImportMedicines(arg1, arg2, arg3) {
+  return window['go']['main']['App']['BulkImportMedicines'](arg1, arg2, arg3);
+}
+
+export function CreatePrescription(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
+  return window['go']['main']['App']['CreatePrescription'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+}
+
 export function CreateUser(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateUser'](arg1, arg2, arg3, arg4);
 }
@@ -42,6 +50,22 @@ export function GetExpiringBatches(arg1) {
   return window['go']['main']['App']['GetExpiringBatches'](arg1);
 }
 
+export function GetNotificationsSummary() {
+  return window['go']['main']['App']['GetNotificationsSummary']();
+}
+
+export function GetPrescriptionDetails(arg1) {
+  return window['go']['main']['App']['GetPrescriptionDetails'](arg1);
+}
+
+export function GetUserTodaySalesTotal(arg1) {
+  return window['go']['main']['App']['GetUserTodaySalesTotal'](arg1);
+}
+
+export function GlobalSearch(arg1, arg2) {
+  return window['go']['main']['App']['GlobalSearch'](arg1, arg2);
+}
+
 export function ListAuditLogs(arg1) {
   return window['go']['main']['App']['ListAuditLogs'](arg1);
 }
@@ -50,8 +74,20 @@ export function ListMedicines(arg1, arg2, arg3) {
   return window['go']['main']['App']['ListMedicines'](arg1, arg2, arg3);
 }
 
+export function ListMedicinesPaginated(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['ListMedicinesPaginated'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function ListPrescriptions(arg1, arg2) {
+  return window['go']['main']['App']['ListPrescriptions'](arg1, arg2);
+}
+
 export function ListPurchases() {
   return window['go']['main']['App']['ListPurchases']();
+}
+
+export function ListPurchasesPaginated(arg1, arg2) {
+  return window['go']['main']['App']['ListPurchasesPaginated'](arg1, arg2);
 }
 
 export function ListRecentSales(arg1) {
@@ -78,12 +114,20 @@ export function RecordPurchase(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['RecordPurchase'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+export function ResetAndSeedDatabase() {
+  return window['go']['main']['App']['ResetAndSeedDatabase']();
+}
+
 export function RestoreDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['RestoreDatabase'](arg1, arg2, arg3);
 }
 
 export function UpdateMedicine(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdateMedicine'](arg1, arg2, arg3);
+}
+
+export function UpdatePrescriptionStatus(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['UpdatePrescriptionStatus'](arg1, arg2, arg3, arg4);
 }
 
 export function UpdateSupplier(arg1, arg2, arg3) {

@@ -17,13 +17,16 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "app",
-		Width:  1024,
-		Height: 768,
+		Title:     "Langratia Pharmacy POS",
+		Width:     1280,
+		Height:    800,
+		MinWidth:  1024,
+		MinHeight: 700,
+		Frameless: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		BackgroundColour: &options.RGBA{R: 249, G: 250, B: 251, A: 1},
 		OnStartup:        app.startup,
 		Bind: []interface{}{
 			app,
