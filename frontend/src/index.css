@@ -1,0 +1,40 @@
+:root {
+  --color-primary-teal: #1A9D8B;
+  --color-secondary-teal: #0F766E;
+  --color-accent-mint: #21B39B;
+  --color-charcoal-navy: #1E293B;
+  --color-soft-bg: #F8FAFC;
+  --color-surface-white: #FFFFFF;
+  --color-border-subtle: #E2E8F0;
+  --color-text-muted: #64748B;
+  
+  --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-soft-bg);
+  color: var(--color-charcoal-navy);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}

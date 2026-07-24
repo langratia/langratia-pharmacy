@@ -1,28 +1,44 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
-import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import React, { useState } from 'react';
+import { MainLayout } from './components/layout/MainLayout';
+import { NavItemKey } from './components/layout/Sidebar';
+
+import { DashboardPage } from './features/dashboard/DashboardPage';
+import { POSPage } from './features/pos/POSPage';
+import { InventoryPage } from './features/inventory/InventoryPage';
+import { PurchasesPage } from './features/purchases/PurchasesPage';
+import { SuppliersPage } from './features/suppliers/SuppliersPage';
+import { ReportsPage } from './features/reports/ReportsPage';
+import { SettingsPage } from './features/settings/SettingsPage';
 
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
+  const [activeView, setActiveView] = useState<NavItemKey>('dashboard');
 
-    function greet() {
-        Greet(name).then(updateResultText);
+  const renderContent = () => {
+    switch (activeView) {
+      case 'dashboard':
+        return <DashboardPage />;
+      case 'pos':
+        return <POSPage />;
+      case 'inventory':
+        return <InventoryPage />;
+      case 'purchases':
+        return <PurchasesPage />;
+      case 'suppliers':
+        return <SuppliersPage />;
+      case 'reports':
+        return <ReportsPage />;
+      case 'settings':
+        return <SettingsPage />;
+      default:
+        return <DashboardPage />;
     }
+  };
 
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
-        </div>
-    )
+  return (
+    <MainLayout activeView={activeView} onSelectView={setActiveView}>
+      {renderContent()}
+    </MainLayout>
+  );
 }
 
-export default App
+export default App;
