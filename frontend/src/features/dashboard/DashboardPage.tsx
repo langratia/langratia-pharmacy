@@ -1,19 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { 
   TrendingUp, 
   Pill, 
   AlertTriangle, 
   Clock, 
-  ShoppingCart, 
-  Truck, 
-  ArrowUpRight, 
-  ShieldAlert,
-  CheckCircle2,
-  Loader2
+  ShieldAlert
 } from 'lucide-react';
 import { GetDashboardSummary } from '../../../wailsjs/go/main/App';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Panel } from '../../components/ui/Panel';
+import { DataGrid, Column } from '../../components/ui/DataGrid';
 
 export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -40,22 +37,17 @@ export const DashboardPage: React.FC = () => {
         }
       }
       setSummary(data || {
-        sales_today: 485000,
-        total_medicines: 124,
-        low_stock_count: 5,
-        out_of_stock_count: 2,
-        expiring_soon_count: 4,
-        recent_sales: [
-          { id: 101, invoice_number: 'INV-POS-2026-001', username: 'cashier', sale_date: new Date().toISOString(), total_amount: 45000, payment_method: 'Cash' },
-          { id: 102, invoice_number: 'INV-POS-2026-002', username: 'admin', sale_date: new Date().toISOString(), total_amount: 120000, payment_method: 'Mobile Money' }
-        ],
-        recent_purchases: [
-          { id: 501, invoice_number: 'INV-SUP-882', supplier_name: 'Quality Chemicals Uganda', purchase_date: new Date().toISOString(), total_amount: 1250000, notes: 'Restock Antibiotics' }
-        ]
+        sales_today: 0,
+        total_medicines: 0,
+        low_stock_count: 0,
+        out_of_stock_count: 0,
+        expiring_soon_count: 0,
+        recent_sales: [],
+        recent_purchases: []
       });
     } catch (err: any) {
       console.error(err);
-      toast.error('Failed to load live metrics from backend');
+      toast.error('Failed to load live metrics');
     } finally {
       setLoading(false);
     }
@@ -65,34 +57,30 @@ export const DashboardPage: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-
   const kpiCards = [
     {
       title: "Today's Sales",
       value: `UGX ${(summary.sales_today || 0).toLocaleString()}`,
-      subtitle: "Completed POS transactions",
+      subtitle: "Completed POS sales",
       icon: TrendingUp,
-      bgColor: '#F0FDF9',
-      iconColor: 'var(--color-emerald-teal)',
-      borderColor: '#CCFBF1'
+      bgColor: '#ECFDF5',
+      iconColor: '#065F46'
     },
     {
-      title: "Medicines Registered",
+      title: "Active Medicines",
       value: summary.total_medicines || 0,
-      subtitle: "Active stock items",
+      subtitle: "Master registry items",
       icon: Pill,
-      bgColor: '#F1F5F9',
-      iconColor: 'var(--color-slate-blue)',
-      borderColor: 'var(--color-light-silver)'
+      bgColor: '#F3F4F6',
+      iconColor: '#1F2937'
     },
     {
       title: "Low Stock Alert",
       value: summary.low_stock_count || 0,
-      subtitle: "At or below reorder level",
+      subtitle: "At/below reorder level",
       icon: AlertTriangle,
-      bgColor: '#FEF3C7',
-      iconColor: '#D97706',
-      borderColor: '#FDE68A'
+      bgColor: '#FFFBEB',
+      iconColor: '#92400E'
     },
     {
       title: "Out of Stock",
@@ -100,153 +88,145 @@ export const DashboardPage: React.FC = () => {
       subtitle: "Zero inventory count",
       icon: ShieldAlert,
       bgColor: '#FEF2F2',
-      iconColor: '#DC2626',
-      borderColor: '#FCA5A5'
+      iconColor: '#991B1B'
     },
     {
-      title: "Expiring Soon (90 Days)",
+      title: "Expiring Soon",
       value: summary.expiring_soon_count || 0,
-      subtitle: "Requires FEFO priority",
+      subtitle: "Within 90 days",
       icon: Clock,
-      bgColor: '#EFF6FF',
-      iconColor: '#2563EB',
-      borderColor: '#BFDBFE'
+      bgColor: '#F5F3FF',
+      iconColor: '#5B21B6'
+    }
+  ];
+
+  const recentSalesColumns: Column<any>[] = [
+    {
+      key: 'invoice_number',
+      header: 'Invoice #',
+      accessor: (s) => <span style={{ fontWeight: 600, color: '#111827' }}>{s.invoice_number}</span>
+    },
+    {
+      key: 'username',
+      header: 'Cashier',
+      accessor: (s) => <span style={{ color: '#6B7280' }}>@{s.username}</span>
+    },
+    {
+      key: 'payment_method',
+      header: 'Method',
+      accessor: (s) => (
+        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#F3F4F6', fontSize: '11px', fontWeight: 500 }}>
+          {s.payment_method}
+        </span>
+      )
+    },
+    {
+      key: 'total_amount',
+      header: 'Amount',
+      align: 'right',
+      accessor: (s) => (
+        <span style={{ fontWeight: 600, color: '#0F8A6A' }}>
+          UGX {s.total_amount.toLocaleString()}
+        </span>
+      )
+    }
+  ];
+
+  const recentPurchasesColumns: Column<any>[] = [
+    {
+      key: 'invoice_number',
+      header: 'Invoice #',
+      accessor: (p) => <span style={{ fontWeight: 600, color: '#111827' }}>{p.invoice_number}</span>
+    },
+    {
+      key: 'supplier_name',
+      header: 'Supplier',
+      accessor: (p) => <span style={{ color: '#374151' }}>{p.supplier_name || 'Direct'}</span>
+    },
+    {
+      key: 'total_amount',
+      header: 'Total',
+      align: 'right',
+      accessor: (p) => (
+        <span style={{ fontWeight: 600, color: '#111827' }}>
+          UGX {p.total_amount.toLocaleString()}
+        </span>
+      )
     }
   ];
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1400px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
-          Pharmacy Dashboard
-        </h1>
-        <p style={{ color: 'var(--color-cool-gray)', fontSize: '14px' }}>
-          Real-time operational summary, stock health indicators, and recent transactions.
-        </p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SectionHeader
+        title="Pharmacy Operations Dashboard"
+        subtitle="Real-time performance metrics, inventory health indicators, and activity logs."
+      />
 
-      {/* KPI Cards Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '18px', marginBottom: '28px' }}>
+      {/* Metric Cards Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         {kpiCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <div
-              key={idx}
-              className="card-container"
-              style={{
-                borderRadius: 'var(--radius-lg)',
-                border: `1px solid ${card.borderColor}`,
-                padding: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-cool-gray)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {card.title}
-                </span>
-                <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginTop: '4px', marginBottom: '4px' }}>
-                  {card.value}
+            <Panel key={idx} noPadding style={{ padding: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
+                    {card.title}
+                  </span>
+                  <div style={{ fontSize: '20px', fontWeight: 600, color: '#111827', marginTop: '4px' }}>
+                    {card.value}
+                  </div>
+                  <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px', display: 'block' }}>
+                    {card.subtitle}
+                  </span>
                 </div>
-                <span style={{ fontSize: '12px', color: 'var(--color-cool-gray)' }}>
-                  {card.subtitle}
-                </span>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '6px',
+                    backgroundColor: card.bgColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: card.iconColor
+                  }}
+                >
+                  <Icon size={18} />
+                </div>
               </div>
-              <div style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: card.bgColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: card.iconColor
-              }}>
-                <Icon size={22} />
-              </div>
-            </div>
+            </Panel>
           );
         })}
       </div>
 
+      {/* Recent Activity DataGrids */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <Panel title="Recent POS Sales" noPadding>
+          <DataGrid
+            columns={recentSalesColumns}
+            data={summary.recent_sales || []}
+            keyExtractor={(s) => s.id}
+            isLoading={loading}
+            emptyMessage="No sales recorded today."
+            compactRows={true}
+            zebraStriping={true}
+            maxHeight="320px"
+          />
+        </Panel>
 
-      {/* Tables Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        {/* Recent Sales Table */}
-        <div style={{ backgroundColor: '#fff', borderRadius: '14px', border: '1px solid var(--color-border-subtle)', padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShoppingCart size={18} color="var(--color-primary-teal)" />
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-charcoal-navy)' }}>Recent POS Sales</h3>
-            </div>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <th style={{ padding: '10px 12px' }}>Invoice #</th>
-                <th style={{ padding: '10px 12px' }}>Cashier</th>
-                <th style={{ padding: '10px 12px' }}>Method</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(summary.recent_sales || []).length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>No sales recorded today</td></tr>
-              ) : (
-                (summary.recent_sales || []).map((s: any) => (
-                  <tr key={s.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '12px', fontWeight: 600 }}>{s.invoice_number}</td>
-                    <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{s.username}</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#F1F5F9', fontSize: '11px', fontWeight: 600 }}>
-                        {s.payment_method}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-primary-teal)' }}>
-                      UGX {s.total_amount.toLocaleString()}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Recent Purchases Table */}
-        <div style={{ backgroundColor: '#fff', borderRadius: '14px', border: '1px solid var(--color-border-subtle)', padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Truck size={18} color="var(--color-secondary-teal)" />
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-charcoal-navy)' }}>Recent Incoming Purchases</h3>
-            </div>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <th style={{ padding: '10px 12px' }}>Invoice #</th>
-                <th style={{ padding: '10px 12px' }}>Supplier</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right' }}>Total Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(summary.recent_purchases || []).length === 0 ? (
-                <tr><td colSpan={3} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>No stock shipments recorded</td></tr>
-              ) : (
-                (summary.recent_purchases || []).map((p: any) => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '12px', fontWeight: 600 }}>{p.invoice_number}</td>
-                    <td style={{ padding: '12px' }}>{p.supplier_name || 'Direct'}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-charcoal-navy)' }}>
-                      UGX {p.total_amount.toLocaleString()}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Panel title="Recent Stock Procurement" noPadding>
+          <DataGrid
+            columns={recentPurchasesColumns}
+            data={summary.recent_purchases || []}
+            keyExtractor={(p) => p.id}
+            isLoading={loading}
+            emptyMessage="No purchases recorded."
+            compactRows={true}
+            zebraStriping={true}
+            maxHeight="320px"
+          />
+        </Panel>
       </div>
     </div>
   );

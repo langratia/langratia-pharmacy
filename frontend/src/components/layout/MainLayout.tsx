@@ -13,12 +13,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--color-soft-white)' }}>
-      {/* Tier 1: Dedicated Desktop Window Titlebar */}
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F4F6F8' }}>
+      {/* Tier 1: Window Titlebar */}
       <TitleBar />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 32px)' }}>
-        {/* Sidebar Navigation */}
+        {/* Tier 2: Grouped Collapsible Sidebar */}
         <Sidebar
           activeView={activeView}
           onSelectView={onSelectView}
@@ -27,25 +27,30 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView
         />
 
         {/* Content Container */}
-        <div style={{
-          marginLeft: isCollapsed ? 'var(--sidebar-collapsed-width)' : 'var(--sidebar-width)',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: 'var(--color-soft-white)',
-          transition: 'margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}>
-          {/* Tier 2: Business Header */}
+        <div
+          style={{
+            marginLeft: isCollapsed ? '64px' : '240px',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: '#F4F6F8',
+            transition: 'margin-left 200ms ease-out'
+          }}
+        >
+          {/* Tier 3: Desktop App Toolbar */}
           <Header onSelectView={onSelectView} />
 
-          <main style={{ 
-            flex: 1, 
-            height: 'calc(100vh - 88px)', 
-            maxHeight: 'calc(100vh - 88px)', 
-            overflowY: 'auto', 
-            padding: '24px',
-            boxSizing: 'border-box'
-          }}>
+          {/* Tier 4: Workspace Main Content Area */}
+          <main
+            style={{
+              flex: 1,
+              height: 'calc(100vh - 80px)',
+              maxHeight: 'calc(100vh - 80px)',
+              overflowY: 'auto',
+              padding: '16px 20px',
+              boxSizing: 'border-box'
+            }}
+          >
             {children}
           </main>
         </div>

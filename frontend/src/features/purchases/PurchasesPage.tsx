@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Plus, PackageCheck, Calendar, DollarSign, X, CheckCircle } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Medicine, Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Panel } from '../../components/ui/Panel';
+import { DesktopButton } from '../../components/ui/DesktopButton';
+import { DataGrid, Column } from '../../components/ui/DataGrid';
 
 interface StockItemInput {
   medicine_id: number;
@@ -18,6 +23,7 @@ export const PurchasesPage: React.FC = () => {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,6 +41,7 @@ export const PurchasesPage: React.FC = () => {
   const [expiry, setExpiry] = useState('');
 
   const fetchInitialData = async () => {
+    setIsLoading(true);
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
@@ -46,16 +53,12 @@ export const PurchasesPage: React.FC = () => {
         setPurchases(purList || []);
         setMedicines(medList || []);
         setSuppliers(supList || []);
-      } else {
-        setMedicines([
-          { id: 1, name: 'Amoxicillin 500mg', generic_name: 'Amoxicillin', brand_name: 'Amoxil', category: 'Antibiotics', dosage_strength: '500mg', medicine_form: 'Capsule', pack_size: '10x10', buying_price: 15000, selling_price: 25000, current_stock: 45, reorder_level: 20, manufacturer: 'GSK', description: '', is_archived: false, created_at: '' }
-        ]);
-        setSuppliers([
-          { id: 1, name: 'Quality Chemicals Uganda', contact_person: 'Alice N', phone: '', email: '', address: '', created_at: '' }
-        ]);
       }
     } catch (err) {
       console.error(err);
+      toast.error('Failed to load purchase history');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -65,7 +68,7 @@ export const PurchasesPage: React.FC = () => {
 
   const handleAddItem = () => {
     if (!selectedMedId || !batchNum.trim() || !qty || !expiry) {
-      setError('Please select a medicine, batch number, quantity, and expiry date.');
+      setError('Select a medicine, batch number, quantity, and expiry date.');
       return;
     }
 
@@ -115,6 +118,7 @@ export const PurchasesPage: React.FC = () => {
           user?.id || 1,
           user?.username || 'admin'
         );
+        toast.success('Stock receiving shipment saved and stock updated!');
       }
       setIsModalOpen(false);
       setItems([]);
@@ -129,144 +133,270 @@ export const PurchasesPage: React.FC = () => {
 
   const totalInvoiceAmount = items.reduce((sum, item) => sum + (item.buying_price * item.quantity), 0);
 
+  const columns: Column<any>[] = [
+    {
+      key: 'invoice_number',
+      header: 'Invoice #',
+      accessor: (p) => (
+        <span style={{ fontWeight: 600, color: '#111827' }}>
+          {p.invoice_number}
+        </span>
+      )
+    },
+    {
+      key: 'supplier_name',
+      header: 'Supplier',
+      accessor: (p) => (
+        <span style={{ color: '#374151' }}>
+          {p.supplier_name || 'Direct Procurement'}
+        </span>
+      )
+    },
+    {
+      key: 'purchase_date',
+      header: 'Purchase Date',
+      accessor: (p) => (
+        <span style={{ color: '#6B7280' }}>
+          {new Date(p.purchase_date).toLocaleDateString()}
+        </span>
+      )
+    },
+    {
+      key: 'total_amount',
+      header: 'Total Amount',
+      accessor: (p) => (
+        <span style={{ fontWeight: 600, color: '#0F8A6A' }}>
+          UGX {p.total_amount.toLocaleString()}
+        </span>
+      )
+    },
+    {
+      key: 'notes',
+      header: 'Notes',
+      accessor: (p) => (
+        <span style={{ color: '#6B7280' }}>
+          {p.notes || '-'}
+        </span>
+      )
+    }
+  ];
+
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
-            Stock Receiving & Purchases
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            Record incoming supplier shipments, generate stock batches, and update inventory counts.
-          </p>
-        </div>
-        <button
-          onClick={() => { setIsModalOpen(true); setError(null); }}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', backgroundColor: 'var(--color-primary-teal)', color: '#fff', borderRadius: '10px', fontWeight: 600, fontSize: '14px', border: 'none' }}
-        >
-          <Plus size={18} />
-          <span>Record New Shipment</span>
-        </button>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SectionHeader
+        title="Stock Receiving & Purchases"
+        subtitle="Log incoming supplier shipments, generate FEFO stock batches, and update inventory counts."
+        actions={
+          <DesktopButton
+            variant="primary"
+            size="md"
+            icon={<Plus size={15} />}
+            onClick={() => { setIsModalOpen(true); setError(null); }}
+          >
+            Record New Shipment
+          </DesktopButton>
+        }
+      />
 
-      {/* History Table */}
-      <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--color-border-subtle)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-text-muted)', fontSize: '12px', textTransform: 'uppercase' }}>
-              <th style={{ padding: '14px 16px' }}>Invoice #</th>
-              <th style={{ padding: '14px 16px' }}>Supplier</th>
-              <th style={{ padding: '14px 16px' }}>Purchase Date</th>
-              <th style={{ padding: '14px 16px' }}>Total Amount (UGX)</th>
-              <th style={{ padding: '14px 16px' }}>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {purchases.length === 0 ? (
-              <tr>
-                <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                  No stock receiving invoices recorded yet. Click "Record New Shipment" to log incoming stock.
-                </td>
-              </tr>
-            ) : (
-              purchases.map(p => (
-                <tr key={p.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                  <td style={{ padding: '16px', fontWeight: 600, color: 'var(--color-charcoal-navy)' }}>{p.invoice_number}</td>
-                  <td style={{ padding: '16px' }}>{p.supplier_name || 'Direct Procurement'}</td>
-                  <td style={{ padding: '16px', color: 'var(--color-text-muted)' }}>{new Date(p.purchase_date).toLocaleDateString()}</td>
-                  <td style={{ padding: '16px', fontWeight: 600, color: 'var(--color-primary-teal)' }}>UGX {p.total_amount.toLocaleString()}</td>
-                  <td style={{ padding: '16px', color: 'var(--color-text-muted)' }}>{p.notes || '-'}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataGrid
+        columns={columns}
+        data={purchases}
+        keyExtractor={(row) => row.id || row.invoice_number}
+        isLoading={isLoading}
+        emptyMessage="No stock receiving invoices recorded yet."
+        compactRows={true}
+        zebraStriping={true}
+        maxHeight="calc(100vh - 180px)"
+      />
 
-      {/* Modal */}
+      {/* Shipment Modal */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#fff', borderRadius: '16px', width: '100%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', padding: '28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>Record Incoming Stock Shipment</h2>
-              <button onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '8px',
+              width: '100%',
+              maxWidth: '700px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              border: '1px solid #E5E7EB',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <div
+              style={{
+                padding: '14px 18px',
+                borderBottom: '1px solid #E5E7EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#F9FAFB'
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
+                Record Incoming Stock Shipment
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
             </div>
 
-            {error && <div style={{ padding: '10px', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>{error}</div>}
-
-            <form onSubmit={handleSavePurchase}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Invoice / Reference Number</label>
-                  <input type="text" placeholder="e.g. INV-2026-99" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Supplier</label>
-                  <select value={supplierId} onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
-                    <option value="">Select Supplier...</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Add Item Row */}
-              <div style={{ backgroundColor: '#F8FAFC', padding: '16px', borderRadius: '10px', border: '1px solid var(--color-border-subtle)', marginBottom: '20px' }}>
-                <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-charcoal-navy)', marginBottom: '10px' }}>Add Medicine Batch Item</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1.2fr auto', gap: '10px', alignItems: 'center' }}>
-                  <select value={selectedMedId} onChange={(e) => setSelectedMedId(e.target.value ? Number(e.target.value) : '')} style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)', fontSize: '13px' }}>
-                    <option value="">Select Medicine...</option>
-                    {medicines.map(m => <option key={m.id} value={m.id}>{m.name} ({m.dosage_strength})</option>)}
-                  </select>
-                  <input type="text" placeholder="Batch #" value={batchNum} onChange={(e) => setBatchNum(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)', fontSize: '13px' }} />
-                  <input type="number" min="1" placeholder="Qty" value={qty} onChange={(e) => setQty(e.target.value ? Number(e.target.value) : '')} style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)', fontSize: '13px' }} />
-                  <input type="number" min="0" placeholder="Buy Price" value={buyPrice} onChange={(e) => setBuyPrice(e.target.value ? Number(e.target.value) : '')} style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)', fontSize: '13px' }} />
-                  <input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)', fontSize: '13px' }} />
-                  <button type="button" onClick={handleAddItem} style={{ padding: '8px 12px', backgroundColor: 'var(--color-primary-teal)', color: '#fff', borderRadius: '6px', fontWeight: 600, border: 'none', cursor: 'pointer' }}>Add</button>
-                </div>
-              </div>
-
-              {/* Items Table */}
-              {items.length > 0 && (
-                <div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: '8px', overflow: 'hidden', marginBottom: '20px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead style={{ backgroundColor: '#F1F5F9' }}>
-                      <tr>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Medicine</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Batch #</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Qty</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Buy Price</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'left' }}>Expiry</th>
-                        <th style={{ padding: '8px 12px', textAlign: 'right' }}>Subtotal</th>
-                        <th style={{ padding: '8px 12px' }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((it, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                          <td style={{ padding: '8px 12px' }}>{it.medicine_name}</td>
-                          <td style={{ padding: '8px 12px', fontWeight: 600 }}>{it.batch_number}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>{it.quantity}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>UGX {it.buying_price.toLocaleString()}</td>
-                          <td style={{ padding: '8px 12px' }}>{it.expiry_date}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600 }}>UGX {(it.buying_price * it.quantity).toLocaleString()}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>
-                            <button type="button" onClick={() => handleRemoveItem(idx)} style={{ color: '#EF4444' }}><X size={16} /></button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div style={{ padding: '12px 16px', backgroundColor: '#F8FAFC', textAlign: 'right', fontWeight: 700, fontSize: '14px', color: 'var(--color-primary-teal)' }}>
-                    Total Invoice Amount: UGX {totalInvoiceAmount.toLocaleString()}
-                  </div>
+            <div style={{ padding: '18px' }}>
+              {error && (
+                <div style={{ padding: '8px 12px', backgroundColor: '#FEE2E2', color: '#991B1B', borderRadius: '6px', fontSize: '12px', marginBottom: '14px' }}>
+                  {error}
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', backgroundColor: '#fff' }}>Cancel</button>
-                <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--color-primary-teal)', color: '#fff', fontWeight: 600 }}>Save Shipment & Update Stock</button>
-              </div>
-            </form>
+              <form onSubmit={handleSavePurchase}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Invoice / Ref Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. INV-2026-99"
+                      value={invoiceNumber}
+                      onChange={(e) => setInvoiceNumber(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                      Supplier
+                    </label>
+                    <select
+                      value={supplierId}
+                      onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                    >
+                      <option value="">Select Supplier...</option>
+                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Add Item Row Panel */}
+                <div style={{ backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '6px', border: '1px solid #E5E7EB', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827', display: 'block', marginBottom: '8px' }}>
+                    Add Medicine Batch Item
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1.2fr auto', gap: '6px', alignItems: 'center' }}>
+                    <select
+                      value={selectedMedId}
+                      onChange={(e) => setSelectedMedId(e.target.value ? Number(e.target.value) : '')}
+                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
+                    >
+                      <option value="">Select Medicine...</option>
+                      {medicines.map(m => <option key={m.id} value={m.id}>{m.name} ({m.dosage_strength})</option>)}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="Batch #"
+                      value={batchNum}
+                      onChange={(e) => setBatchNum(e.target.value)}
+                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Qty"
+                      value={qty}
+                      onChange={(e) => setQty(e.target.value ? Number(e.target.value) : '')}
+                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Buy Price"
+                      value={buyPrice}
+                      onChange={(e) => setBuyPrice(e.target.value ? Number(e.target.value) : '')}
+                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
+                    />
+                    <input
+                      type="date"
+                      value={expiry}
+                      onChange={(e) => setExpiry(e.target.value)}
+                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
+                    />
+                    <DesktopButton type="button" variant="primary" size="sm" onClick={handleAddItem}>
+                      Add
+                    </DesktopButton>
+                  </div>
+                </div>
+
+                {/* Items Table */}
+                {items.length > 0 && (
+                  <div style={{ border: '1px solid #E5E7EB', borderRadius: '6px', overflow: 'hidden', marginBottom: '16px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead style={{ backgroundColor: '#F9FAFB' }}>
+                        <tr>
+                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Medicine</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Batch #</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>Qty</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>Buy Price</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Expiry</th>
+                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>Subtotal</th>
+                          <th style={{ padding: '6px 10px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((it, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                            <td style={{ padding: '6px 10px' }}>{it.medicine_name}</td>
+                            <td style={{ padding: '6px 10px', fontWeight: 600 }}>{it.batch_number}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right' }}>{it.quantity}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right' }}>UGX {it.buying_price.toLocaleString()}</td>
+                            <td style={{ padding: '6px 10px' }}>{it.expiry_date}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600 }}>UGX {(it.buying_price * it.quantity).toLocaleString()}</td>
+                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                              <button type="button" onClick={() => handleRemoveItem(idx)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <X size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ padding: '8px 12px', backgroundColor: '#F9FAFB', textAlign: 'right', fontWeight: 600, fontSize: '13px', color: '#0F8A6A' }}>
+                      Total Invoice Amount: UGX {totalInvoiceAmount.toLocaleString()}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <DesktopButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
+                  >
+                    Cancel
+                  </DesktopButton>
+                  <DesktopButton
+                    type="submit"
+                    variant="primary"
+                  >
+                    Save Shipment & Update Stock
+                  </DesktopButton>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

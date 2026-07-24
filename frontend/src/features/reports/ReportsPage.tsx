@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Printer, Download, Calendar, Pill, DollarSign, AlertCircle } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Medicine, Batch } from '../../types';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Panel } from '../../components/ui/Panel';
+import { DesktopButton } from '../../components/ui/DesktopButton';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { DataGrid, Column } from '../../components/ui/DataGrid';
 
 export const ReportsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'expiry'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'inventory' | 'expiry'>('inventory');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [expiringBatches, setExpiringBatches] = useState<Batch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchReportsData = async () => {
+    setIsLoading(true);
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
@@ -17,16 +24,11 @@ export const ReportsPage: React.FC = () => {
         ]);
         setMedicines(meds || []);
         setExpiringBatches(exp || []);
-      } else {
-        setMedicines([
-          { id: 1, name: 'Amoxicillin Capsules', generic_name: 'Amoxicillin', brand_name: 'Amoxil', category: 'Antibiotics', dosage_strength: '500mg', medicine_form: 'Capsule', pack_size: '10x10', buying_price: 15000, selling_price: 25000, current_stock: 45, reorder_level: 20, manufacturer: 'GSK', description: '', is_archived: false, created_at: '' }
-        ]);
-        setExpiringBatches([
-          { id: 1, batch_number: 'BATCH-2026-X', medicine_id: 1, medicine_name: 'Amoxicillin Capsules', quantity_received: 50, quantity_remaining: 20, buying_price: 15000, mfg_date: '2025-01-01', expiry_date: '2026-09-30', date_received: '' }
-        ]);
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -38,127 +40,157 @@ export const ReportsPage: React.FC = () => {
     window.print();
   };
 
-  return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+  const inventoryColumns: Column<Medicine>[] = [
+    {
+      key: 'name',
+      header: 'Medicine Name',
+      accessor: (m) => (
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
-            Reports & Analytics
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            Exportable inventory, sales summaries, and batch expiration tracking.
-          </p>
+          <span style={{ fontWeight: 600, color: '#111827' }}>{m.name}</span>
+          <span style={{ fontSize: '11px', color: '#6B7280', marginLeft: '6px' }}>({m.dosage_strength})</span>
         </div>
-        <button
-          onClick={handlePrint}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', backgroundColor: 'var(--color-primary-teal)', color: '#fff', borderRadius: '10px', fontWeight: 600, fontSize: '14px', border: 'none', cursor: 'pointer' }}
-        >
-          <Printer size={18} />
-          <span>Print / Export PDF</span>
-        </button>
-      </div>
+      )
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      accessor: (m) => <span style={{ color: '#374151' }}>{m.category}</span>
+    },
+    {
+      key: 'buying_price',
+      header: 'Buying Price',
+      align: 'right',
+      accessor: (m) => <span style={{ color: '#6B7280' }}>UGX {m.buying_price.toLocaleString()}</span>
+    },
+    {
+      key: 'selling_price',
+      header: 'Selling Price',
+      align: 'right',
+      accessor: (m) => <span style={{ color: '#374151' }}>UGX {m.selling_price.toLocaleString()}</span>
+    },
+    {
+      key: 'current_stock',
+      header: 'Stock Qty',
+      align: 'right',
+      accessor: (m) => <span style={{ fontWeight: 600, color: '#111827' }}>{m.current_stock}</span>
+    },
+    {
+      key: 'valuation',
+      header: 'Total Valuation',
+      align: 'right',
+      accessor: (m) => (
+        <span style={{ fontWeight: 600, color: '#0F8A6A' }}>
+          UGX {(m.current_stock * m.selling_price).toLocaleString()}
+        </span>
+      )
+    }
+  ];
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--color-border-subtle)', marginBottom: '24px' }}>
-        {[
-          { key: 'sales', label: 'Sales & Revenue Report' },
-          { key: 'inventory', label: 'Inventory & Stock Level Report' },
-          { key: 'expiry', label: 'Medicine Expiry Report (90 Days)' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            style={{
-              padding: '12px 20px',
-              fontSize: '14px',
-              fontWeight: activeTab === tab.key ? 700 : 500,
-              color: activeTab === tab.key ? 'var(--color-primary-teal)' : 'var(--color-text-muted)',
-              borderBottom: activeTab === tab.key ? '3px solid var(--color-primary-teal)' : '3px solid transparent',
-              transition: 'all 0.15s'
-            }}
+  const expiryColumns: Column<Batch>[] = [
+    {
+      key: 'batch_number',
+      header: 'Batch #',
+      accessor: (b) => <span style={{ fontWeight: 600, color: '#111827' }}>{b.batch_number}</span>
+    },
+    {
+      key: 'medicine_name',
+      header: 'Medicine',
+      accessor: (b) => <span style={{ color: '#374151' }}>{b.medicine_name || `Medicine #${b.medicine_id}`}</span>
+    },
+    {
+      key: 'quantity_remaining',
+      header: 'Remaining Qty',
+      align: 'right',
+      accessor: (b) => <span style={{ fontWeight: 600, color: '#111827' }}>{b.quantity_remaining}</span>
+    },
+    {
+      key: 'expiry_date',
+      header: 'Expiry Date',
+      accessor: (b) => <span style={{ fontWeight: 600, color: '#EF4444' }}>{b.expiry_date}</span>
+    },
+    {
+      key: 'status',
+      header: 'FEFO Alert',
+      accessor: () => <StatusBadge status="expired" label="Expiring Soon" />
+    }
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SectionHeader
+        title="Reports & Analytics"
+        subtitle="Exportable inventory valuation summaries, sales analytics, and FEFO expiry tracking."
+        actions={
+          <DesktopButton
+            variant="primary"
+            size="md"
+            icon={<Printer size={15} />}
+            onClick={handlePrint}
           >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+            Print / Export PDF
+          </DesktopButton>
+        }
+      />
 
-      {/* Printable Document Container */}
-      <div id="printable-report" style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--color-border-subtle)', padding: '24px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '16px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-charcoal-navy)' }}>LANGRATIA PHARMACY</h2>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-            Official Audit & Analytical Report • Generated on {new Date().toLocaleDateString()}
+      <Panel noPadding style={{ padding: '8px 12px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[
+            { key: 'inventory', label: 'Inventory Valuation' },
+            { key: 'expiry', label: 'Batch Expiry (90 Days)' },
+            { key: 'sales', label: 'Sales Audit Sheet' }
+          ].map((tab) => (
+            <DesktopButton
+              key={tab.key}
+              variant={activeTab === tab.key ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab(tab.key as any)}
+            >
+              {tab.label}
+            </DesktopButton>
+          ))}
+        </div>
+      </Panel>
+
+      <Panel id="printable-report" noPadding style={{ padding: '16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '16px', borderBottom: '1px solid #E5E7EB', paddingBottom: '12px' }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#111827' }}>LANGRATIA PHARMACY</h2>
+          <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6B7280' }}>
+            Official Audit Report • Generated on {new Date().toLocaleDateString()}
           </p>
         </div>
 
         {activeTab === 'inventory' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <th style={{ padding: '12px' }}>Medicine Name</th>
-                <th style={{ padding: '12px' }}>Category</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Buying Price</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Selling Price</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Stock Count</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Valuation (UGX)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicines.map(m => (
-                <tr key={m.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                  <td style={{ padding: '12px', fontWeight: 600 }}>{m.name} ({m.dosage_strength})</td>
-                  <td style={{ padding: '12px' }}>{m.category}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>UGX {m.buying_price.toLocaleString()}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>UGX {m.selling_price.toLocaleString()}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700 }}>{m.current_stock}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-primary-teal)' }}>
-                    UGX {(m.current_stock * m.selling_price).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataGrid
+            columns={inventoryColumns}
+            data={medicines}
+            keyExtractor={(m) => m.id}
+            isLoading={isLoading}
+            emptyMessage="No medicines registered in stock."
+            compactRows={true}
+            zebraStriping={true}
+            maxHeight="calc(100vh - 300px)"
+          />
         )}
 
         {activeTab === 'expiry' && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                <th style={{ padding: '12px' }}>Batch #</th>
-                <th style={{ padding: '12px' }}>Medicine</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Qty Remaining</th>
-                <th style={{ padding: '12px' }}>Expiry Date</th>
-                <th style={{ padding: '12px' }}>Status Alert</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expiringBatches.length === 0 ? (
-                <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)' }}>No batches expiring in the next 90 days.</td></tr>
-              ) : (
-                expiringBatches.map(b => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <td style={{ padding: '12px', fontWeight: 600 }}>{b.batch_number}</td>
-                    <td style={{ padding: '12px' }}>{b.medicine_name || `Medicine #${b.medicine_id}`}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700 }}>{b.quantity_remaining}</td>
-                    <td style={{ padding: '12px', fontWeight: 600, color: '#DC2626' }}>{b.expiry_date}</td>
-                    <td style={{ padding: '12px' }}>
-                      <span style={{ padding: '4px 10px', borderRadius: '12px', backgroundColor: '#FEF3C7', color: '#D97706', fontSize: '11px', fontWeight: 600 }}>
-                        Expiring Soon (FEFO Priority)
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+          <DataGrid
+            columns={expiryColumns}
+            data={expiringBatches}
+            keyExtractor={(b) => b.id}
+            isLoading={isLoading}
+            emptyMessage="No stock batches expiring within the next 90 days."
+            compactRows={true}
+            zebraStriping={true}
+            maxHeight="calc(100vh - 300px)"
+          />
         )}
 
         {activeTab === 'sales' && (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
-            Select date ranges and click "Print / Export PDF" to produce certified Sales Audit Sheets.
+          <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280', fontSize: '13px' }}>
+            Select date range criteria and click "Print / Export PDF" to generate certified Sales Audit Sheets.
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 };

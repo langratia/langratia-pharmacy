@@ -1,31 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Phone, Mail, MapPin, User, Search, Edit, X } from 'lucide-react';
+import { Plus, Edit, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Panel } from '../../components/ui/Panel';
+import { DesktopButton } from '../../components/ui/DesktopButton';
+import { SearchBar } from '../../components/ui/SearchBar';
+import { DataGrid, Column } from '../../components/ui/DataGrid';
 
 export const SuppliersPage: React.FC = () => {
   const { user } = useAuth();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [formData, setFormData] = useState({ name: '', contact_person: '', phone: '', email: '', address: '' });
   const [error, setError] = useState<string | null>(null);
+  const [selectedSupId, setSelectedSupId] = useState<number | null>(null);
 
   const fetchSuppliers = async () => {
+    setIsLoading(true);
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp && typeof wailsApp.ListSuppliers === 'function') {
         const data = await wailsApp.ListSuppliers();
         setSuppliers(data || []);
-      } else {
-        setSuppliers([
-          { id: 1, name: 'Quality Chemicals Uganda', contact_person: 'Alice N', phone: '+256700000000', email: 'sales@qcil.co.ug', address: 'Luzira Industrial Park, Kampala', created_at: new Date().toISOString() },
-          { id: 2, name: 'Abacus Pharma Ltd', contact_person: 'David K', phone: '+256750000000', email: 'orders@abacuspharma.com', address: 'Nakawa, Kampala', created_at: new Date().toISOString() }
-        ]);
       }
     } catch (err) {
       console.error(err);
+      toast.error('Failed to load suppliers');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -59,8 +66,10 @@ export const SuppliersPage: React.FC = () => {
       if (wailsApp) {
         if (editingSupplier) {
           await wailsApp.UpdateSupplier({ id: editingSupplier.id, ...formData, created_at: editingSupplier.created_at }, user?.id || 1, user?.username || 'admin');
+          toast.success('Supplier updated');
         } else {
           await wailsApp.AddSupplier({ id: 0, ...formData, created_at: new Date().toISOString() }, user?.id || 1, user?.username || 'admin');
+          toast.success('Supplier created');
         }
       }
       setIsModalOpen(false);
@@ -75,102 +84,207 @@ export const SuppliersPage: React.FC = () => {
     s.contact_person.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+  const columns: Column<Supplier>[] = [
+    {
+      key: 'name',
+      header: 'Company / Distributor',
+      accessor: (s) => (
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
-            Supplier Directory
-          </h1>
-          <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-            Manage pharmaceutical distributors, contact details, and procurement partners.
-          </p>
+          <div style={{ fontWeight: 600, color: '#111827' }}>{s.name}</div>
+          <div style={{ fontSize: '11px', color: '#6B7280' }}>Contact: {s.contact_person || 'N/A'}</div>
         </div>
-        <button
-          onClick={handleOpenAdd}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', backgroundColor: 'var(--color-primary-teal)', color: '#fff', borderRadius: '10px', fontWeight: 600, fontSize: '14px', border: 'none' }}
+      )
+    },
+    {
+      key: 'phone',
+      header: 'Phone Number',
+      accessor: (s) => <span style={{ color: '#374151' }}>{s.phone || '-'}</span>
+    },
+    {
+      key: 'email',
+      header: 'Email Address',
+      accessor: (s) => <span style={{ color: '#374151' }}>{s.email || '-'}</span>
+    },
+    {
+      key: 'address',
+      header: 'Physical Address',
+      accessor: (s) => <span style={{ color: '#6B7280' }}>{s.address || '-'}</span>
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      accessor: (s) => (
+        <DesktopButton
+          variant="secondary"
+          size="sm"
+          icon={<Edit size={13} />}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenEdit(s);
+          }}
         >
-          <Plus size={18} />
-          <span>Add New Supplier</span>
-        </button>
-      </div>
+          Edit
+        </DesktopButton>
+      )
+    }
+  ];
 
-      <div style={{ backgroundColor: '#fff', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--color-border-subtle)', marginBottom: '24px' }}>
-        <div style={{ position: 'relative', maxWidth: '400px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-          <input
-            type="text"
-            placeholder="Search suppliers by name or contact person..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '10px 14px 10px 42px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', backgroundColor: '#F8FAFC', outline: 'none' }}
-          />
-        </div>
-      </div>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SectionHeader
+        title="Supplier Directory"
+        subtitle="Pharmaceutical distributors, contact persons, and procurement partners."
+        actions={
+          <DesktopButton
+            variant="primary"
+            size="md"
+            icon={<Plus size={15} />}
+            onClick={handleOpenAdd}
+          >
+            Add Supplier
+          </DesktopButton>
+        }
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-        {filteredSuppliers.map((sup) => (
-          <div key={sup.id} style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--color-border-subtle)', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-charcoal-navy)' }}>{sup.name}</h3>
-                <div style={{ fontSize: '13px', color: 'var(--color-primary-teal)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                  <User size={14} /> {sup.contact_person || 'No contact person'}
-                </div>
-              </div>
-              <button onClick={() => handleOpenEdit(sup)} style={{ padding: '6px', borderRadius: '6px', backgroundColor: '#F1F5F9' }}>
-                <Edit size={16} color="var(--color-charcoal-navy)" />
-              </button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Phone size={14} /> <span>{sup.phone || 'N/A'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Mail size={14} /> <span>{sup.email || 'N/A'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin size={14} /> <span>{sup.address || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <Panel noPadding style={{ padding: '8px 12px' }}>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Filter by company or contact person..."
+          width="320px"
+          showShortcut={false}
+        />
+      </Panel>
+
+      <DataGrid
+        columns={columns}
+        data={filteredSuppliers}
+        keyExtractor={(s) => s.id}
+        isLoading={isLoading}
+        emptyMessage="No supplier records found."
+        selectedKey={selectedSupId}
+        onRowClick={(s) => setSelectedSupId(s.id)}
+        compactRows={true}
+        zebraStriping={true}
+        maxHeight="calc(100vh - 230px)"
+      />
 
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#fff', borderRadius: '16px', width: '100%', maxWidth: '500px', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700 }}>{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</h2>
-              <button onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '8px',
+              width: '100%',
+              maxWidth: '500px',
+              padding: '20px',
+              border: '1px solid #E5E7EB',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #E5E7EB', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
+                {editingSupplier ? 'Edit Supplier Record' : 'Add New Supplier'}
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
             </div>
-            {error && <div style={{ padding: '10px', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '8px', fontSize: '13px', marginBottom: '14px' }}>{error}</div>}
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {error && <div style={{ padding: '8px 12px', backgroundColor: '#FEE2E2', color: '#991B1B', borderRadius: '6px', fontSize: '12px', marginBottom: '14px' }}>{error}</div>}
+
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Supplier Company Name *</label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }} />
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                  Company Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                />
               </div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Contact Person</label>
-                <input type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }} />
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                  Contact Person
+                </label>
+                <input
+                  type="text"
+                  value={formData.contact_person}
+                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Phone Number</label>
-                  <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }} />
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Email Address</label>
-                  <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }} />
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                  />
                 </div>
               </div>
+
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>Physical Address</label>
-                <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }} />
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                  Physical Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)', backgroundColor: '#fff' }}>Cancel</button>
-                <button type="submit" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--color-primary-teal)', color: '#fff', fontWeight: 600 }}>Save Supplier</button>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
+                <DesktopButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  Cancel
+                </DesktopButton>
+                <DesktopButton
+                  type="submit"
+                  variant="primary"
+                >
+                  Save Supplier
+                </DesktopButton>
               </div>
             </form>
           </div>

@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Database, FileText, Download, Upload, Shield, AlertTriangle } from 'lucide-react';
+import { Download, Upload, Shield, AlertTriangle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { ListUsers, CreateUser, ExportDatabase, RestoreDatabase, ListAuditLogs, ResetAndSeedDatabase } from '../../../wailsjs/go/main/App';
 import { models } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
-
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { Panel } from '../../components/ui/Panel';
+import { DesktopButton } from '../../components/ui/DesktopButton';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { DataGrid, Column } from '../../components/ui/DataGrid';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -18,7 +23,6 @@ export const SettingsPage: React.FC = () => {
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -28,17 +32,12 @@ export const SettingsPage: React.FC = () => {
     }
   }, [activeTab]);
 
-  const showMessage = (type: 'success' | 'error', text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
-  };
-
   const fetchUsers = async () => {
     try {
       const data = await ListUsers();
       setUsers(data || []);
     } catch (err: any) {
-      showMessage('error', err.message || 'Failed to load users');
+      toast.error(err.message || 'Failed to load users');
     }
   };
 
@@ -47,25 +46,25 @@ export const SettingsPage: React.FC = () => {
       const data = await ListAuditLogs(100);
       setAuditLogs(data || []);
     } catch (err: any) {
-      showMessage('error', err.message || 'Failed to load audit logs');
+      toast.error(err.message || 'Failed to load audit logs');
     }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (user?.role !== 'admin') {
-      showMessage('error', 'Only administrators can create users');
+      toast.error('Only administrators can create users');
       return;
     }
     
     try {
       setIsLoading(true);
       await CreateUser(newUser.username, newUser.password, newUser.role, newUser.full_name);
-      showMessage('success', 'User created successfully');
+      toast.success('User created successfully');
       setNewUser({ username: '', password: '', role: 'cashier', full_name: '' });
       fetchUsers();
     } catch (err: any) {
-      showMessage('error', err.message || 'Failed to create user');
+      toast.error(err.message || 'Failed to create user');
     } finally {
       setIsLoading(false);
     }
@@ -75,13 +74,11 @@ export const SettingsPage: React.FC = () => {
     if (!user) return;
     try {
       setIsLoading(true);
-      // Let the user pick a folder/file. Wails handles save dialogs in Go, but here we just pass a default path.
-      // A full implementation might use runtime.SaveFileDialog
       const destPath = `backup_${new Date().getTime()}.db`;
       await ExportDatabase(destPath, user.id, user.username);
-      showMessage('success', `Database exported successfully to ${destPath}`);
+      toast.success(`Database exported to ${destPath}`);
     } catch (err: any) {
-      showMessage('error', err.message || 'Failed to export database');
+      toast.error(err.message || 'Failed to export database');
     } finally {
       setIsLoading(false);
     }
@@ -89,191 +86,184 @@ export const SettingsPage: React.FC = () => {
 
   const handleRestoreDB = async () => {
     if (!user) return;
-    const confirmRestore = window.confirm("WARNING: This will overwrite the current database and restart the application. Are you sure?");
+    const confirmRestore = window.confirm("WARNING: This will overwrite current database and restart app. Proceed?");
     if (!confirmRestore) return;
 
     try {
       setIsLoading(true);
-      const sourcePath = prompt("Enter the exact path to the backup .db file:");
+      const sourcePath = prompt("Enter exact path to backup .db file:");
       if (!sourcePath) {
         setIsLoading(false);
         return;
       }
       
       await RestoreDatabase(sourcePath, user.id, user.username);
-      showMessage('success', 'Database restored successfully! Please restart the application.');
+      toast.success('Database restored successfully!');
     } catch (err: any) {
-      showMessage('error', err.message || 'Failed to restore database');
+      toast.error(err.message || 'Failed to restore database');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSeedDatabase = async () => {
-    const confirmSeed = window.confirm("CRITICAL WARNING: This will WIPE ALL EXISTING DATA and replace it with ~100 realistic testing records. This action cannot be undone. Are you absolutely sure you want to proceed?");
+    const confirmSeed = window.confirm("CRITICAL WARNING: This will WIPE ALL EXISTING DATA and replace with test records. Proceed?");
     if (!confirmSeed) return;
 
     try {
       setIsLoading(true);
-      showMessage('success', 'Wiping database and seeding realistic test data... Please wait.');
       await ResetAndSeedDatabase();
-      showMessage('success', 'Database successfully reset and seeded with realistic test data! Please refresh or navigate to other tabs to see the new data.');
+      toast.success('Database successfully reset and seeded!');
+      fetchUsers();
     } catch (err: any) {
-      showMessage('error', err.message || 'Failed to seed database');
+      toast.error(err.message || 'Failed to seed database');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const userColumns: Column<models.User>[] = [
+    {
+      key: 'full_name',
+      header: 'Full Name',
+      accessor: (u) => <span style={{ fontWeight: 600, color: '#111827' }}>{u.full_name}</span>
+    },
+    {
+      key: 'username',
+      header: 'Username',
+      accessor: (u) => <span style={{ color: '#6B7280' }}>@{u.username}</span>
+    },
+    {
+      key: 'role',
+      header: 'Role',
+      accessor: (u) => (
+        <StatusBadge
+          status={u.role === 'admin' ? 'active' : 'pending'}
+          label={u.role.toUpperCase()}
+        />
+      )
+    },
+    {
+      key: 'created_at',
+      header: 'Created Date',
+      accessor: (u) => <span style={{ color: '#6B7280' }}>{new Date(u.created_at).toLocaleDateString()}</span>
+    }
+  ];
+
+  const auditColumns: Column<models.AuditLog>[] = [
+    {
+      key: 'timestamp',
+      header: 'Timestamp',
+      accessor: (log) => <span style={{ color: '#6B7280' }}>{new Date(log.timestamp).toLocaleString()}</span>
+    },
+    {
+      key: 'username',
+      header: 'User',
+      accessor: (log) => <span style={{ fontWeight: 600, color: '#111827' }}>@{log.username}</span>
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      accessor: (log) => (
+        <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#F3F4F6', fontSize: '11px', fontWeight: 600 }}>
+          {log.action}
+        </span>
+      )
+    },
+    {
+      key: 'details',
+      header: 'Details',
+      accessor: (log) => <span style={{ color: '#6B7280' }}>{log.details}</span>
+    }
+  ];
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-charcoal-navy)', marginBottom: '4px' }}>
-          Settings & Administration
-        </h1>
-        <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-          Manage system users, view audit logs, perform local backups, and restore data.
-        </p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SectionHeader
+        title="Settings & Administration"
+        subtitle="User account management, security roles, system database backups, and audit logs."
+      />
 
-      {message.text && (
-        <div style={{ 
-          padding: '12px 16px', 
-          marginBottom: '20px', 
-          borderRadius: '8px', 
-          backgroundColor: message.type === 'error' ? '#FEE2E2' : '#DCFCE7',
-          color: message.type === 'error' ? '#B91C1C' : '#15803D',
-          fontSize: '14px',
-          fontWeight: 500
-        }}>
-          {message.text}
+      <Panel noPadding style={{ padding: '8px 12px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {[
+            { key: 'users', label: 'User Accounts' },
+            { key: 'backups', label: 'Database & Backups' },
+            { key: 'audit', label: 'Audit Log' }
+          ].map((tab) => (
+            <DesktopButton
+              key={tab.key}
+              variant={activeTab === tab.key ? 'primary' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab(tab.key as any)}
+            >
+              {tab.label}
+            </DesktopButton>
+          ))}
         </div>
-      )}
+      </Panel>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--color-border-subtle)', marginBottom: '24px' }}>
-        <button
-          onClick={() => setActiveTab('users')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', fontSize: '14px',
-            fontWeight: activeTab === 'users' ? 700 : 500,
-            color: activeTab === 'users' ? 'var(--color-primary-teal)' : 'var(--color-text-muted)',
-            borderBottom: activeTab === 'users' ? '3px solid var(--color-primary-teal)' : '3px solid transparent',
-            transition: 'all 0.15s'
-          }}
-        >
-          <Users size={18} /> Manage Users
-        </button>
-        <button
-          onClick={() => setActiveTab('backups')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', fontSize: '14px',
-            fontWeight: activeTab === 'backups' ? 700 : 500,
-            color: activeTab === 'backups' ? 'var(--color-primary-teal)' : 'var(--color-text-muted)',
-            borderBottom: activeTab === 'backups' ? '3px solid var(--color-primary-teal)' : '3px solid transparent',
-            transition: 'all 0.15s'
-          }}
-        >
-          <Database size={18} /> System Backups
-        </button>
-        <button
-          onClick={() => setActiveTab('audit')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 20px', fontSize: '14px',
-            fontWeight: activeTab === 'audit' ? 700 : 500,
-            color: activeTab === 'audit' ? 'var(--color-primary-teal)' : 'var(--color-text-muted)',
-            borderBottom: activeTab === 'audit' ? '3px solid var(--color-primary-teal)' : '3px solid transparent',
-            transition: 'all 0.15s'
-          }}
-        >
-          <FileText size={18} /> Audit Logs
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div style={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid var(--color-border-subtle)', padding: '24px' }}>
-        
+      <Panel noPadding style={{ padding: '16px' }}>
         {/* USERS TAB */}
         {activeTab === 'users' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px' }}>
-            <div>
-              <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>System Users</h2>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <th style={{ padding: '12px' }}>Full Name</th>
-                    <th style={{ padding: '12px' }}>Username</th>
-                    <th style={{ padding: '12px' }}>Role</th>
-                    <th style={{ padding: '12px' }}>Created</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                      <td style={{ padding: '12px', fontWeight: 500 }}>{u.full_name}</td>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>@{u.username}</td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ 
-                          padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
-                          backgroundColor: u.role === 'admin' ? '#FEF2F2' : '#F0FDF4',
-                          color: u.role === 'admin' ? '#991B1B' : '#166534'
-                        }}>
-                          {u.role.toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>
-                        {new Date(u.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
+            <DataGrid
+              columns={userColumns}
+              data={users}
+              keyExtractor={(u) => u.id}
+              isLoading={isLoading}
+              emptyMessage="No users registered in system."
+              compactRows={true}
+              zebraStriping={true}
+              maxHeight="calc(100vh - 280px)"
+            />
+
             {user?.role === 'admin' && (
-              <div style={{ backgroundColor: '#F8FAFC', padding: '20px', borderRadius: '8px', border: '1px solid var(--color-border-subtle)' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Shield size={16} /> Create New User
-                </h3>
-                <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ backgroundColor: '#F9FAFB', padding: '16px', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
+                  <Shield size={16} /> Create User Account
+                </span>
+                <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: 'var(--color-text-muted)' }}>Full Name</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Full Name</label>
                     <input 
                       type="text" required value={newUser.full_name} onChange={e => setNewUser({...newUser, full_name: e.target.value})}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: 'var(--color-text-muted)' }}>Username</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Username</label>
                     <input 
                       type="text" required value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: 'var(--color-text-muted)' }}>Password</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Password</label>
                     <input 
                       type="password" required value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: 'var(--color-text-muted)' }}>Role</label>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>System Role</label>
                     <select 
                       value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}
-                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
                     >
                       <option value="cashier">Cashier</option>
                       <option value="admin">Administrator</option>
                     </select>
                   </div>
-                  <button 
-                    type="submit" disabled={isLoading}
-                    style={{ marginTop: '8px', padding: '10px', backgroundColor: 'var(--color-primary-teal)', color: '#fff', borderRadius: '6px', fontWeight: 600, border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+                  <DesktopButton
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    disabled={isLoading}
+                    style={{ marginTop: '4px' }}
                   >
-                    {isLoading ? 'Creating...' : 'Create User'}
-                  </button>
+                    {isLoading ? 'Creating...' : 'Create Account'}
+                  </DesktopButton>
                 </form>
               </div>
             )}
@@ -282,110 +272,62 @@ export const SettingsPage: React.FC = () => {
 
         {/* BACKUPS TAB */}
         {activeTab === 'backups' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '600px' }}>
-            <div style={{ padding: '24px', border: '1px solid var(--color-border-subtle)', borderRadius: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ padding: '10px', backgroundColor: '#E0F2FE', color: '#0369A1', borderRadius: '8px' }}>
-                  <Download size={24} />
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
+            <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: '#FFFFFF' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <Download size={20} color="#0F8A6A" />
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600 }}>Export Database Backup</h3>
-                  <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Create a secure, local snapshot of your entire database.</p>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#111827' }}>Export Database Backup</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6B7280' }}>Create local file snapshot of SQLite database.</p>
                 </div>
               </div>
-              <button 
-                onClick={handleExportDB} disabled={isLoading}
-                style={{ padding: '10px 20px', backgroundColor: '#fff', color: '#0369A1', border: '1px solid #0369A1', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
-              >
+              <DesktopButton variant="outline" size="sm" onClick={handleExportDB} disabled={isLoading}>
                 Export Now
-              </button>
+              </DesktopButton>
             </div>
 
-            <div style={{ padding: '24px', border: '1px solid #FECACA', backgroundColor: '#FEF2F2', borderRadius: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ padding: '10px', backgroundColor: '#FEE2E2', color: '#DC2626', borderRadius: '8px' }}>
-                  <Upload size={24} />
-                </div>
+            <div style={{ padding: '16px', border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <Upload size={20} color="#EF4444" />
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#991B1B' }}>Restore Database</h3>
-                  <p style={{ fontSize: '13px', color: '#B91C1C' }}>Warning: This will overwrite current data. Only for disaster recovery.</p>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#991B1B' }}>Restore Database</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#B91C1C' }}>Overwrite current database with backup file.</p>
                 </div>
               </div>
-              <button 
-                onClick={handleRestoreDB} disabled={isLoading}
-                style={{ padding: '10px 20px', backgroundColor: '#DC2626', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Restore from Backup
-              </button>
+              <DesktopButton variant="danger" size="sm" onClick={handleRestoreDB} disabled={isLoading}>
+                Restore Backup
+              </DesktopButton>
             </div>
 
-            <div style={{ padding: '24px', border: '1px solid #FCD34D', backgroundColor: '#FFFBEB', borderRadius: '8px', marginTop: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ padding: '10px', backgroundColor: '#FEF3C7', color: '#D97706', borderRadius: '8px' }}>
-                  <AlertTriangle size={24} />
-                </div>
+            <div style={{ padding: '16px', border: '1px solid #FDE68A', backgroundColor: '#FFFBEB', borderRadius: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <AlertTriangle size={20} color="#F59E0B" />
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#B45309' }}>Factory Reset & Seed Test Data</h3>
-                  <p style={{ fontSize: '13px', color: '#92400E' }}>Wipes existing DB and populates 100 realistic testing records (Medicines, Batches, Sales).</p>
+                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#92400E' }}>Factory Reset & Seed Test Data</h4>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#B45309' }}>Wipes DB and populates 100 realistic records.</p>
                 </div>
               </div>
-              <button 
-                onClick={handleSeedDatabase} disabled={isLoading}
-                style={{ padding: '10px 20px', backgroundColor: '#D97706', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                Reset & Seed Database
-              </button>
+              <DesktopButton variant="secondary" size="sm" onClick={handleSeedDatabase} disabled={isLoading}>
+                Reset & Seed
+              </DesktopButton>
             </div>
           </div>
         )}
-
 
         {/* AUDIT TAB */}
         {activeTab === 'audit' && (
-          <div>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '16px' }}>System Audit Logs (Recent 100)</h2>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid var(--color-border-subtle)' }}>
-                    <th style={{ padding: '12px' }}>Timestamp</th>
-                    <th style={{ padding: '12px' }}>User</th>
-                    <th style={{ padding: '12px' }}>Action</th>
-                    <th style={{ padding: '12px' }}>Details</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map(log => (
-                    <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td style={{ padding: '12px', fontWeight: 500 }}>@{log.username}</td>
-                      <td style={{ padding: '12px' }}>
-                        <span style={{ 
-                          padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
-                          backgroundColor: '#F3F4F6', color: '#374151'
-                        }}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px', color: 'var(--color-text-muted)' }}>{log.details}</td>
-                    </tr>
-                  ))}
-                  {auditLogs.length === 0 && (
-                    <tr>
-                      <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                        No audit logs found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataGrid
+            columns={auditColumns}
+            data={auditLogs}
+            keyExtractor={(log) => log.id}
+            isLoading={isLoading}
+            emptyMessage="No audit logs available."
+            compactRows={true}
+            zebraStriping={true}
+            maxHeight="calc(100vh - 280px)"
+          />
         )}
-
-      </div>
+      </Panel>
     </div>
   );
 };
