@@ -28,7 +28,7 @@ export function DataGrid<T>({
   data,
   keyExtractor,
   isLoading = false,
-  emptyMessage = 'No items found',
+  emptyMessage = 'No records in grid',
   selectedKey = null,
   onRowClick,
   zebraStriping = true,
@@ -36,17 +36,17 @@ export function DataGrid<T>({
   maxHeight,
   style
 }: DataGridProps<T>) {
-  const rowHeight = compactRows ? '36px' : '44px';
+  const rowHeight = compactRows ? '28px' : '34px';
 
   return (
     <div
       style={{
         width: '100%',
-        border: '1px solid #E5E7EB',
-        borderRadius: '8px',
+        border: '1px solid #CBD5E1',
+        borderRadius: '2px',
         backgroundColor: '#FFFFFF',
         overflow: 'hidden',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.04)',
+        boxShadow: 'none',
         display: 'flex',
         flexDirection: 'column',
         ...style
@@ -55,7 +55,7 @@ export function DataGrid<T>({
       <div
         className="datagrid-scroll-container"
         style={{
-          maxHeight: maxHeight || 'calc(100vh - 220px)',
+          maxHeight: maxHeight || 'calc(100vh - 180px)',
           position: 'relative'
         }}
       >
@@ -64,16 +64,16 @@ export function DataGrid<T>({
             width: '100%',
             borderCollapse: 'collapse',
             textAlign: 'left',
-            fontSize: compactRows ? '13px' : '14px',
-            color: '#111827'
+            fontSize: compactRows ? '12px' : '13px',
+            color: '#0F172A'
           }}
         >
-          {/* Sticky Table Header */}
+          {/* Sticky Workstation Table Header */}
           <thead>
             <tr
               style={{
-                backgroundColor: '#F9FAFB',
-                borderBottom: '1px solid #E5E7EB',
+                backgroundColor: '#F8FAFC',
+                borderBottom: '1px solid #CBD5E1',
                 position: 'sticky',
                 top: 0,
                 zIndex: 10
@@ -83,16 +83,17 @@ export function DataGrid<T>({
                 <th
                   key={col.key}
                   style={{
-                    padding: compactRows ? '8px 12px' : '10px 14px',
-                    fontWeight: 600,
-                    color: '#4B5563',
-                    fontSize: '12px',
+                    padding: compactRows ? '4px 8px' : '6px 10px',
+                    fontWeight: 700,
+                    color: '#334155',
+                    fontSize: '11px',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                     width: col.width || 'auto',
                     textAlign: col.align || 'left',
                     whiteSpace: 'nowrap',
-                    borderBottom: '1px solid #E5E7EB'
+                    borderBottom: '1px solid #CBD5E1',
+                    borderRight: '1px solid #E2E8F0'
                   }}
                 >
                   {col.header}
@@ -101,20 +102,20 @@ export function DataGrid<T>({
             </tr>
           </thead>
 
-          {/* Table Body */}
+          {/* DataGrid Body Rows */}
           <tbody>
             {isLoading ? (
               <tr>
                 <td
                   colSpan={columns.length}
                   style={{
-                    padding: '32px 16px',
+                    padding: '24px 12px',
                     textAlign: 'center',
-                    color: '#6B7280',
-                    fontSize: '13px'
+                    color: '#64748B',
+                    fontSize: '12px'
                   }}
                 >
-                  Loading data...
+                  Fetching workspace data...
                 </td>
               </tr>
             ) : data.length === 0 ? (
@@ -122,10 +123,10 @@ export function DataGrid<T>({
                 <td
                   colSpan={columns.length}
                   style={{
-                    padding: '36px 16px',
+                    padding: '28px 12px',
                     textAlign: 'center',
-                    color: '#9CA3AF',
-                    fontSize: '13px'
+                    color: '#94A3B8',
+                    fontSize: '12px'
                   }}
                 >
                   {emptyMessage}
@@ -138,9 +139,9 @@ export function DataGrid<T>({
                 const isEven = index % 2 === 0;
 
                 const bg = isSelected
-                  ? '#ECFDF5'
+                  ? '#E0F2FE'
                   : zebraStriping && !isEven
-                  ? '#F9FAFB'
+                  ? '#F8FAFC'
                   : '#FFFFFF';
 
                 return (
@@ -151,7 +152,7 @@ export function DataGrid<T>({
                     style={{
                       backgroundColor: bg,
                       height: rowHeight,
-                      borderBottom: '1px solid #F3F4F6',
+                      borderBottom: '1px solid #E2E8F0',
                       cursor: onRowClick ? 'pointer' : 'default'
                     }}
                   >
@@ -159,11 +160,13 @@ export function DataGrid<T>({
                       <td
                         key={col.key}
                         style={{
-                          padding: compactRows ? '6px 12px' : '10px 14px',
+                          padding: compactRows ? '3px 8px' : '5px 10px',
                           textAlign: col.align || 'left',
                           whiteSpace: 'nowrap',
                           verticalAlign: 'middle',
-                          color: isSelected ? '#065F46' : '#111827'
+                          color: isSelected ? '#0369A1' : '#0F172A',
+                          borderRight: '1px solid #F1F5F9',
+                          fontWeight: isSelected ? 600 : 400
                         }}
                       >
                         {col.accessor ? col.accessor(row) : (row as any)[col.key]}

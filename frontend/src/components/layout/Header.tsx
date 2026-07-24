@@ -141,44 +141,45 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Medicine':
-        return <Pill size={15} style={{ color: '#0F8A6A' }} />;
+        return <Pill size={13} style={{ color: '#0F8A6A' }} />;
       case 'Prescription':
-        return <FileText size={15} style={{ color: '#8B5CF6' }} />;
+        return <FileText size={13} style={{ color: '#8B5CF6' }} />;
       case 'Sale Invoice':
-        return <ShoppingCart size={15} style={{ color: '#3B82F6' }} />;
+        return <ShoppingCart size={13} style={{ color: '#3B82F6' }} />;
       case 'Supplier':
-        return <Users size={15} style={{ color: '#F59E0B' }} />;
+        return <Users size={13} style={{ color: '#F59E0B' }} />;
       default:
-        return <Pill size={15} />;
+        return <Pill size={13} />;
     }
   };
 
   return (
     <header
       style={{
-        height: '48px',
+        height: '38px',
+        maxHeight: '38px',
+        flexShrink: 0,
         backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E5E7EB',
+        borderBottom: '1px solid #CBD5E1',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 16px',
-        position: 'sticky',
-        top: '32px',
+        padding: '0 12px',
+        position: 'relative',
         zIndex: 90,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)'
+        boxShadow: 'none'
       }}
     >
-      {/* Left Quick Navigation Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <DesktopButton
-          variant="primary"
-          size="sm"
-          icon={<Plus size={14} />}
+      {/* Left Quick Desktop Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button
           onClick={() => onSelectView('pos')}
+          className="desktop-btn-primary"
+          style={{ height: '26px', fontSize: '11px', gap: '5px' }}
         >
-          New Sale
-        </DesktopButton>
+          <Plus size={13} />
+          <span>New Sale (F1)</span>
+        </button>
       </div>
 
       {/* Center Search Field */}
@@ -186,9 +187,9 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Search medicines, prescriptions, sales..."
+          placeholder="Global Search (Ctrl+K)..."
           onFocus={() => searchQuery.trim() && setShowSearchDropdown(true)}
-          width="360px"
+          width="320px"
         />
 
         {/* Search Dropdown */}
@@ -196,49 +197,49 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
           <div
             style={{
               position: 'absolute',
-              top: 'calc(100% + 6px)',
+              top: 'calc(100% + 4px)',
               left: 0,
               right: 0,
               backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
-              border: '1px solid #E5E7EB',
-              maxHeight: '340px',
+              borderRadius: '2px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              border: '1px solid #CBD5E1',
+              maxHeight: '300px',
               overflowY: 'auto',
               zIndex: 100
             }}
           >
             {isSearching ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
+              <div style={{ padding: '12px', textAlign: 'center', color: '#64748B', fontSize: '12px' }}>
                 Searching database...
               </div>
             ) : searchResults.length === 0 ? (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
+              <div style={{ padding: '12px', textAlign: 'center', color: '#64748B', fontSize: '12px' }}>
                 No results found for "{searchQuery}"
               </div>
             ) : (
-              <div style={{ padding: '4px 0' }}>
+              <div style={{ padding: '2px 0' }}>
                 {searchResults.map((item) => (
                   <div
                     key={`${item.category}_${item.id}`}
                     onClick={() => handleSearchResultClick(item)}
                     style={{
-                      padding: '8px 12px',
+                      padding: '6px 10px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       cursor: 'pointer',
-                      transition: 'background-color 150ms'
+                      borderBottom: '1px solid #F1F5F9'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div
                         style={{
-                          padding: '5px',
-                          borderRadius: '6px',
-                          backgroundColor: '#F3F4F6',
+                          padding: '4px',
+                          borderRadius: '2px',
+                          backgroundColor: '#F1F5F9',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center'
@@ -247,15 +248,15 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
                         {getCategoryIcon(item.category)}
                       </div>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#0F172A' }}>
                           {item.title}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#6B7280' }}>
+                        <div style={{ fontSize: '10px', color: '#64748B' }}>
                           {item.subtitle}
                         </div>
                       </div>
                     </div>
-                    <ChevronRight size={14} style={{ color: '#9CA3AF' }} />
+                    <ChevronRight size={13} style={{ color: '#94A3B8' }} />
                   </div>
                 ))}
               </div>
@@ -264,95 +265,98 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
         )}
       </div>
 
-      {/* Right Controls & Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        
+      {/* Right Toolbar Controls & User Profile Badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Today's Sales Counter */}
+        <div
+          style={{
+            backgroundColor: '#ECFDF5',
+            color: '#065F46',
+            border: '1px solid #A7F3D0',
+            padding: '2px 8px',
+            borderRadius: '2px',
+            fontWeight: 600,
+            fontSize: '11px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          <span style={{ color: '#059669', fontSize: '10px' }}>UGX</span>
+          <span>{todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+
         {/* Notifications */}
         <div ref={notifRef} style={{ position: 'relative' }}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             title="Notifications"
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#4B5563',
-              backgroundColor: 'transparent',
-              position: 'relative',
-              transition: 'background-color 150ms'
+              width: '26px',
+              height: '26px',
+              padding: 0,
+              borderRadius: '2px',
+              border: '1px solid #CBD5E1',
+              backgroundColor: '#FFFFFF',
+              color: '#334155',
+              position: 'relative'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F3F4F6')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            <Bell size={17} />
+            <Bell size={14} />
             {notifications && notifications.total_count > 0 && (
               <span
                 style={{
                   position: 'absolute',
-                  top: '4px',
-                  right: '4px',
-                  width: '8px',
-                  height: '8px',
+                  top: '2px',
+                  right: '2px',
+                  width: '6px',
+                  height: '6px',
                   backgroundColor: '#EF4444',
-                  borderRadius: '50%',
-                  border: '1.5px solid #FFFFFF'
+                  borderRadius: '50%'
                 }}
               />
             )}
           </button>
 
-          {/* Notifications Panel */}
+          {/* Notifications Solid Dropdown */}
           {showNotifications && (
             <div
               style={{
                 position: 'absolute',
-                top: 'calc(100% + 8px)',
+                top: 'calc(100% + 4px)',
                 right: 0,
-                width: '320px',
+                width: '300px',
                 backgroundColor: '#FFFFFF',
-                borderRadius: '8px',
-                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
-                border: '1px solid #E5E7EB',
-                zIndex: 100,
-                overflow: 'hidden'
+                borderRadius: '2px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                border: '1px solid #CBD5E1',
+                zIndex: 100
               }}
             >
               <div
                 style={{
-                  padding: '10px 14px',
-                  borderBottom: '1px solid #E5E7EB',
+                  padding: '6px 10px',
+                  borderBottom: '1px solid #CBD5E1',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  backgroundColor: '#F9FAFB'
+                  backgroundColor: '#F8FAFC'
                 }}
               >
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>
-                  Alerts & Notifications
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase' }}>
+                  System Alerts
                 </span>
                 {notifications && (
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      backgroundColor: '#ECFDF5',
-                      color: '#065F46',
-                      padding: '2px 8px',
-                      borderRadius: '12px'
-                    }}
-                  >
+                  <span style={{ fontSize: '10px', fontWeight: 600, backgroundColor: '#ECFDF5', color: '#065F46', padding: '1px 6px' }}>
                     {notifications.total_count} New
                   </span>
                 )}
               </div>
 
-              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+              <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                 {!notifications || notifications.items.length === 0 ? (
-                  <div style={{ padding: '20px 14px', textAlign: 'center', color: '#9CA3AF', fontSize: '12px' }}>
-                    No pending alerts.
+                  <div style={{ padding: '14px', textAlign: 'center', color: '#64748B', fontSize: '11px' }}>
+                    No alerts pending.
                   </div>
                 ) : (
                   notifications.items.map((item) => (
@@ -363,28 +367,27 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
                         onSelectView(item.target as NavItemKey);
                       }}
                       style={{
-                        padding: '10px 14px',
-                        borderBottom: '1px solid #F3F4F6',
+                        padding: '8px 10px',
+                        borderBottom: '1px solid #F1F5F9',
                         cursor: 'pointer',
                         display: 'flex',
-                        gap: '10px',
-                        transition: 'background-color 150ms'
+                        gap: '8px'
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FAFB')}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F1F5F9')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <div style={{ marginTop: '2px' }}>
+                      <div style={{ marginTop: '1px' }}>
                         {item.severity === 'danger' ? (
-                          <AlertTriangle size={16} style={{ color: '#EF4444' }} />
+                          <AlertTriangle size={14} style={{ color: '#EF4444' }} />
                         ) : (
-                          <Clock size={16} style={{ color: '#F59E0B' }} />
+                          <Clock size={14} style={{ color: '#F59E0B' }} />
                         )}
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#111827' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: '#0F172A' }}>
                           {item.title}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '1px' }}>
+                        <div style={{ fontSize: '10px', color: '#64748B' }}>
                           {item.message}
                         </div>
                       </div>
@@ -396,20 +399,29 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
           )}
         </div>
 
-        {/* User Pill */}
+        {/* User Profile Desktop Status Item */}
         <div
           onClick={() => fileInputRef.current?.click()}
-          title="Click to upload custom avatar"
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+          title="Click to change avatar"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '2px 6px',
+            border: '1px solid #CBD5E1',
+            borderRadius: '2px',
+            backgroundColor: '#F8FAFC',
+            cursor: 'pointer',
+            height: '26px'
+          }}
         >
           <div
             style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
+              width: '20px',
+              height: '20px',
+              borderRadius: '2px',
               overflow: 'hidden',
-              border: '1.5px solid #0F8A6A',
-              backgroundColor: '#111827',
+              backgroundColor: '#0F172A',
               flexShrink: 0
             }}
           >
@@ -419,14 +431,12 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827', lineHeight: 1.2 }}>
-              {user?.full_name || user?.username}
-            </span>
-            <span style={{ fontSize: '10px', color: '#6B7280', textTransform: 'capitalize' }}>
-              {user?.role}
-            </span>
-          </div>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#0F172A' }}>
+            {user?.username || 'Pharmacist'}
+          </span>
+          <span style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: '#E2E8F0', borderRadius: '2px', textTransform: 'uppercase', fontWeight: 700, color: '#334155' }}>
+            {user?.role}
+          </span>
           <input
             type="file"
             ref={fileInputRef}
@@ -435,25 +445,6 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
             style={{ display: 'none' }}
           />
         </div>
-
-        {/* Today's Sales Badge */}
-        <div
-          style={{
-            backgroundColor: '#0F8A6A',
-            color: '#FFFFFF',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            fontWeight: 600,
-            fontSize: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px'
-          }}
-        >
-          <span style={{ opacity: 0.8, fontSize: '10px' }}>UGX</span>
-          <span>{todaySales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        </div>
-
       </div>
     </header>
   );

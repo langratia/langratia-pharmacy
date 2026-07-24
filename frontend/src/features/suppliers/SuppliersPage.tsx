@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, X } from 'lucide-react';
+import { Plus, Users, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
-import { DesktopButton } from '../../components/ui/DesktopButton';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { SplitPane } from '../../components/ui/SplitPane';
 
 export const SuppliersPage: React.FC = () => {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [isNewSupplier, setIsNewSupplier] = useState(false);
+
   const [formData, setFormData] = useState({ name: '', contact_person: '', phone: '', email: '', address: '' });
   const [error, setError] = useState<string | null>(null);
-  const [selectedSupId, setSelectedSupId] = useState<number | null>(null);
 
   const fetchSuppliers = async () => {
     setIsLoading(true);
@@ -27,6 +29,9 @@ export const SuppliersPage: React.FC = () => {
       if (wailsApp && typeof wailsApp.ListSuppliers === 'function') {
         const data = await wailsApp.ListSuppliers();
         setSuppliers(data || []);
+        if (data && data.length > 0 && !selectedSupplier && !isNewSupplier) {
+          handleSelectSupplier(data[0]);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -40,22 +45,30 @@ export const SuppliersPage: React.FC = () => {
     fetchSuppliers();
   }, []);
 
-  const handleOpenAdd = () => {
-    setEditingSupplier(null);
-    setFormData({ name: '', contact_person: '', phone: '', email: '', address: '' });
+  const handleSelectSupplier = (sup: Supplier) => {
+    setSelectedSupplier(sup);
+    setIsNewSupplier(false);
     setError(null);
-    setIsModalOpen(true);
+    setFormData({
+      name: sup.name,
+      contact_person: sup.contact_person,
+      phone: sup.phone,
+      email: sup.email,
+      address: sup.address
+    });
   };
 
-  const handleOpenEdit = (sup: Supplier) => {
-    setEditingSupplier(sup);
-    setFormData({ name: sup.name, contact_person: sup.contact_person, phone: sup.phone, email: sup.email, address: sup.address });
+  const handleOpenAdd = () => {
+    if (!isAdmin) return;
+    setSelectedSupplier(null);
+    setIsNewSupplier(true);
     setError(null);
-    setIsModalOpen(true);
+    setFormData({ name: '', contact_person: '', phone: '', email: '', address: '' });
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) return;
     if (!formData.name.trim()) {
       setError('Supplier Name is required');
       return;
@@ -64,232 +77,148 @@ export const SuppliersPage: React.FC = () => {
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
-        if (editingSupplier) {
-          await wailsApp.UpdateSupplier({ id: editingSupplier.id, ...formData, created_at: editingSupplier.created_at }, user?.id || 1, user?.username || 'admin');
-          toast.success('Supplier updated');
+        if (selectedSupplier && !isNewSupplier) {
+          await wailsApp.UpdateSupplier({ ...selectedSupplier, ...formData }, user?.id || 1, user?.username || 'admin');
+          toast.success('Supplier record updated');
         } else {
           await wailsApp.AddSupplier({ id: 0, ...formData, created_at: new Date().toISOString() }, user?.id || 1, user?.username || 'admin');
-          toast.success('Supplier created');
+          toast.success('New supplier created');
         }
       }
-      setIsModalOpen(false);
+      setIsNewSupplier(false);
       fetchSuppliers();
     } catch (err: any) {
       setError(err?.message || 'Failed to save supplier');
     }
   };
 
-  const filteredSuppliers = suppliers.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.contact_person.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSuppliers = suppliers.filter(s => {
+    const q = search.toLowerCase();
+    return s.name.toLowerCase().includes(q) || s.contact_person.toLowerCase().includes(q);
+  });
 
   const columns: Column<Supplier>[] = [
     {
       key: 'name',
-      header: 'Company / Distributor',
-      accessor: (s) => (
-        <div>
-          <div style={{ fontWeight: 600, color: '#111827' }}>{s.name}</div>
-          <div style={{ fontSize: '11px', color: '#6B7280' }}>Contact: {s.contact_person || 'N/A'}</div>
-        </div>
+      header: 'Supplier Name',
+      width: '35%',
+      accessor: (sup) => (
+        <span style={{ fontWeight: 600, color: '#0F172A' }}>{sup.name}</span>
+      )
+    },
+    {
+      key: 'contact_person',
+      header: 'Contact Representative',
+      width: '30%',
+      accessor: (sup) => (
+        <span style={{ fontSize: '11px', color: '#334155' }}>{sup.contact_person || '-'}</span>
       )
     },
     {
       key: 'phone',
-      header: 'Phone Number',
-      accessor: (s) => <span style={{ color: '#374151' }}>{s.phone || '-'}</span>
-    },
-    {
-      key: 'email',
-      header: 'Email Address',
-      accessor: (s) => <span style={{ color: '#374151' }}>{s.email || '-'}</span>
-    },
-    {
-      key: 'address',
-      header: 'Physical Address',
-      accessor: (s) => <span style={{ color: '#6B7280' }}>{s.address || '-'}</span>
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
-      accessor: (s) => (
-        <DesktopButton
-          variant="secondary"
-          size="sm"
-          icon={<Edit size={13} />}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpenEdit(s);
-          }}
-        >
-          Edit
-        </DesktopButton>
+      header: 'Telephone',
+      width: '35%',
+      accessor: (sup) => (
+        <span style={{ fontSize: '11px', color: '#64748B' }}>{sup.phone || '-'}</span>
       )
     }
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+  // Primary Workspace Pane
+  const primaryContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <SectionHeader
-        title="Supplier Directory"
-        subtitle="Pharmaceutical distributors, contact persons, and procurement partners."
+        title="Supplier Registry Workspace"
+        subtitle="Manage pharmaceutical vendors, distributors, and contact directories"
         actions={
-          <DesktopButton
-            variant="primary"
-            size="md"
-            icon={<Plus size={15} />}
-            onClick={handleOpenAdd}
-          >
-            Add Supplier
-          </DesktopButton>
+          isAdmin ? (
+            <button onClick={handleOpenAdd} className="desktop-btn-primary" style={{ height: '24px', fontSize: '11px', gap: '4px' }}>
+              <Plus size={12} />
+              <span>Add Supplier</span>
+            </button>
+          ) : undefined
         }
       />
 
-      <Panel noPadding style={{ padding: '8px 12px' }}>
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="Filter by company or contact person..."
-          width="320px"
-          showShortcut={false}
-        />
+      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact representative..." width="320px" showShortcut={false} />
       </Panel>
 
       <DataGrid
         columns={columns}
         data={filteredSuppliers}
-        keyExtractor={(s) => s.id}
+        keyExtractor={(row) => row.id}
         isLoading={isLoading}
-        emptyMessage="No supplier records found."
-        selectedKey={selectedSupId}
-        onRowClick={(s) => setSelectedSupId(s.id)}
+        emptyMessage="No suppliers registered."
+        selectedKey={selectedSupplier ? selectedSupplier.id : null}
+        onRowClick={(sup) => handleSelectSupplier(sup)}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 230px)"
+        maxHeight="calc(100vh - 165px)"
+        style={{ flex: 1 }}
       />
+    </div>
+  );
 
-      {isModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '500px',
-              padding: '20px',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #E5E7EB', paddingBottom: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
-                {editingSupplier ? 'Edit Supplier Record' : 'Add New Supplier'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
-            </div>
+  // Inspector Docked Pane
+  const inspectorContent = (
+    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+      {error && <div style={{ color: '#EF4444', fontSize: '10px' }}>{error}</div>}
 
-            {error && <div style={{ padding: '8px 12px', backgroundColor: '#FEE2E2', color: '#991B1B', borderRadius: '6px', fontSize: '12px', marginBottom: '14px' }}>{error}</div>}
-
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Company Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Contact Person
-                </label>
-                <input
-                  type="text"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Physical Address
-                </label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' }}>
-                <DesktopButton
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  Cancel
-                </DesktopButton>
-                <DesktopButton
-                  type="submit"
-                  variant="primary"
-                >
-                  Save Supplier
-                </DesktopButton>
-              </div>
-            </form>
-          </div>
+      {(!selectedSupplier && !isNewSupplier) ? (
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
+          <Users size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+          Select a supplier to view details and edit contact directory.
         </div>
+      ) : (
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
+            {isNewSupplier ? 'NEW SUPPLIER ENTRY' : selectedSupplier?.name}
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Supplier Company Name *</label>
+            <input type="text" required disabled={!isAdmin} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Contact Person</label>
+            <input type="text" disabled={!isAdmin} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%' }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Telephone</label>
+              <input type="text" disabled={!isAdmin} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Email</label>
+              <input type="email" disabled={!isAdmin} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Physical Office Address</label>
+            <textarea rows={3} disabled={!isAdmin} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%' }} />
+          </div>
+
+          {isAdmin && (
+            <button type="submit" className="desktop-btn-primary" style={{ height: '28px', fontSize: '11px', marginTop: '10px', gap: '4px' }}>
+              <Save size={12} />
+              <span>{isNewSupplier ? 'Save Supplier' : 'Update Record'}</span>
+            </button>
+          )}
+        </form>
       )}
     </div>
+  );
+
+  return (
+    <SplitPane
+      primaryPane={primaryContent}
+      inspectorPane={inspectorContent}
+      inspectorTitle={isNewSupplier ? 'ADD NEW SUPPLIER' : 'SUPPLIER INSPECTOR'}
+      inspectorWidth="340px"
+    />
   );
 };

@@ -2,22 +2,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { 
   Plus, 
-  Edit, 
   Archive, 
   RotateCcw, 
   Upload, 
-  X,
   Filter,
-  Layers
+  Save,
+  Package,
+  AlertTriangle,
+  Boxes
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
-import { DesktopButton } from '../../components/ui/DesktopButton';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { SplitPane } from '../../components/ui/SplitPane';
 import { ListMedicines } from '../../../wailsjs/go/main/App';
 
 const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'created_at'> & { current_stock?: number } = {
@@ -45,16 +46,16 @@ export const InventoryPage: React.FC = () => {
   const [category, setCategory] = useState('All');
   const [includeArchived, setIncludeArchived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedMedId, setSelectedMedId] = useState<number | null>(null);
+
+  // Inspector & Form State
+  const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [isEditingMode, setIsEditingMode] = useState<boolean>(false);
+  const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
+  const [formData, setFormData] = useState(INITIAL_FORM);
+  const [inspectorError, setInspectorError] = useState<string | null>(null);
 
   // CSV file ref
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
-  const [formData, setFormData] = useState(INITIAL_FORM);
-  const [modalError, setModalError] = useState<string | null>(null);
 
   const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
   const medicineForms = ['Tablet', 'Capsule', 'Syrup / Suspension', 'Injection', 'Ointment / Cream', 'Drops', 'Inhaler', 'Powder'];
@@ -72,6 +73,11 @@ export const InventoryPage: React.FC = () => {
         }
       }
       setMedicines(data || []);
+
+      // Auto select first medicine if none selected
+      if (data && data.length > 0 && !selectedMedicine && !isNewRecord) {
+        handleSelectMedicine(data[0]);
+      }
     } catch (err: any) {
       console.error('Failed to fetch medicines', err);
       toast.error('Failed to load medicines from backend database');
@@ -84,17 +90,11 @@ export const InventoryPage: React.FC = () => {
     fetchMedicines();
   }, [search, category, includeArchived]);
 
-  const handleOpenAddModal = () => {
-    if (!isAdmin) return;
-    setEditingMedicine(null);
-    setFormData(INITIAL_FORM);
-    setModalError(null);
-    setIsModalOpen(true);
-  };
-
-  const handleOpenEditModal = (med: Medicine) => {
-    if (!isAdmin) return;
-    setEditingMedicine(med);
+  const handleSelectMedicine = (med: Medicine) => {
+    setSelectedMedicine(med);
+    setIsNewRecord(false);
+    setIsEditingMode(false);
+    setInspectorError(null);
     setFormData({
       name: med.name,
       generic_name: med.generic_name,
@@ -110,29 +110,36 @@ export const InventoryPage: React.FC = () => {
       manufacturer: med.manufacturer,
       description: med.description
     });
-    setModalError(null);
-    setIsModalOpen(true);
+  };
+
+  const handleCreateNewRecord = () => {
+    if (!isAdmin) return;
+    setSelectedMedicine(null);
+    setIsNewRecord(true);
+    setIsEditingMode(true);
+    setInspectorError(null);
+    setFormData(INITIAL_FORM);
   };
 
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) return;
     if (!formData.name.trim()) {
-      setModalError('Medicine Name is required.');
+      setInspectorError('Medicine Name is required.');
       return;
     }
 
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
-        if (editingMedicine) {
+        if (selectedMedicine && !isNewRecord) {
           const payload: Medicine = {
-            ...editingMedicine,
+            ...selectedMedicine,
             ...formData,
-            current_stock: editingMedicine.current_stock
+            current_stock: formData.current_stock ?? selectedMedicine.current_stock
           };
           await wailsApp.UpdateMedicine(payload, user?.id || 1, user?.username || 'admin');
-          toast.success('Medicine record updated');
+          toast.success(`Updated ${formData.name}`);
         } else {
           const payload: Medicine = {
             id: 0,
@@ -142,13 +149,14 @@ export const InventoryPage: React.FC = () => {
             created_at: new Date().toISOString()
           };
           await wailsApp.AddMedicine(payload, user?.id || 1, user?.username || 'admin');
-          toast.success('New medicine created');
+          toast.success(`Added ${formData.name}`);
         }
       }
-      setIsModalOpen(false);
+      setIsEditingMode(false);
+      setIsNewRecord(false);
       fetchMedicines();
     } catch (err: any) {
-      setModalError(err?.message || 'Failed to save medicine');
+      setInspectorError(err?.message || 'Failed to save medicine record');
     }
   };
 
@@ -160,8 +168,6 @@ export const InventoryPage: React.FC = () => {
         await wailsApp.ArchiveMedicine(med.id, !med.is_archived, user?.id || 1, user?.username || 'admin');
         toast.success(med.is_archived ? 'Medicine restored' : 'Medicine archived');
         fetchMedicines();
-      } else {
-        setMedicines(prev => prev.map(m => m.id === med.id ? { ...m, is_archived: !m.is_archived } : m));
       }
     } catch (err) {
       console.error('Failed to toggle archive', err);
@@ -220,19 +226,11 @@ export const InventoryPage: React.FC = () => {
           });
         }
 
-        if (importedMeds.length === 0) {
-          toast.error('No valid medicine records found in CSV.');
-          return;
-        }
-
         const wailsApp = (window as any)?.go?.main?.App;
         if (wailsApp && typeof wailsApp.BulkImportMedicines === 'function') {
           const count = await wailsApp.BulkImportMedicines(importedMeds, user?.id || 1, user?.username || 'admin');
           toast.success(`Successfully imported ${count} medicines from CSV!`);
           fetchMedicines();
-        } else {
-          toast.success(`Imported ${importedMeds.length} medicines.`);
-          setMedicines(prev => [...prev, ...importedMeds]);
         }
       } catch (err: any) {
         toast.error('Failed to import CSV: ' + (err.message || err));
@@ -250,148 +248,92 @@ export const InventoryPage: React.FC = () => {
     {
       key: 'name',
       header: 'Medicine Name',
+      width: '28%',
       accessor: (med) => (
-        <div>
-          <div style={{ fontWeight: 600, color: '#111827' }}>{med.name}</div>
-          <div style={{ fontSize: '11px', color: '#6B7280' }}>Pack: {med.pack_size || '-'}</div>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontWeight: 600, color: '#0F172A' }}>{med.name}</span>
+          <span style={{ fontSize: '10px', color: '#64748B', marginLeft: '6px' }}>({med.pack_size || '-'})</span>
         </div>
       )
     },
     {
       key: 'generic_name',
       header: 'Generic / Brand',
+      width: '24%',
       accessor: (med) => (
-        <div>
-          <div style={{ color: '#374151' }}>{med.generic_name || '-'}</div>
-          {med.brand_name && <div style={{ fontSize: '11px', color: '#6B7280' }}>Brand: {med.brand_name}</div>}
+        <div style={{ fontSize: '11px' }}>
+          <span style={{ color: '#334155' }}>{med.generic_name || '-'}</span>
+          {med.brand_name && <span style={{ color: '#64748B', marginLeft: '4px' }}>[{med.brand_name}]</span>}
         </div>
       )
     },
     {
       key: 'category',
       header: 'Category',
+      width: '15%',
       accessor: (med) => (
         <span
           style={{
-            padding: '2px 8px',
-            backgroundColor: '#F3F4F6',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 500,
-            color: '#374151'
+            padding: '1px 6px',
+            backgroundColor: '#F1F5F9',
+            border: '1px solid #CBD5E1',
+            borderRadius: '2px',
+            fontSize: '10px',
+            fontWeight: 600,
+            color: '#334155'
           }}
         >
           {med.category}
         </span>
       )
     },
-    {
-      key: 'dosage_strength',
-      header: 'Form / Dosage',
-      accessor: (med) => (
-        <div>
-          <div style={{ color: '#111827' }}>{med.dosage_strength || '-'}</div>
-          <div style={{ fontSize: '11px', color: '#6B7280' }}>{med.medicine_form}</div>
-        </div>
-      )
-    },
     ...(isAdmin ? [{
       key: 'buying_price',
-      header: 'Buying Price',
+      header: 'Buy (UGX)',
+      width: '12%',
+      align: 'right' as const,
       accessor: (med: Medicine) => (
-        <span style={{ color: '#6B7280' }}>
-          UGX {med.buying_price.toLocaleString()}
+        <span style={{ color: '#64748B', fontSize: '11px' }}>
+          {med.buying_price.toLocaleString()}
         </span>
       )
     }] : []),
     {
       key: 'selling_price',
-      header: 'Selling Price',
+      header: 'Sell (UGX)',
+      width: '13%',
+      align: 'right' as const,
       accessor: (med) => (
-        <span style={{ fontWeight: 600, color: '#0F8A6A' }}>
-          UGX {med.selling_price.toLocaleString()}
+        <span style={{ fontWeight: 700, color: '#0F8A6A', fontSize: '11px' }}>
+          {med.selling_price.toLocaleString()}
         </span>
       )
     },
     {
       key: 'current_stock',
-      header: 'Stock Level',
+      header: 'Stock',
+      width: '10%',
+      align: 'center' as const,
       accessor: (med) => {
         const isOut = med.current_stock <= 0;
         const isLow = med.current_stock > 0 && med.current_stock <= med.reorder_level;
 
         return (
-          <div>
-            <span style={{ fontWeight: 600, color: isOut ? '#EF4444' : isLow ? '#F59E0B' : '#10B981' }}>
-              {med.current_stock}
-            </span>
-            <span style={{ fontSize: '11px', color: '#6B7280', marginLeft: '6px' }}>
-              (Min: {med.reorder_level})
-            </span>
-          </div>
+          <span style={{ fontWeight: 700, color: isOut ? '#EF4444' : isLow ? '#D97706' : '#10B981' }}>
+            {med.current_stock}
+          </span>
         );
       }
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      accessor: (med) => {
-        const isOut = med.current_stock <= 0;
-        const isLow = med.current_stock > 0 && med.current_stock <= med.reorder_level;
-
-        let statusType = 'in_stock';
-        if (med.is_archived) statusType = 'archived';
-        else if (isOut) statusType = 'out_of_stock';
-        else if (isLow) statusType = 'low_stock';
-
-        return <StatusBadge status={statusType} />;
-      }
-    },
-    ...(isAdmin ? [{
-      key: 'actions',
-      header: 'Actions',
-      align: 'right' as const,
-      accessor: (med: Medicine) => (
-        <div style={{ display: 'inline-flex', gap: '6px' }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenEditModal(med);
-            }}
-            title="Edit Record"
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              backgroundColor: '#F3F4F6',
-              color: '#374151',
-              cursor: 'pointer'
-            }}
-          >
-            <Edit size={14} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleToggleArchive(med);
-            }}
-            title={med.is_archived ? 'Restore Record' : 'Archive Record'}
-            style={{
-              padding: '4px 8px',
-              borderRadius: '4px',
-              backgroundColor: med.is_archived ? '#E0F2FE' : '#FEE2E2',
-              color: med.is_archived ? '#0284C7' : '#EF4444',
-              cursor: 'pointer'
-            }}
-          >
-            {med.is_archived ? <RotateCcw size={14} /> : <Archive size={14} />}
-          </button>
-        </div>
-      )
-    }] : [])
+    }
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+  // Calculate Metrics Summary
+  const lowStockCount = medicines.filter(m => m.current_stock <= m.reorder_level && !m.is_archived).length;
+  const totalStockValuation = medicines.reduce((acc, m) => acc + (m.current_stock * m.buying_price), 0);
+
+  // Master Primary Pane Content
+  const primaryContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <input
         type="file"
         ref={fileInputRef}
@@ -400,64 +342,52 @@ export const InventoryPage: React.FC = () => {
         style={{ display: 'none' }}
       />
 
-      {/* Desktop Section Header */}
+      {/* Toolbar Header */}
       <SectionHeader
-        title="Medicine Inventory"
-        subtitle={
-          isAdmin
-            ? 'Pharmaceutical master registry, stock levels, pricing, and reorder alerts.'
-            : 'Search medicine prices, available stock, categories, and dosage forms.'
-        }
+        title="Inventory Management Workspace"
+        subtitle={`${medicines.length} Pharmaceutical Master Items Registered`}
         actions={
           isAdmin ? (
             <>
-              <DesktopButton
-                variant="outline"
-                size="md"
-                icon={<Upload size={15} color="#0F8A6A" />}
+              <button
                 onClick={() => fileInputRef.current?.click()}
+                className="desktop-btn-secondary"
+                style={{ height: '24px', fontSize: '11px', gap: '4px' }}
               >
-                Import CSV
-              </DesktopButton>
-              <DesktopButton
-                variant="primary"
-                size="md"
-                icon={<Plus size={15} />}
-                onClick={handleOpenAddModal}
+                <Upload size={12} />
+                <span>Import CSV</span>
+              </button>
+              <button
+                onClick={handleCreateNewRecord}
+                className="desktop-btn-primary"
+                style={{ height: '24px', fontSize: '11px', gap: '4px' }}
               >
-                Add Medicine
-              </DesktopButton>
+                <Plus size={12} />
+                <span>Add Medicine</span>
+              </button>
             </>
           ) : undefined
         }
       />
 
-      {/* Quick Search & Desktop Filter Toolbar Panel */}
-      <Panel noPadding style={{ padding: '10px 14px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+      {/* Filter Strip Panel */}
+      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
             <SearchBar
               value={search}
               onChange={setSearch}
-              placeholder="Filter by medicine, generic, or brand..."
-              width="320px"
+              placeholder="Search medicine, generic composition, brand..."
+              width="300px"
               showShortcut={false}
             />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Filter size={14} style={{ color: '#6B7280' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Filter size={12} style={{ color: '#64748B' }} />
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #D1D5DB',
-                  fontSize: '13px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#111827',
-                  outline: 'none'
-                }}
+                style={{ height: '26px', fontSize: '11px', padding: '2px 6px' }}
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
@@ -469,274 +399,303 @@ export const InventoryPage: React.FC = () => {
           </div>
 
           {isAdmin && (
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#374151', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: '#334155', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={includeArchived}
                 onChange={(e) => setIncludeArchived(e.target.checked)}
-                style={{ accentColor: '#0F8A6A', width: '15px', height: '15px' }}
+                style={{ accentColor: '#0F8A6A', width: '13px', height: '13px' }}
               />
-              <span>Include Archived Items</span>
+              <span>Include Archived</span>
             </label>
           )}
         </div>
       </Panel>
 
-      {/* Desktop DataGrid */}
+      {/* Master DataGrid */}
       <DataGrid
         columns={columns}
         data={medicines}
         keyExtractor={(row) => row.id}
         isLoading={isLoading}
         emptyMessage="No medicines matching search filter criteria."
-        selectedKey={selectedMedId}
-        onRowClick={(row) => setSelectedMedId(row.id)}
+        selectedKey={selectedMedicine ? selectedMedicine.id : null}
+        onRowClick={(row) => handleSelectMedicine(row)}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 230px)"
+        maxHeight="calc(100vh - 170px)"
+        style={{ flex: 1 }}
       />
 
-      {/* Add / Edit Medicine Desktop Dialog Modal */}
-      {isModalOpen && isAdmin && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '620px',
-              maxHeight: '88vh',
-              overflowY: 'auto',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div
-              style={{
-                padding: '14px 18px',
-                borderBottom: '1px solid #E5E7EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: '#F9FAFB'
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
-                {editingMedicine ? 'Edit Medicine Record' : 'Add New Medicine'}
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ padding: '18px' }}>
-              {modalError && (
-                <div style={{ padding: '10px 14px', borderRadius: '6px', backgroundColor: '#FEE2E2', color: '#991B1B', fontSize: '12px', marginBottom: '14px' }}>
-                  {modalError}
-                </div>
-              )}
-
-              <form onSubmit={handleSaveMedicine} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Medicine Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Amoxicillin Capsules"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Generic Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Amoxicillin Trihydrate"
-                    value={formData.generic_name}
-                    onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Brand Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Amoxil"
-                    value={formData.brand_name}
-                    onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Category
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  >
-                    {categories.filter(c => c !== 'All').map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Medicine Form
-                  </label>
-                  <select
-                    value={formData.medicine_form}
-                    onChange={(e) => setFormData({ ...formData, medicine_form: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  >
-                    {medicineForms.map(form => (
-                      <option key={form} value={form}>{form}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Dosage / Strength
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 500mg"
-                    value={formData.dosage_strength}
-                    onChange={(e) => setFormData({ ...formData, dosage_strength: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Pack Size
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 10x10"
-                    value={formData.pack_size}
-                    onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Buying Price (UGX)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.buying_price}
-                    onChange={(e) => setFormData({ ...formData, buying_price: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Selling Price (UGX)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.selling_price}
-                    onChange={(e) => setFormData({ ...formData, selling_price: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                {!editingMedicine && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Initial Stock Quantity
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.current_stock || 0}
-                      onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) || 0 })}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Reorder Threshold
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.reorder_level}
-                    onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Manufacturer
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Rene Industries, GSK"
-                    value={formData.manufacturer}
-                    onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                  <DesktopButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </DesktopButton>
-                  <DesktopButton
-                    type="submit"
-                    variant="primary"
-                  >
-                    {editingMedicine ? 'Update Record' : 'Save Medicine'}
-                  </DesktopButton>
-                </div>
-              </form>
-            </div>
+      {/* Bottom Summary Strip */}
+      <div
+        style={{
+          height: '24px',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #CBD5E1',
+          borderRadius: '2px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 10px',
+          fontSize: '11px',
+          color: '#334155'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <Boxes size={12} color="#0F8A6A" /> Total SKUs: <strong>{medicines.length}</strong>
+          </span>
+          <span>•</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: lowStockCount > 0 ? '#D97706' : '#334155' }}>
+            <AlertTriangle size={12} /> Low Stock Warnings: <strong>{lowStockCount}</strong>
+          </span>
+        </div>
+        {isAdmin && (
+          <div>
+            Inventory Valuation: <strong style={{ color: '#0F8A6A' }}>UGX {totalStockValuation.toLocaleString()}</strong>
           </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Inspector Docked Panel Content
+  const inspectorContent = (
+    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+      {inspectorError && (
+        <div style={{ padding: '6px 8px', borderRadius: '2px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: '11px' }}>
+          {inspectorError}
         </div>
       )}
+
+      {(!selectedMedicine && !isNewRecord) ? (
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
+          <Package size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+          Select a medicine from the data grid to inspect details and edit stock records.
+        </div>
+      ) : (
+        <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
+              {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
+            </span>
+            {selectedMedicine && (
+              <StatusBadge status={selectedMedicine.is_archived ? 'archived' : selectedMedicine.current_stock <= 0 ? 'out_of_stock' : selectedMedicine.current_stock <= selectedMedicine.reorder_level ? 'low_stock' : 'in_stock'} />
+            )}
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              Medicine Name *
+            </label>
+            <input
+              type="text"
+              required
+              disabled={!isAdmin}
+              placeholder="e.g. Amoxicillin Trihydrate"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Generic Composition
+              </label>
+              <input
+                type="text"
+                disabled={!isAdmin}
+                placeholder="e.g. Amoxicillin"
+                value={formData.generic_name}
+                onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Brand Name
+              </label>
+              <input
+                type="text"
+                disabled={!isAdmin}
+                placeholder="e.g. Amoxil"
+                value={formData.brand_name}
+                onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Category
+              </label>
+              <select
+                disabled={!isAdmin}
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                style={{ width: '100%' }}
+              >
+                {categories.filter(c => c !== 'All').map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Form
+              </label>
+              <select
+                disabled={!isAdmin}
+                value={formData.medicine_form}
+                onChange={(e) => setFormData({ ...formData, medicine_form: e.target.value })}
+                style={{ width: '100%' }}
+              >
+                {medicineForms.map(form => (
+                  <option key={form} value={form}>{form}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Dosage / Strength
+              </label>
+              <input
+                type="text"
+                disabled={!isAdmin}
+                placeholder="e.g. 500mg"
+                value={formData.dosage_strength}
+                onChange={(e) => setFormData({ ...formData, dosage_strength: e.target.value })}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Pack Specification
+              </label>
+              <input
+                type="text"
+                disabled={!isAdmin}
+                placeholder="e.g. 10x10"
+                value={formData.pack_size}
+                onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Buy Price (UGX)
+              </label>
+              <input
+                type="number"
+                disabled={!isAdmin}
+                min="0"
+                value={formData.buying_price}
+                onChange={(e) => setFormData({ ...formData, buying_price: parseFloat(e.target.value) || 0 })}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Sell Price (UGX)
+              </label>
+              <input
+                type="number"
+                disabled={!isAdmin}
+                min="0"
+                value={formData.selling_price}
+                onChange={(e) => setFormData({ ...formData, selling_price: parseFloat(e.target.value) || 0 })}
+                style={{ width: '100%', fontWeight: 700, color: '#0F8A6A' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Current Stock Qty
+              </label>
+              <input
+                type="number"
+                disabled={!isAdmin}
+                min="0"
+                value={formData.current_stock || 0}
+                onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) || 0 })}
+                style={{ width: '100%', fontWeight: 700 }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+                Reorder Threshold
+              </label>
+              <input
+                type="number"
+                disabled={!isAdmin}
+                min="0"
+                value={formData.reorder_level}
+                onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              Manufacturer
+            </label>
+            <input
+              type="text"
+              disabled={!isAdmin}
+              placeholder="e.g. Rene Industries"
+              value={formData.manufacturer}
+              onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          {isAdmin && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
+              {selectedMedicine && (
+                <button
+                  type="button"
+                  onClick={() => handleToggleArchive(selectedMedicine)}
+                  style={{ height: '26px', fontSize: '11px', color: selectedMedicine.is_archived ? '#0284C7' : '#EF4444' }}
+                >
+                  {selectedMedicine.is_archived ? <RotateCcw size={12} /> : <Archive size={12} />}
+                  <span>{selectedMedicine.is_archived ? 'Restore' : 'Archive'}</span>
+                </button>
+              )}
+              <button
+                type="submit"
+                className="desktop-btn-primary"
+                style={{ height: '26px', fontSize: '11px', marginLeft: 'auto', gap: '4px' }}
+              >
+                <Save size={12} />
+                <span>{isNewRecord ? 'Save Record' : 'Update Record'}</span>
+              </button>
+            </div>
+          )}
+        </form>
+      )}
     </div>
+  );
+
+  return (
+    <SplitPane
+      primaryPane={primaryContent}
+      inspectorPane={inspectorContent}
+      inspectorTitle={isNewRecord ? 'ADD NEW MEDICINE' : 'MEDICINE INSPECTOR'}
+      inspectorWidth="340px"
+    />
   );
 };

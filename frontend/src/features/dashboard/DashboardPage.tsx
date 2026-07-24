@@ -61,170 +61,150 @@ export const DashboardPage: React.FC = () => {
     {
       title: "Today's Sales",
       value: `UGX ${(summary.sales_today || 0).toLocaleString()}`,
-      subtitle: "Completed POS sales",
+      subtitle: "POS Terminal Sales",
       icon: TrendingUp,
-      bgColor: '#ECFDF5',
-      iconColor: '#065F46'
+      borderColor: '#0F8A6A',
+      color: '#065F46'
     },
     {
-      title: "Active Medicines",
+      title: "Active SKUs",
       value: summary.total_medicines || 0,
-      subtitle: "Master registry items",
+      subtitle: "Master Catalog Items",
       icon: Pill,
-      bgColor: '#F3F4F6',
-      iconColor: '#1F2937'
+      borderColor: '#CBD5E1',
+      color: '#0F172A'
     },
     {
       title: "Low Stock Alert",
       value: summary.low_stock_count || 0,
-      subtitle: "At/below reorder level",
+      subtitle: "Reorder Threshold",
       icon: AlertTriangle,
-      bgColor: '#FFFBEB',
-      iconColor: '#92400E'
+      borderColor: '#F59E0B',
+      color: '#B45309'
     },
     {
       title: "Out of Stock",
       value: summary.out_of_stock_count || 0,
-      subtitle: "Zero inventory count",
+      subtitle: "Zero Quantity Count",
       icon: ShieldAlert,
-      bgColor: '#FEF2F2',
-      iconColor: '#991B1B'
+      borderColor: '#EF4444',
+      color: '#991B1B'
     },
     {
-      title: "Expiring Soon",
+      title: "Expiring Batches",
       value: summary.expiring_soon_count || 0,
-      subtitle: "Within 90 days",
+      subtitle: "Within 90 Days",
       icon: Clock,
-      bgColor: '#F5F3FF',
-      iconColor: '#5B21B6'
+      borderColor: '#8B5CF6',
+      color: '#6D28D9'
     }
   ];
 
-  const recentSalesColumns: Column<any>[] = [
+  const salesColumns: Column<any>[] = [
     {
       key: 'invoice_number',
       header: 'Invoice #',
-      accessor: (s) => <span style={{ fontWeight: 600, color: '#111827' }}>{s.invoice_number}</span>
+      width: '30%',
+      accessor: (s) => <span style={{ fontWeight: 600, color: '#0F172A' }}>{s.invoice_number}</span>
     },
     {
       key: 'username',
       header: 'Cashier',
-      accessor: (s) => <span style={{ color: '#6B7280' }}>@{s.username}</span>
+      width: '25%',
+      accessor: (s) => <span style={{ fontSize: '11px', color: '#334155' }}>{s.username}</span>
     },
     {
       key: 'payment_method',
-      header: 'Method',
-      accessor: (s) => (
-        <span style={{ padding: '2px 6px', borderRadius: '4px', backgroundColor: '#F3F4F6', fontSize: '11px', fontWeight: 500 }}>
-          {s.payment_method}
-        </span>
-      )
+      header: 'Payment',
+      width: '20%',
+      accessor: (s) => <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '2px' }}>{s.payment_method}</span>
     },
     {
       key: 'total_amount',
-      header: 'Amount',
-      align: 'right',
-      accessor: (s) => (
-        <span style={{ fontWeight: 600, color: '#0F8A6A' }}>
-          UGX {s.total_amount.toLocaleString()}
-        </span>
-      )
+      header: 'Total (UGX)',
+      width: '25%',
+      align: 'right' as const,
+      accessor: (s) => <span style={{ fontWeight: 700, color: '#0F8A6A' }}>{s.total_amount?.toLocaleString()}</span>
     }
   ];
 
-  const recentPurchasesColumns: Column<any>[] = [
+  const purchaseColumns: Column<any>[] = [
     {
       key: 'invoice_number',
-      header: 'Invoice #',
-      accessor: (p) => <span style={{ fontWeight: 600, color: '#111827' }}>{p.invoice_number}</span>
+      header: 'Supplier Invoice',
+      width: '35%',
+      accessor: (p) => <span style={{ fontWeight: 600, color: '#0F172A' }}>{p.invoice_number}</span>
     },
     {
       key: 'supplier_name',
       header: 'Supplier',
-      accessor: (p) => <span style={{ color: '#374151' }}>{p.supplier_name || 'Direct'}</span>
+      width: '35%',
+      accessor: (p) => <span style={{ fontSize: '11px', color: '#334155' }}>{p.supplier_name || 'Generic'}</span>
     },
     {
       key: 'total_amount',
-      header: 'Total',
-      align: 'right',
-      accessor: (p) => (
-        <span style={{ fontWeight: 600, color: '#111827' }}>
-          UGX {p.total_amount.toLocaleString()}
-        </span>
-      )
+      header: 'Amount (UGX)',
+      width: '30%',
+      align: 'right' as const,
+      accessor: (p) => <span style={{ fontWeight: 700, color: '#0284C7' }}>{p.total_amount?.toLocaleString()}</span>
     }
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <SectionHeader
-        title="Pharmacy Operations Dashboard"
-        subtitle="Real-time performance metrics, inventory health indicators, and activity logs."
+        title="Pharmacy Operations Overview Workspace"
+        subtitle="Realtime POS terminal activity, stock inventory count, and procurement status"
       />
 
-      {/* Metric Cards Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+      {/* KPI Metric Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
         {kpiCards.map((card, idx) => {
           const Icon = card.icon;
           return (
-            <Panel key={idx} noPadding style={{ padding: '14px' }}>
+            <Panel key={idx} noPadding style={{ padding: '8px 10px', borderLeft: `3px solid ${card.borderColor}` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
-                    {card.title}
-                  </span>
-                  <div style={{ fontSize: '20px', fontWeight: 600, color: '#111827', marginTop: '4px' }}>
-                    {card.value}
-                  </div>
-                  <span style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px', display: 'block' }}>
-                    {card.subtitle}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '6px',
-                    backgroundColor: card.bgColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: card.iconColor
-                  }}
-                >
-                  <Icon size={18} />
-                </div>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                  {card.title}
+                </span>
+                <Icon size={14} style={{ color: card.color }} />
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: card.color, marginTop: '2px' }}>
+                {card.value}
+              </div>
+              <div style={{ fontSize: '10px', color: '#94A3B8' }}>
+                {card.subtitle}
               </div>
             </Panel>
           );
         })}
       </div>
 
-      {/* Recent Activity DataGrids */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <Panel title="Recent POS Sales" noPadding>
+      {/* Workstation Activity Split Grids */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', flex: 1, overflow: 'hidden' }}>
+        <Panel title="LIVE POS TRANSACTIONS LOG" noPadding style={{ height: '100%' }}>
           <DataGrid
-            columns={recentSalesColumns}
+            columns={salesColumns}
             data={summary.recent_sales || []}
             keyExtractor={(s) => s.id}
             isLoading={loading}
-            emptyMessage="No sales recorded today."
+            emptyMessage="No POS transactions completed today."
             compactRows={true}
             zebraStriping={true}
-            maxHeight="320px"
+            maxHeight="calc(100vh - 190px)"
           />
         </Panel>
 
-        <Panel title="Recent Stock Procurement" noPadding>
+        <Panel title="RECENT PROCUREMENT GRNs RECEIVED" noPadding style={{ height: '100%' }}>
           <DataGrid
-            columns={recentPurchasesColumns}
+            columns={purchaseColumns}
             data={summary.recent_purchases || []}
             keyExtractor={(p) => p.id}
             isLoading={loading}
-            emptyMessage="No purchases recorded."
+            emptyMessage="No stock purchase invoices received recently."
             compactRows={true}
             zebraStriping={true}
-            maxHeight="320px"
+            maxHeight="calc(100vh - 190px)"
           />
         </Panel>
       </div>

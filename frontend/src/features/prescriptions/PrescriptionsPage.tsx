@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
-  Eye, 
-  X, 
   Trash2,
-  ShoppingCart
+  ShoppingCart,
+  FileText,
+  User,
+  Stethoscope,
+  Filter,
+  CheckCircle2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { NavItemKey } from '../../components/layout/Sidebar';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
-import { DesktopButton } from '../../components/ui/DesktopButton';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { SplitPane } from '../../components/ui/SplitPane';
 import { 
   ListPrescriptions, 
   CreatePrescription, 
@@ -44,9 +47,9 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [selectedRxId, setSelectedRxId] = useState<number | null>(null);
+  const [selectedRx, setSelectedRx] = useState<models.Prescription | null>(null);
 
-  // New Prescription Modal
+  // New Prescription Inspector Modal
   const [showNewModal, setShowNewModal] = useState<boolean>(false);
   const [availableMedicines, setAvailableMedicines] = useState<models.Medicine[]>([]);
   const [patientName, setPatientName] = useState<string>('');
@@ -64,15 +67,14 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   const [durationDays, setDurationDays] = useState<number>(5);
   const [qtyPrescribed, setQtyPrescribed] = useState<number>(15);
 
-  // Detail Modal State
-  const [selectedRx, setSelectedRx] = useState<models.Prescription | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState<boolean>(false);
-
   const fetchPrescriptions = async () => {
     setIsLoading(true);
     try {
       const data = await ListPrescriptions(statusFilter === 'All' ? '' : statusFilter, 50);
       setPrescriptions(data || []);
+      if (data && data.length > 0 && !selectedRx) {
+        handleSelectRx(data[0].id);
+      }
     } catch (err) {
       console.error('Failed to load prescriptions:', err);
       toast.error('Failed to load prescriptions list');
@@ -84,6 +86,17 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   useEffect(() => {
     fetchPrescriptions();
   }, [statusFilter]);
+
+  const handleSelectRx = async (rxId: number) => {
+    try {
+      const details = await GetPrescriptionDetails(rxId);
+      if (details) {
+        setSelectedRx(details);
+      }
+    } catch (err) {
+      console.error('Failed to load prescription details', err);
+    }
+  };
 
   const loadMedicinesForModal = async () => {
     try {
@@ -128,11 +141,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       }
     ]);
     setSelectedMedId('');
-    toast.success(`Added ${med.name} to prescription`);
-  };
-
-  const handleRemoveRxItem = (index: number) => {
-    setRxItems(prev => prev.filter((_, i) => i !== index));
+    toast.success(`Added ${med.name}`);
   };
 
   const handleCreatePrescriptionSubmit = async (e: React.FormEvent) => {
@@ -142,7 +151,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       return;
     }
     if (rxItems.length === 0) {
-      toast.error('Add at least one medicine item to the prescription');
+      toast.error('Add at least one medicine item');
       return;
     }
 
@@ -166,7 +175,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
         user?.username || 'admin',
         itemsPayload as any
       );
-      toast.success('Prescription created successfully!');
+      toast.success('Prescription recorded!');
       setShowNewModal(false);
       fetchPrescriptions();
     } catch (err: any) {
@@ -174,32 +183,20 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
     }
   };
 
-  const handleViewDetails = async (rxId: number) => {
-    try {
-      const details = await GetPrescriptionDetails(rxId);
-      if (details) {
-        setSelectedRx(details);
-        setShowDetailModal(true);
-      }
-    } catch (err) {
-      toast.error('Failed to load prescription details');
-    }
-  };
-
   const handleStatusChange = async (rxId: number, newStatus: string) => {
     try {
       await UpdatePrescriptionStatus(rxId, newStatus, user?.id || 1, user?.username || 'admin');
-      toast.success(`Prescription marked as ${newStatus}`);
+      toast.success(`Prescription updated to ${newStatus}`);
       fetchPrescriptions();
       if (selectedRx && selectedRx.id === rxId) {
         setSelectedRx((prev) => prev ? ({ ...prev, status: newStatus } as any) : null);
       }
     } catch (err) {
-      toast.error('Failed to update prescription status');
+      toast.error('Failed to update status');
     }
   };
 
-  const handleDispenseToPOS = async (rx: models.Prescription) => {
+  const handleDispenseToPOS = (rx: models.Prescription) => {
     if (!rx.items || rx.items.length === 0) {
       toast.error('Prescription has no items');
       return;
@@ -218,8 +215,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       onLoadPrescriptionToPOS(itemsToLoad);
     }
 
-    toast.success(`Prescription ${rx.prescription_number} items transferred to POS!`);
-    setShowDetailModal(false);
+    toast.success(`RX ${rx.prescription_number} transferred to POS!`);
     onSelectView('pos');
   };
 
@@ -236,8 +232,9 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
     {
       key: 'prescription_number',
       header: 'RX Number',
+      width: '25%',
       accessor: (rx) => (
-        <span style={{ fontWeight: 600, color: '#111827' }}>
+        <span style={{ fontWeight: 600, color: '#0F172A' }}>
           {rx.prescription_number}
         </span>
       )
@@ -245,493 +242,224 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
     {
       key: 'patient_name',
       header: 'Patient Info',
+      width: '30%',
       accessor: (rx) => (
         <div>
-          <div style={{ fontWeight: 600, color: '#111827' }}>{rx.patient_name}</div>
-          <div style={{ fontSize: '11px', color: '#6B7280' }}>
-            Age: {rx.patient_age} | {rx.patient_phone || 'No Contact'}
-          </div>
+          <span style={{ fontWeight: 600, color: '#0F172A' }}>{rx.patient_name}</span>
+          <span style={{ fontSize: '10px', color: '#64748B', marginLeft: '4px' }}>({rx.patient_age}y)</span>
         </div>
       )
     },
     {
       key: 'doctor_name',
       header: 'Prescribing Doctor',
+      width: '25%',
       accessor: (rx) => (
-        <div>
-          <div style={{ color: '#111827' }}>Dr. {rx.doctor_name}</div>
-          <div style={{ fontSize: '11px', color: '#6B7280' }}>{rx.doctor_contact || 'Private Clinic'}</div>
-        </div>
-      )
-    },
-    {
-      key: 'created_at',
-      header: 'Date Issued',
-      accessor: (rx) => (
-        <span style={{ color: '#6B7280' }}>
-          {new Date(rx.created_at).toLocaleDateString()}
+        <span style={{ fontSize: '11px', color: '#334155' }}>
+          Dr. {rx.doctor_name}
         </span>
       )
     },
     {
       key: 'status',
       header: 'Status',
-      accessor: (rx) => {
-        let statusType = 'pending';
-        if (rx.status === 'Dispensed') statusType = 'paid';
-        else if (rx.status === 'Cancelled') statusType = 'archived';
-
-        return <StatusBadge status={statusType} label={rx.status} />;
-      }
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      align: 'right',
+      width: '20%',
+      align: 'center' as const,
       accessor: (rx) => (
-        <div style={{ display: 'inline-flex', gap: '6px' }}>
-          <DesktopButton
-            variant="secondary"
-            size="sm"
-            icon={<Eye size={13} />}
-            onClick={() => handleViewDetails(rx.id)}
-          >
-            View
-          </DesktopButton>
-
-          {rx.status === 'Pending' && (
-            <DesktopButton
-              variant="primary"
-              size="sm"
-              icon={<ShoppingCart size={13} />}
-              onClick={async () => {
-                const details = await GetPrescriptionDetails(rx.id);
-                handleDispenseToPOS(details);
-              }}
-            >
-              Fulfill POS
-            </DesktopButton>
-          )}
-        </div>
+        <StatusBadge status={rx.status === 'Pending' ? 'pending' : rx.status === 'Dispensed' ? 'completed' : 'cancelled'} />
       )
     }
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+  // Primary Workspace Content
+  const primaryContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <SectionHeader
-        title="Prescriptions"
-        subtitle="Doctor orders, dosage instructions, and direct checkout fulfillment."
+        title="Prescription Processing Workspace"
+        subtitle="Manage doctor prescriptions, verify medications, and transfer to checkout"
         actions={
-          <DesktopButton
-            variant="primary"
-            size="md"
-            icon={<Plus size={15} />}
+          <button
             onClick={handleOpenNewModal}
+            className="desktop-btn-primary"
+            style={{ height: '24px', fontSize: '11px', gap: '4px' }}
           >
-            New Prescription
-          </DesktopButton>
+            <Plus size={12} />
+            <span>New Prescription</span>
+          </button>
         }
       />
 
-      {/* Filter and Search Bar Toolbar */}
-      <Panel noPadding style={{ padding: '8px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            {['All', 'Pending', 'Dispensed', 'Cancelled'].map((status) => (
-              <DesktopButton
-                key={status}
-                variant={statusFilter === status ? 'primary' : 'ghost'}
-                size="sm"
-                onClick={() => setStatusFilter(status)}
-              >
-                {status}
-              </DesktopButton>
-            ))}
-          </div>
-
+      {/* Filter Toolbar */}
+      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
           <SearchBar
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search RX #, patient, or doctor..."
-            width="280px"
+            placeholder="Search RX number, patient, or doctor..."
+            width="320px"
             showShortcut={false}
           />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Filter size={12} style={{ color: '#64748B' }} />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ height: '26px', fontSize: '11px' }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Dispensed">Dispensed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
         </div>
       </Panel>
 
-      {/* DataGrid */}
+      {/* Prescriptions DataGrid */}
       <DataGrid
         columns={columns}
         data={filteredPrescriptions}
         keyExtractor={(row) => row.id}
         isLoading={isLoading}
-        emptyMessage="No prescriptions matching current filter."
-        selectedKey={selectedRxId}
-        onRowClick={(row) => setSelectedRxId(row.id)}
+        emptyMessage="No prescriptions matching filters."
+        selectedKey={selectedRx ? selectedRx.id : null}
+        onRowClick={(rx) => handleSelectRx(rx.id)}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 230px)"
+        maxHeight="calc(100vh - 165px)"
+        style={{ flex: 1 }}
       />
+    </div>
+  );
 
-      {/* New Prescription Modal */}
-      {showNewModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '660px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <div
-              style={{
-                padding: '14px 18px',
-                borderBottom: '1px solid #E5E7EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: '#F9FAFB'
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
-                New Doctor Prescription
-              </h3>
-              <button onClick={() => setShowNewModal(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
-                <X size={18} />
+  // Inspector Docked Panel Content
+  const inspectorContent = (
+    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+      {!selectedRx ? (
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
+          <FileText size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+          Select a prescription to inspect details and dispense.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
+              RX #{selectedRx.prescription_number}
+            </span>
+            <StatusBadge status={selectedRx.status === 'Pending' ? 'pending' : selectedRx.status === 'Dispensed' ? 'completed' : 'cancelled'} />
+          </div>
+
+          <div style={{ padding: '8px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '2px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0F172A', fontWeight: 600 }}>
+              <User size={13} color="#0F8A6A" /> {selectedRx.patient_name} ({selectedRx.patient_age} yrs)
+            </div>
+            <div style={{ color: '#64748B', fontSize: '10px' }}>
+              Phone: {selectedRx.patient_phone || 'N/A'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', marginTop: '2px' }}>
+              <Stethoscope size={13} color="#0284C7" /> Dr. {selectedRx.doctor_name}
+            </div>
+          </div>
+
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+            PRESCRIBED MEDICATIONS ({selectedRx.items?.length || 0})
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #CBD5E1', borderRadius: '2px', backgroundColor: '#FFFFFF', padding: '4px' }}>
+            {selectedRx.items?.map((item) => (
+              <div key={item.id} style={{ padding: '6px', borderBottom: '1px solid #F1F5F9', fontSize: '11px' }}>
+                <div style={{ fontWeight: 600, color: '#0F172A' }}>{item.medicine_name}</div>
+                <div style={{ fontSize: '10px', color: '#64748B' }}>
+                  Dosage: {item.dosage} | Qty: <strong>{item.quantity_prescribed}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={() => handleStatusChange(selectedRx.id, 'Pending')}
+                style={{ flex: 1, height: '24px', fontSize: '10px' }}
+              >
+                Mark Pending
+              </button>
+              <button
+                onClick={() => handleStatusChange(selectedRx.id, 'Dispensed')}
+                style={{ flex: 1, height: '24px', fontSize: '10px', backgroundColor: '#ECFDF5', borderColor: '#A7F3D0', color: '#065F46' }}
+              >
+                Mark Dispensed
               </button>
             </div>
 
-            <div style={{ padding: '18px' }}>
-              <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* Patient Info */}
-                <div style={{ backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '6px', border: '1px solid #E5E7EB', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>Patient Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. John Doe"
-                      value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', marginTop: '2px', fontSize: '12px' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>Age</label>
-                    <input
-                      type="number"
-                      value={patientAge}
-                      onChange={(e) => setPatientAge(Number(e.target.value))}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', marginTop: '2px', fontSize: '12px' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>Phone</label>
-                    <input
-                      type="text"
-                      placeholder="07..."
-                      value={patientPhone}
-                      onChange={(e) => setPatientPhone(e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', marginTop: '2px', fontSize: '12px' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Doctor Info */}
-                <div style={{ backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '6px', border: '1px solid #E5E7EB', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>Doctor Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Dr. Sarah Jenkins"
-                      value={doctorName}
-                      onChange={(e) => setDoctorName(e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', marginTop: '2px', fontSize: '12px' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>Clinic Contact</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. City Hospital"
-                      value={doctorContact}
-                      onChange={(e) => setDoctorContact(e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', marginTop: '2px', fontSize: '12px' }}
-                    />
-                  </div>
-                </div>
-
-                {/* Prescribed Items Section */}
-                <div style={{ border: '1px solid #E5E7EB', padding: '12px', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827', display: 'block', marginBottom: '8px' }}>
-                    Prescribed Medication List
-                  </span>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr auto', gap: '6px', alignItems: 'end' }}>
-                    <div>
-                      <label style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280' }}>Medicine</label>
-                      <select
-                        value={selectedMedId}
-                        onChange={(e) => setSelectedMedId(e.target.value ? Number(e.target.value) : '')}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                      >
-                        <option value="">-- Select --</option>
-                        {availableMedicines.map(m => (
-                          <option key={m.id} value={m.id}>
-                            {m.name} ({m.current_stock})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280' }}>Dosage</label>
-                      <input
-                        type="text"
-                        value={dosage}
-                        onChange={(e) => setDosage(e.target.value)}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280' }}>Frequency</label>
-                      <input
-                        type="text"
-                        value={frequency}
-                        onChange={(e) => setFrequency(e.target.value)}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280' }}>Days</label>
-                      <input
-                        type="number"
-                        value={durationDays}
-                        onChange={(e) => setDurationDays(Number(e.target.value))}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280' }}>Total Qty</label>
-                      <input
-                        type="number"
-                        value={qtyPrescribed}
-                        onChange={(e) => setQtyPrescribed(Number(e.target.value))}
-                        style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                      />
-                    </div>
-
-                    <DesktopButton
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleAddItemToRx}
-                    >
-                      Add
-                    </DesktopButton>
-                  </div>
-
-                  {rxItems.length > 0 && (
-                    <div style={{ marginTop: '10px', borderTop: '1px solid #F3F4F6', paddingTop: '8px' }}>
-                      {rxItems.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '12px' }}>
-                          <span>
-                            <strong>{item.medicine_name}</strong> - {item.dosage}, {item.frequency} ({item.duration_days}d) &rarr; Qty: {item.quantity_prescribed}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveRxItem(idx)}
-                            style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#374151' }}>Special Instructions / Notes</label>
-                  <textarea
-                    rows={2}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Take after meals..."
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', marginTop: '2px', fontSize: '12px' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
-                  <DesktopButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowNewModal(false)}
-                  >
-                    Cancel
-                  </DesktopButton>
-                  <DesktopButton
-                    type="submit"
-                    variant="primary"
-                  >
-                    Save Prescription
-                  </DesktopButton>
-                </div>
-              </form>
-            </div>
+            <button
+              onClick={() => handleDispenseToPOS(selectedRx)}
+              className="desktop-btn-primary"
+              style={{ height: '30px', fontSize: '11px', width: '100%', gap: '6px' }}
+            >
+              <ShoppingCart size={13} />
+              <span>Transfer & Dispense in POS Workstation</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* Prescription Detail Modal */}
-      {showDetailModal && selectedRx && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '600px',
-              padding: '20px',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E5E7EB', paddingBottom: '10px', marginBottom: '14px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
-                  Prescription Details #{selectedRx.prescription_number}
-                </h3>
-                <span style={{ fontSize: '11px', color: '#6B7280' }}>
-                  Issued on {new Date(selectedRx.created_at).toLocaleString()}
-                </span>
-              </div>
-              <button onClick={() => setShowDetailModal(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
+      {/* Create New Prescription Dialog */}
+      {showNewModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '2px', width: '480px', padding: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', marginBottom: '10px', borderBottom: '1px solid #CBD5E1', paddingBottom: '6px' }}>
+              CREATE NEW DOCTOR PRESCRIPTION
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-              <div style={{ backgroundColor: '#F9FAFB', padding: '10px', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>Patient Info</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827', marginTop: '2px' }}>{selectedRx.patient_name}</div>
-                <div style={{ fontSize: '11px', color: '#6B7280' }}>Age: {selectedRx.patient_age} | {selectedRx.patient_phone || 'N/A'}</div>
+            <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <input placeholder="Patient Name *" required value={patientName} onChange={e => setPatientName(e.target.value)} />
+                <input placeholder="Patient Phone" value={patientPhone} onChange={e => setPatientPhone(e.target.value)} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <input placeholder="Doctor Name *" required value={doctorName} onChange={e => setDoctorName(e.target.value)} />
+                <input placeholder="Doctor Contact" value={doctorContact} onChange={e => setDoctorContact(e.target.value)} />
               </div>
 
-              <div style={{ backgroundColor: '#F9FAFB', padding: '10px', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>Doctor Info</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827', marginTop: '2px' }}>Dr. {selectedRx.doctor_name}</div>
-                <div style={{ fontSize: '11px', color: '#6B7280' }}>{selectedRx.doctor_contact || 'N/A'}</div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '14px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827', display: 'block', marginBottom: '6px' }}>
-                Medication List
-              </span>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
-                    <th style={{ padding: '6px 8px', textAlign: 'left' }}>Medicine</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left' }}>Dosage</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left' }}>Frequency</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'center' }}>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedRx.items?.map((item) => (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                      <td style={{ padding: '6px 8px', fontWeight: 600 }}>{item.medicine_name}</td>
-                      <td style={{ padding: '6px 8px' }}>{item.dosage}</td>
-                      <td style={{ padding: '6px 8px' }}>{item.frequency} ({item.duration_days}d)</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 600 }}>{item.quantity_prescribed}</td>
-                    </tr>
+              <div style={{ borderTop: '1px solid #CBD5E1', paddingTop: '6px', fontSize: '11px', fontWeight: 700 }}>ADD PRESCRIPTION LINE ITEM</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '6px' }}>
+                <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))}>
+                  <option value="">Select Medicine...</option>
+                  {availableMedicines.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
-                </tbody>
-              </table>
-            </div>
-
-            {selectedRx.notes && (
-              <div style={{ padding: '8px 10px', backgroundColor: '#FFFBEB', borderRadius: '6px', border: '1px solid #FDE68A', fontSize: '11px', color: '#92400E', marginBottom: '14px' }}>
-                <strong>Instructions:</strong> {selectedRx.notes}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #E5E7EB' }}>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                {selectedRx.status !== 'Dispensed' && (
-                  <DesktopButton
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStatusChange(selectedRx.id, 'Dispensed')}
-                  >
-                    Mark Dispensed
-                  </DesktopButton>
-                )}
-                {selectedRx.status !== 'Cancelled' && (
-                  <DesktopButton
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleStatusChange(selectedRx.id, 'Cancelled')}
-                  >
-                    Cancel RX
-                  </DesktopButton>
-                )}
+                </select>
+                <input type="number" placeholder="Qty" value={qtyPrescribed} onChange={e => setQtyPrescribed(parseInt(e.target.value) || 1)} />
+                <button type="button" onClick={handleAddItemToRx} className="desktop-btn-secondary" style={{ height: '28px' }}>Add</button>
               </div>
 
-              {selectedRx.status === 'Pending' && (
-                <DesktopButton
-                  variant="primary"
-                  size="md"
-                  icon={<ShoppingCart size={14} />}
-                  onClick={() => handleDispenseToPOS(selectedRx)}
-                >
-                  Fulfill in POS
-                </DesktopButton>
-              )}
-            </div>
+              <div style={{ maxHeight: '100px', overflowY: 'auto', border: '1px solid #E2E8F0', padding: '4px' }}>
+                {rxItems.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', padding: '2px 4px' }}>
+                    <span>{item.medicine_name} (x{item.quantity_prescribed})</span>
+                    <button type="button" onClick={() => setRxItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: '#EF4444' }}><Trash2 size={10} /></button>
+                  </div>
+                ))}
+              </div>
 
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setShowNewModal(false)} className="desktop-btn-secondary">Cancel</button>
+                <button type="submit" className="desktop-btn-primary">Save Prescription</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
     </div>
+  );
+
+  return (
+    <SplitPane
+      primaryPane={primaryContent}
+      inspectorPane={inspectorContent}
+      inspectorTitle="PRESCRIPTION INSPECTOR"
+      inspectorWidth="340px"
+    />
   );
 };

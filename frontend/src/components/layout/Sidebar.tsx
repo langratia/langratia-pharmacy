@@ -78,38 +78,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
   return (
     <aside
       style={{
-        width: isCollapsed ? '64px' : '240px',
-        height: 'calc(100vh - 32px)',
-        backgroundColor: '#1F2937',
-        borderRight: '1px solid #374151',
+        width: isCollapsed ? '52px' : '220px',
+        height: '100%',
+        backgroundColor: '#0F172A',
+        borderRight: '1px solid #1E293B',
         display: 'flex',
         flexDirection: 'column',
-        position: 'fixed',
-        left: 0,
-        top: '32px',
+        flexShrink: 0,
+        position: 'relative',
         zIndex: 100,
-        transition: 'width 200ms ease-out',
+        transition: 'width 150ms ease-out',
         color: '#FFFFFF',
         userSelect: 'none'
       }}
     >
-      {/* Brand Header */}
+      {/* Brand & Collapse Header */}
       <div
         style={{
-          height: '48px',
-          padding: isCollapsed ? '0 12px' : '0 16px',
+          height: '38px',
+          padding: isCollapsed ? '0 10px' : '0 12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: isCollapsed ? 'center' : 'space-between',
-          borderBottom: '1px solid #374151'
+          borderBottom: '1px solid #1E293B',
+          backgroundColor: '#0B132B'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div
             style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
+              width: '22px',
+              height: '22px',
+              borderRadius: '2px',
               backgroundColor: '#0F8A6A',
               display: 'flex',
               alignItems: 'center',
@@ -118,14 +118,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
               flexShrink: 0
             }}
           >
-            <Cross size={16} />
+            <Cross size={13} />
           </div>
           {!isCollapsed && (
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
                 Langratia
               </span>
-              <span style={{ fontSize: '10px', color: '#9CA3AF', marginLeft: '6px', fontWeight: 500 }}>
+              <span style={{ fontSize: '10px', color: '#94A3B8', marginLeft: '4px', fontWeight: 600 }}>
                 POS
               </span>
             </div>
@@ -137,38 +137,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
           onClick={onToggleCollapse}
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '4px',
-            color: '#9CA3AF',
+            width: '20px',
+            height: '20px',
+            borderRadius: '2px',
+            color: '#94A3B8',
             backgroundColor: 'transparent',
+            border: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 150ms ease-out'
+            cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#374151';
+            e.currentTarget.style.backgroundColor = '#1E293B';
             e.currentTarget.style.color = '#FFFFFF';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#9CA3AF';
+            e.currentTarget.style.color = '#94A3B8';
           }}
         >
-          {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          {isCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
         </button>
       </div>
 
-      {/* Grouped Navigation List */}
+      {/* Navigation Group List */}
       <nav
         style={{
           flex: 1,
-          padding: isCollapsed ? '8px 6px' : '8px 10px',
+          padding: isCollapsed ? '6px 4px' : '6px 8px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '8px',
           overflowY: 'auto'
         }}
       >
@@ -180,15 +180,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
           if (visibleItems.length === 0) return null;
 
           return (
-            <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
               {!isCollapsed && (
                 <div
                   style={{
-                    padding: '4px 10px',
-                    fontSize: '10px',
+                    padding: '3px 8px',
+                    fontSize: '9px',
                     fontWeight: 700,
-                    color: '#6B7280',
-                    letterSpacing: '0.05em'
+                    color: '#64748B',
+                    letterSpacing: '0.06em'
                   }}
                 >
                   {group.title}
@@ -207,32 +207,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      gap: '10px',
-                      padding: isCollapsed ? '8px' : '7px 10px',
-                      borderRadius: '6px',
-                      fontSize: '13px',
+                      gap: '8px',
+                      padding: isCollapsed ? '6px' : '5px 8px',
+                      borderRadius: '2px',
+                      fontSize: '12px',
                       fontWeight: isActive ? 600 : 500,
-                      color: isActive ? '#FFFFFF' : '#9CA3AF',
+                      color: isActive ? '#FFFFFF' : '#94A3B8',
                       backgroundColor: isActive ? '#0F8A6A' : 'transparent',
-                      transition: 'all 150ms ease-out',
+                      border: 'none',
                       textAlign: 'left',
                       width: '100%',
-                      position: 'relative'
+                      height: '28px'
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.backgroundColor = '#374151';
-                        e.currentTarget.style.color = '#FFFFFF';
+                        e.currentTarget.style.backgroundColor = '#1E293B';
+                        e.currentTarget.style.color = '#F8FAFC';
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (!isActive) {
                         e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = '#9CA3AF';
+                        e.currentTarget.style.color = '#94A3B8';
                       }
                     }}
                   >
-                    <Icon size={16} color={isActive ? '#FFFFFF' : '#9CA3AF'} />
+                    <Icon size={14} color={isActive ? '#FFFFFF' : '#94A3B8'} />
                     {!isCollapsed && <span>{item.label}</span>}
                   </button>
                 );
@@ -242,11 +242,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
         })}
       </nav>
 
-      {/* Footer / Logout */}
+      {/* Footer / Sign Out */}
       <div
         style={{
-          padding: isCollapsed ? '8px 6px' : '8px 10px',
-          borderTop: '1px solid #374151'
+          padding: isCollapsed ? '6px 4px' : '6px 8px',
+          borderTop: '1px solid #1E293B'
         }}
       >
         <button
@@ -256,16 +256,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
             display: 'flex',
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'flex-start',
-            gap: '10px',
+            gap: '8px',
             width: '100%',
-            padding: isCollapsed ? '8px' : '7px 10px',
-            borderRadius: '6px',
+            padding: isCollapsed ? '6px' : '5px 8px',
+            borderRadius: '2px',
             backgroundColor: 'transparent',
+            border: 'none',
             color: '#F87171',
             fontWeight: 500,
-            fontSize: '12px',
+            fontSize: '11px',
             cursor: 'pointer',
-            transition: 'all 150ms ease-out'
+            height: '28px'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
@@ -274,7 +275,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
-          <LogOut size={16} />
+          <LogOut size={14} />
           {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>

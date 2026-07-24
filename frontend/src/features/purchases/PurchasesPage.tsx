@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, Trash2, Truck, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Medicine, Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
-import { Panel } from '../../components/ui/Panel';
-import { DesktopButton } from '../../components/ui/DesktopButton';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { SplitPane } from '../../components/ui/SplitPane';
 
 interface StockItemInput {
   medicine_id: number;
@@ -24,16 +23,17 @@ export const PurchasesPage: React.FC = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<any | null>(null);
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Inspector Create PO Form State
+  const [isCreatingPO, setIsCreatingPO] = useState(false);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<StockItemInput[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // New Item Input
+  // New Item Input inside Inspector
   const [selectedMedId, setSelectedMedId] = useState<number | ''>('');
   const [batchNum, setBatchNum] = useState('');
   const [qty, setQty] = useState<number | ''>('');
@@ -53,6 +53,10 @@ export const PurchasesPage: React.FC = () => {
         setPurchases(purList || []);
         setMedicines(medList || []);
         setSuppliers(supList || []);
+
+        if (purList && purList.length > 0 && !selectedPurchase) {
+          setSelectedPurchase(purList[0]);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -68,7 +72,7 @@ export const PurchasesPage: React.FC = () => {
 
   const handleAddItem = () => {
     if (!selectedMedId || !batchNum.trim() || !qty || !expiry) {
-      setError('Select a medicine, batch number, quantity, and expiry date.');
+      setError('Select medicine, batch, quantity, and expiry.');
       return;
     }
 
@@ -82,8 +86,8 @@ export const PurchasesPage: React.FC = () => {
         medicine_name: med.name,
         batch_number: batchNum.trim(),
         quantity: Number(qty),
-        buying_price: buyPrice ? Number(buyPrice) : med.buying_price,
-        mfg_date: '',
+        buying_price: Number(buyPrice) || med.buying_price,
+        mfg_date: new Date().toISOString().split('T')[0],
         expiry_date: expiry
       }
     ]);
@@ -96,310 +100,198 @@ export const PurchasesPage: React.FC = () => {
     setError(null);
   };
 
-  const handleRemoveItem = (index: number) => {
-    setItems(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleSavePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (items.length === 0) {
-      setError('Please add at least one medicine batch item to the shipment.');
+    if (!invoiceNumber.trim() || !supplierId || items.length === 0) {
+      setError('Invoice Number, Supplier, and line items are required.');
       return;
     }
 
     try {
+      const totalAmount = items.reduce((acc, i) => acc + (i.buying_price * i.quantity), 0);
       const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp && typeof wailsApp.RecordPurchase === 'function') {
-        await wailsApp.RecordPurchase(
-          invoiceNumber.trim() || `PUR-${Date.now()}`,
-          supplierId ? Number(supplierId) : null,
-          items,
+      if (wailsApp) {
+        await wailsApp.AddStockPurchase(
+          supplierId,
+          invoiceNumber,
+          totalAmount,
           notes,
           user?.id || 1,
-          user?.username || 'admin'
+          user?.username || 'admin',
+          items
         );
-        toast.success('Stock receiving shipment saved and stock updated!');
+        toast.success('Procurement Purchase Order Created!');
+        setIsCreatingPO(false);
+        fetchInitialData();
       }
-      setIsModalOpen(false);
-      setItems([]);
-      setInvoiceNumber('');
-      setSupplierId('');
-      setNotes('');
-      fetchInitialData();
     } catch (err: any) {
-      setError(err?.message || 'Failed to record purchase shipment');
+      setError(err?.message || 'Failed to record purchase.');
     }
   };
-
-  const totalInvoiceAmount = items.reduce((sum, item) => sum + (item.buying_price * item.quantity), 0);
 
   const columns: Column<any>[] = [
     {
       key: 'invoice_number',
       header: 'Invoice #',
-      accessor: (p) => (
-        <span style={{ fontWeight: 600, color: '#111827' }}>
-          {p.invoice_number}
+      width: '25%',
+      accessor: (pur) => (
+        <span style={{ fontWeight: 600, color: '#0F172A' }}>
+          {pur.invoice_number}
         </span>
       )
     },
     {
       key: 'supplier_name',
       header: 'Supplier',
-      accessor: (p) => (
-        <span style={{ color: '#374151' }}>
-          {p.supplier_name || 'Direct Procurement'}
-        </span>
-      )
-    },
-    {
-      key: 'purchase_date',
-      header: 'Purchase Date',
-      accessor: (p) => (
-        <span style={{ color: '#6B7280' }}>
-          {new Date(p.purchase_date).toLocaleDateString()}
+      width: '30%',
+      accessor: (pur) => (
+        <span style={{ fontSize: '11px', color: '#334155' }}>
+          {pur.supplier_name || 'Generic Supplier'}
         </span>
       )
     },
     {
       key: 'total_amount',
-      header: 'Total Amount',
-      accessor: (p) => (
-        <span style={{ fontWeight: 600, color: '#0F8A6A' }}>
-          UGX {p.total_amount.toLocaleString()}
+      header: 'Total Cost (UGX)',
+      width: '25%',
+      align: 'right' as const,
+      accessor: (pur) => (
+        <span style={{ fontWeight: 700, color: '#0F8A6A' }}>
+          {pur.total_amount?.toLocaleString()}
         </span>
       )
     },
     {
-      key: 'notes',
-      header: 'Notes',
-      accessor: (p) => (
-        <span style={{ color: '#6B7280' }}>
-          {p.notes || '-'}
+      key: 'purchase_date',
+      header: 'Received Date',
+      width: '20%',
+      accessor: (pur) => (
+        <span style={{ fontSize: '10px', color: '#64748B' }}>
+          {new Date(pur.purchase_date).toLocaleDateString()}
         </span>
       )
     }
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+  // Primary Workspace Pane
+  const primaryContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <SectionHeader
-        title="Stock Receiving & Purchases"
-        subtitle="Log incoming supplier shipments, generate FEFO stock batches, and update inventory counts."
+        title="Procurement Workspace"
+        subtitle="Manage supplier invoices, purchase orders, and stock batch receiving logs"
         actions={
-          <DesktopButton
-            variant="primary"
-            size="md"
-            icon={<Plus size={15} />}
-            onClick={() => { setIsModalOpen(true); setError(null); }}
+          <button
+            onClick={() => {
+              setIsCreatingPO(true);
+              setSelectedPurchase(null);
+              setItems([]);
+              setInvoiceNumber(`PO-${Date.now().toString().slice(-6)}`);
+            }}
+            className="desktop-btn-primary"
+            style={{ height: '24px', fontSize: '11px', gap: '4px' }}
           >
-            Record New Shipment
-          </DesktopButton>
+            <Plus size={12} />
+            <span>New Purchase Order</span>
+          </button>
         }
       />
 
       <DataGrid
         columns={columns}
         data={purchases}
-        keyExtractor={(row) => row.id || row.invoice_number}
+        keyExtractor={(row) => row.id}
         isLoading={isLoading}
-        emptyMessage="No stock receiving invoices recorded yet."
+        emptyMessage="No purchase orders registered."
+        selectedKey={selectedPurchase ? selectedPurchase.id : null}
+        onRowClick={(pur) => {
+          setSelectedPurchase(pur);
+          setIsCreatingPO(false);
+        }}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 180px)"
+        maxHeight="calc(100vh - 130px)"
+        style={{ flex: 1 }}
       />
+    </div>
+  );
 
-      {/* Shipment Modal */}
-      {isModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '700px',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            <div
-              style={{
-                padding: '14px 18px',
-                borderBottom: '1px solid #E5E7EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                backgroundColor: '#F9FAFB'
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#111827' }}>
-                Record Incoming Stock Shipment
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ padding: '18px' }}>
-              {error && (
-                <div style={{ padding: '8px 12px', backgroundColor: '#FEE2E2', color: '#991B1B', borderRadius: '6px', fontSize: '12px', marginBottom: '14px' }}>
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSavePurchase}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Invoice / Ref Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. INV-2026-99"
-                      value={invoiceNumber}
-                      onChange={(e) => setInvoiceNumber(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                      Supplier
-                    </label>
-                    <select
-                      value={supplierId}
-                      onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                    >
-                      <option value="">Select Supplier...</option>
-                      {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Add Item Row Panel */}
-                <div style={{ backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '6px', border: '1px solid #E5E7EB', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#111827', display: 'block', marginBottom: '8px' }}>
-                    Add Medicine Batch Item
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1.2fr auto', gap: '6px', alignItems: 'center' }}>
-                    <select
-                      value={selectedMedId}
-                      onChange={(e) => setSelectedMedId(e.target.value ? Number(e.target.value) : '')}
-                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                    >
-                      <option value="">Select Medicine...</option>
-                      {medicines.map(m => <option key={m.id} value={m.id}>{m.name} ({m.dosage_strength})</option>)}
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="Batch #"
-                      value={batchNum}
-                      onChange={(e) => setBatchNum(e.target.value)}
-                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Qty"
-                      value={qty}
-                      onChange={(e) => setQty(e.target.value ? Number(e.target.value) : '')}
-                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Buy Price"
-                      value={buyPrice}
-                      onChange={(e) => setBuyPrice(e.target.value ? Number(e.target.value) : '')}
-                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                    />
-                    <input
-                      type="date"
-                      value={expiry}
-                      onChange={(e) => setExpiry(e.target.value)}
-                      style={{ padding: '6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px' }}
-                    />
-                    <DesktopButton type="button" variant="primary" size="sm" onClick={handleAddItem}>
-                      Add
-                    </DesktopButton>
-                  </div>
-                </div>
-
-                {/* Items Table */}
-                {items.length > 0 && (
-                  <div style={{ border: '1px solid #E5E7EB', borderRadius: '6px', overflow: 'hidden', marginBottom: '16px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead style={{ backgroundColor: '#F9FAFB' }}>
-                        <tr>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Medicine</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Batch #</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>Qty</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>Buy Price</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'left' }}>Expiry</th>
-                          <th style={{ padding: '6px 10px', textAlign: 'right' }}>Subtotal</th>
-                          <th style={{ padding: '6px 10px' }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((it, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                            <td style={{ padding: '6px 10px' }}>{it.medicine_name}</td>
-                            <td style={{ padding: '6px 10px', fontWeight: 600 }}>{it.batch_number}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'right' }}>{it.quantity}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'right' }}>UGX {it.buying_price.toLocaleString()}</td>
-                            <td style={{ padding: '6px 10px' }}>{it.expiry_date}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600 }}>UGX {(it.buying_price * it.quantity).toLocaleString()}</td>
-                            <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                              <button type="button" onClick={() => handleRemoveItem(idx)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                                <X size={14} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div style={{ padding: '8px 12px', backgroundColor: '#F9FAFB', textAlign: 'right', fontWeight: 600, fontSize: '13px', color: '#0F8A6A' }}>
-                      Total Invoice Amount: UGX {totalInvoiceAmount.toLocaleString()}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <DesktopButton
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsModalOpen(false)}
-                  >
-                    Cancel
-                  </DesktopButton>
-                  <DesktopButton
-                    type="submit"
-                    variant="primary"
-                  >
-                    Save Shipment & Update Stock
-                  </DesktopButton>
-                </div>
-              </form>
-            </div>
+  // Inspector Pane Content
+  const inspectorContent = (
+    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+      {isCreatingPO ? (
+        <form onSubmit={handleSavePurchase} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
+            NEW PURCHASE ORDER ENTRY
           </div>
+          {error && <div style={{ color: '#EF4444', fontSize: '10px' }}>{error}</div>}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            <input placeholder="Invoice Number *" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} required />
+            <select value={supplierId} onChange={e => setSupplierId(Number(e.target.value))} required>
+              <option value="">Select Supplier...</option>
+              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+
+          <div style={{ borderTop: '1px solid #CBD5E1', paddingTop: '4px', fontSize: '10px', fontWeight: 700 }}>ADD BATCH ITEM</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))}>
+              <option value="">Select Medicine...</option>
+              {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
+              <input placeholder="Batch #" value={batchNum} onChange={e => setBatchNum(e.target.value)} />
+              <input type="number" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value ? Number(e.target.value) : '')} />
+              <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} />
+            </div>
+            <button type="button" onClick={handleAddItem} className="desktop-btn-secondary" style={{ height: '24px', fontSize: '10px' }}>Add Line Item</button>
+          </div>
+
+          <div style={{ flex: 1, maxHeight: '120px', overflowY: 'auto', border: '1px solid #E2E8F0', padding: '4px' }}>
+            {items.map((it, idx) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', padding: '2px 4px' }}>
+                <span>{it.medicine_name} (Batch: {it.batch_number}) x{it.quantity}</span>
+                <button type="button" onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: '#EF4444' }}><Trash2 size={10} /></button>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: 'auto' }}>
+            <button type="button" onClick={() => setIsCreatingPO(false)} className="desktop-btn-secondary">Cancel</button>
+            <button type="submit" className="desktop-btn-primary">Save Order</button>
+          </div>
+        </form>
+      ) : !selectedPurchase ? (
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
+          <Truck size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+          Select a purchase order to inspect invoice breakdown.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
+            INVOICE #{selectedPurchase.invoice_number}
+          </div>
+          <div style={{ fontSize: '11px', color: '#334155' }}>
+            <div>Supplier: <strong>{selectedPurchase.supplier_name || 'Generic Supplier'}</strong></div>
+            <div>Date Received: {new Date(selectedPurchase.purchase_date).toLocaleDateString()}</div>
+            <div>Total Cost: <strong style={{ color: '#0F8A6A' }}>UGX {selectedPurchase.total_amount?.toLocaleString()}</strong></div>
+          </div>
+          {selectedPurchase.notes && (
+            <div style={{ fontSize: '10px', color: '#64748B', backgroundColor: '#F8FAFC', padding: '6px', border: '1px solid #E2E8F0' }}>
+              Notes: {selectedPurchase.notes}
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+
+  return (
+    <SplitPane
+      primaryPane={primaryContent}
+      inspectorPane={inspectorContent}
+      inspectorTitle={isCreatingPO ? 'CREATE PURCHASE ORDER' : 'PROCUREMENT INSPECTOR'}
+      inspectorWidth="340px"
+    />
   );
 };

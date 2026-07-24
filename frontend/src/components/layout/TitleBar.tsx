@@ -5,38 +5,40 @@ import { WindowMinimise, WindowToggleMaximise, Quit } from '../../../wailsjs/run
 export const TitleBar: React.FC = () => {
   return (
     <div style={{
-      height: '32px',
-      backgroundColor: '#0F172A', // Deep Slate / Dark Navy
+      height: '30px',
+      maxHeight: '30px',
+      flexShrink: 0,
+      backgroundColor: '#0F172A',
       color: '#94A3B8',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 8px 0 14px',
+      padding: '0 8px 0 12px',
       fontSize: '12px',
       fontWeight: 500,
       userSelect: 'none',
       borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
       // @ts-ignore
       '--wails-draggable': 'drag'
     } as any}>
       
-      {/* Left App Branding - Icon Only */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      {/* Left App Branding */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={{
-          width: '18px',
-          height: '18px',
-          borderRadius: '4px',
-          backgroundColor: '#10B981',
+          width: '16px',
+          height: '16px',
+          borderRadius: '2px',
+          backgroundColor: '#0F8A6A',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#FFFFFF'
         }}>
-          <Cross size={11} />
+          <Cross size={10} />
         </div>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: '#E2E8F0', letterSpacing: '-0.01em' }}>
+          Langratia POS Workstation
+        </span>
       </div>
 
       {/* Right Desktop Window Control Buttons */}
@@ -45,17 +47,16 @@ export const TitleBar: React.FC = () => {
           onClick={() => WindowMinimise()}
           title="Minimize Window"
           style={{
-            width: '28px',
-            height: '24px',
-            borderRadius: '4px',
+            width: '26px',
+            height: '22px',
+            borderRadius: '2px',
             border: 'none',
             backgroundColor: 'transparent',
             color: '#94A3B8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.15s'
+            cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
@@ -66,24 +67,23 @@ export const TitleBar: React.FC = () => {
             e.currentTarget.style.color = '#94A3B8';
           }}
         >
-          <Minus size={14} />
+          <Minus size={13} />
         </button>
 
         <button
           onClick={() => WindowToggleMaximise()}
           title="Maximize / Restore"
           style={{
-            width: '28px',
-            height: '24px',
-            borderRadius: '4px',
+            width: '26px',
+            height: '22px',
+            borderRadius: '2px',
             border: 'none',
             backgroundColor: 'transparent',
             color: '#94A3B8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.15s'
+            cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
@@ -94,24 +94,23 @@ export const TitleBar: React.FC = () => {
             e.currentTarget.style.color = '#94A3B8';
           }}
         >
-          <Square size={11} />
+          <Square size={10} />
         </button>
 
         <button
           onClick={() => Quit()}
           title="Close Application"
           style={{
-            width: '28px',
-            height: '24px',
-            borderRadius: '4px',
+            width: '26px',
+            height: '22px',
+            borderRadius: '2px',
             border: 'none',
             backgroundColor: 'transparent',
             color: '#94A3B8',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.15s'
+            cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#EF4444';
@@ -122,10 +121,9 @@ export const TitleBar: React.FC = () => {
             e.currentTarget.style.color = '#94A3B8';
           }}
         >
-          <X size={14} />
+          <X size={13} />
         </button>
       </div>
-
     </div>
   );
 };

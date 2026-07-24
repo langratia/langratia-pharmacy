@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sidebar, NavItemKey } from './Sidebar';
 import { Header } from './Header';
 import { TitleBar } from './TitleBar';
+import { StatusBar } from './StatusBar';
 
 interface MainLayoutProps {
   activeView: NavItemKey;
@@ -13,12 +14,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#F4F6F8' }}>
-      {/* Tier 1: Window Titlebar */}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--color-desktop-bg)' }}>
+      {/* Tier 1: Window TitleBar */}
       <TitleBar />
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 32px)' }}>
-        {/* Tier 2: Grouped Collapsible Sidebar */}
+      {/* Tier 2: Middle Workstation Canvas (Sidebar + Right Content Column) */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+        {/* Collapsible Navigation Sidebar */}
         <Sidebar
           activeView={activeView}
           onSelectView={onSelectView}
@@ -26,38 +28,39 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView
           onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
         />
 
-        {/* Content Container */}
+        {/* Right Workspace Column */}
         <div
           style={{
-            marginLeft: isCollapsed ? '64px' : '240px',
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: '#F4F6F8',
-            transition: 'margin-left 200ms ease-out'
+            height: '100%',
+            overflow: 'hidden',
+            backgroundColor: 'var(--color-desktop-bg)'
           }}
         >
-          {/* Tier 3: Desktop App Toolbar */}
+          {/* App Toolbar Header */}
           <Header onSelectView={onSelectView} />
 
-          {/* Tier 4: Workspace Main Content Area */}
+          {/* Main Desktop Screen Workspace Canvas */}
           <main
             style={{
               flex: 1,
-              height: 'calc(100vh - 80px)',
-              maxHeight: 'calc(100vh - 80px)',
               overflowY: 'auto',
-              overscrollBehaviorY: 'contain',
-              // @ts-ignore
-              WebkitOverflowScrolling: 'touch',
-              padding: '16px 20px',
-              boxSizing: 'border-box'
+              overflowX: 'hidden',
+              padding: '8px',
+              boxSizing: 'border-box',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             {children}
           </main>
         </div>
       </div>
+
+      {/* Tier 3: Persistent Bottom Desktop Status Bar */}
+      <StatusBar />
     </div>
   );
 };

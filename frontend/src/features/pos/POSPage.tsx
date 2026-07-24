@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { 
   ShoppingCart, 
   Plus, 
   Minus, 
   Trash2, 
-  CheckCircle, 
   Printer, 
   X,
   Filter,
-  Loader2
+  CheckCircle,
+  CreditCard,
+  Banknote,
+  Smartphone
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
-import { DesktopButton } from '../../components/ui/DesktopButton';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';
+import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { SplitPane } from '../../components/ui/SplitPane';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 
 interface CartItem {
@@ -50,7 +51,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
   }, [externalCartItems]);
 
-  // Checkout Modal State
+  // Checkout Receipt Modal State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [completedSale, setCompletedSale] = useState<any | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -92,15 +93,13 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       const existing = prev.find(item => item.medicine.id === med.id);
       if (existing) {
         if (existing.quantity >= med.current_stock) {
-          toast.error(`Maximum available stock reached for ${med.name}`);
+          toast.error(`Maximum stock reached for ${med.name}`);
           return prev;
         }
-        toast.success(`Updated ${med.name} qty (${existing.quantity + 1})`);
         return prev.map(item =>
           item.medicine.id === med.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      toast.success(`Added ${med.name} to cart`);
       return [...prev, { medicine: med, quantity: 1 }];
     });
   };
@@ -111,7 +110,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         const newQty = item.quantity + delta;
         if (newQty <= 0) return null as any;
         if (newQty > item.medicine.current_stock) {
-          toast.error('Cannot exceed current stock level');
+          toast.error('Stock limit reached');
           return item;
         }
         return { ...item, quantity: newQty };
@@ -122,13 +121,15 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   const handleRemoveFromCart = (medId: number) => {
     setCart(prev => prev.filter(item => item.medicine.id !== medId));
-    toast.success('Removed item from cart');
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.medicine.selling_price * item.quantity), 0);
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
+  const handleApproveSale = async () => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty');
+      return;
+    }
     setIsProcessing(true);
 
     const cartInput = cart.map(item => ({
@@ -178,329 +179,264 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       setCompletedSale(sale);
       setCart([]);
       setIsCheckoutOpen(true);
-      toast.success(`POS Checkout Completed! Total: UGX ${cartTotal.toLocaleString()}`);
+      toast.success(`POS Sale Approved! Total: UGX ${cartTotal.toLocaleString()}`);
       fetchMedicines();
     } catch (err: any) {
-      toast.error(err?.message || 'Checkout failed. Please check stock availability.');
+      toast.error(err?.message || 'Checkout failed.');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // Columns for medicine catalog DataGrid
+  const catalogColumns: Column<Medicine>[] = [
+    {
+      key: 'name',
+      header: 'Medicine Name',
+      width: '40%',
+      accessor: (med) => (
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontWeight: 600, color: '#0F172A' }}>{med.name}</span>
+          <span style={{ fontSize: '10px', color: '#64748B', marginLeft: '6px' }}>({med.dosage_strength || med.medicine_form})</span>
+        </div>
+      )
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      width: '22%',
+      accessor: (med) => (
+        <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '2px' }}>
+          {med.category}
+        </span>
+      )
+    },
+    {
+      key: 'selling_price',
+      header: 'Price (UGX)',
+      width: '20%',
+      align: 'right' as const,
+      accessor: (med) => (
+        <span style={{ fontWeight: 700, color: '#0F8A6A' }}>
+          {med.selling_price.toLocaleString()}
+        </span>
+      )
+    },
+    {
+      key: 'stock',
+      header: 'Stock',
+      width: '18%',
+      align: 'center' as const,
+      accessor: (med) => (
+        <span style={{ fontWeight: 700, color: med.current_stock <= 0 ? '#EF4444' : med.current_stock <= med.reorder_level ? '#D97706' : '#10B981' }}>
+          {med.current_stock}
+        </span>
+      )
+    }
+  ];
+
   const handlePrintReceipt = () => {
     window.print();
   };
 
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 360px',
-        gap: '16px',
-        height: 'calc(100vh - 110px)',
-        maxHeight: 'calc(100vh - 110px)',
-        overflow: 'hidden'
-      }}
-    >
-      {/* Left Area: Medicine Grid */}
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', gap: '12px' }}>
-        <SectionHeader
-          title="Point of Sale (POS)"
-          subtitle="Direct sales terminal with automatic FEFO stock batch deduction."
-        />
+  // Primary Pane Content
+  const primaryContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+      <SectionHeader
+        title="Checkout Workstation"
+        subtitle="Search medicine inventory & add line items to cart"
+      />
 
-        {/* Toolbar Filter */}
-        <Panel noPadding style={{ padding: '8px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Search medicine, generic composition, or brand..."
-              width="320px"
-              showShortcut={false}
-            />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Filter size={14} style={{ color: '#6B7280' }} />
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #D1D5DB',
-                  fontSize: '13px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#111827',
-                  outline: 'none'
-                }}
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </Panel>
-
-        {/* Medicine Product Grid Panel */}
-        <Panel noPadding style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-          {isLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#6B7280' }}>
-              <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
-              <span style={{ marginLeft: '8px', fontSize: '13px' }}>Loading catalog...</span>
-            </div>
-          ) : medicines.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '40px 0', fontSize: '13px' }}>
-              No medicine items available matching filter criteria.
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-                gap: '12px'
-              }}
+      {/* Filter & Search Bar */}
+      <Panel noPadding style={{ padding: '6px 10px', height: '36px', minHeight: '36px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="Barcode or search medicine name, brand..."
+            width="320px"
+            showShortcut={false}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Filter size={12} style={{ color: '#64748B' }} />
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              style={{ height: '26px', fontSize: '11px' }}
             >
-              {medicines.map((med) => {
-                const isOut = med.current_stock <= 0;
-                const isLow = med.current_stock > 0 && med.current_stock <= (med.reorder_level || 10);
-                const inCart = cart.find(i => i.medicine.id === med.id);
-
-                return (
-                  <div
-                    key={med.id}
-                    onClick={() => !isOut && handleAddToCart(med)}
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      border: `1px solid ${inCart ? '#0F8A6A' : '#E5E7EB'}`,
-                      borderRadius: '8px',
-                      padding: '12px',
-                      cursor: isOut ? 'not-allowed' : 'pointer',
-                      opacity: isOut ? 0.6 : 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      boxShadow: inCart ? '0 0 0 1px #0F8A6A' : '0 1px 2px rgba(0,0,0,0.03)',
-                      transition: 'all 150ms ease-out'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isOut && !inCart) e.currentTarget.style.borderColor = '#9CA3AF';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isOut && !inCart) e.currentTarget.style.borderColor = '#E5E7EB';
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
-                        <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: '#111827', lineHeight: '1.3' }}>
-                          {med.name}
-                        </h4>
-                        {inCart && (
-                          <span
-                            style={{
-                              backgroundColor: '#0F8A6A',
-                              color: '#FFFFFF',
-                              borderRadius: '50%',
-                              width: '20px',
-                              height: '20px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              flexShrink: 0
-                            }}
-                          >
-                            {inCart.quantity}
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>
-                        {med.dosage_strength} • {med.medicine_form}
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginTop: '10px',
-                        paddingTop: '8px',
-                        borderTop: '1px solid #F3F4F6'
-                      }}
-                    >
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F8A6A' }}>
-                        UGX {med.selling_price.toLocaleString()}
-                      </span>
-                      <StatusBadge
-                        status={isOut ? 'out_of_stock' : isLow ? 'low_stock' : 'in_stock'}
-                        label={isOut ? 'Out' : `${med.current_stock}`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Panel>
-      </div>
-
-      {/* Right Area: Checkout Cart Panel */}
-      <Panel noPadding style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {/* Cart Panel Header */}
-        <div
-          style={{
-            padding: '12px 16px',
-            borderBottom: '1px solid #E5E7EB',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: '#F9FAFB'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShoppingCart size={17} style={{ color: '#0F8A6A' }} />
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-              Sales Order Cart
-            </h3>
-          </div>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>
-            {cart.length} items
-          </span>
-        </div>
-
-        {/* FEFO Batch Alert Banner */}
-        <div
-          style={{
-            padding: '6px 12px',
-            backgroundColor: '#ECFDF5',
-            borderBottom: '1px solid #A7F3D0',
-            fontSize: '11px',
-            color: '#065F46',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <CheckCircle size={13} />
-          <span>FEFO Rule Active: Auto-deducting earliest batch</span>
-        </div>
-
-        {/* Cart Item Rows */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
-          {cart.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '60px 0', fontSize: '12px' }}>
-              <ShoppingCart size={32} style={{ margin: '0 auto 8px auto', opacity: 0.3 }} />
-              <div>Cart is empty</div>
-              <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>Click items on the left to add</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {cart.map((item) => (
-                <div
-                  key={item.medicine.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    backgroundColor: '#F9FAFB',
-                    border: '1px solid #E5E7EB'
-                  }}
-                >
-                  <div style={{ flex: 1, overflow: 'hidden', paddingRight: '6px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.medicine.name}
-                    </div>
-                    <div style={{ fontSize: '11px', color: '#6B7280' }}>
-                      UGX {item.medicine.selling_price.toLocaleString()} ea
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <button
-                      onClick={() => handleUpdateQty(item.medicine.id, -1)}
-                      style={{ padding: '3px 6px', borderRadius: '4px', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', cursor: 'pointer' }}
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span style={{ fontSize: '12px', fontWeight: 600, minWidth: '20px', textAlign: 'center' }}>
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => handleUpdateQty(item.medicine.id, 1)}
-                      style={{ padding: '3px 6px', borderRadius: '4px', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', cursor: 'pointer' }}
-                    >
-                      <Plus size={12} />
-                    </button>
-                    <button
-                      onClick={() => handleRemoveFromCart(item.medicine.id)}
-                      style={{ padding: '3px', color: '#EF4444', marginLeft: '4px', cursor: 'pointer' }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* Cart Checkout Footer */}
-        <div style={{ padding: '14px', borderTop: '1px solid #E5E7EB', backgroundColor: '#F9FAFB' }}>
-          <div style={{ marginBottom: '12px' }}>
-            <span style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>
-              Payment Method
-            </span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
-              {(['Cash', 'Mobile Money', 'Card'] as const).map((pm) => (
-                <button
-                  key={pm}
-                  type="button"
-                  onClick={() => setPaymentMethod(pm)}
-                  style={{
-                    padding: '6px',
-                    borderRadius: '6px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    border: paymentMethod === pm ? '1px solid #0F8A6A' : '1px solid #D1D5DB',
-                    backgroundColor: paymentMethod === pm ? '#ECFDF5' : '#FFFFFF',
-                    color: paymentMethod === pm ? '#0F8A6A' : '#374151',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {pm}
-                </button>
-              ))}
-            </div>
+            </select>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>Total Payable</span>
-            <span style={{ fontSize: '16px', fontWeight: 700, color: '#0F8A6A' }}>
-              UGX {cartTotal.toLocaleString()}
-            </span>
-          </div>
-
-          <DesktopButton
-            variant="primary"
-            size="lg"
-            disabled={cart.length === 0 || isProcessing}
-            onClick={handleCheckout}
-            style={{ width: '100%' }}
-          >
-            {isProcessing ? 'Processing Sale...' : 'Complete POS Sale'}
-          </DesktopButton>
         </div>
       </Panel>
 
-      {/* Checkout Receipt Modal */}
+      {/* Medicine DataGrid Catalog */}
+      <DataGrid
+        columns={catalogColumns}
+        data={medicines}
+        keyExtractor={(row) => row.id}
+        isLoading={isLoading}
+        emptyMessage="No medicines found in catalog."
+        onRowClick={(med) => handleAddToCart(med)}
+        compactRows={true}
+        zebraStriping={true}
+        maxHeight="calc(100vh - 165px)"
+        style={{ flex: 1 }}
+      />
+    </div>
+  );
+
+  // Inspector Docked Cart & Order Content
+  const cartContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '10px', boxSizing: 'border-box' }}>
+      {/* Cart Items List */}
+      <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #CBD5E1', borderRadius: '2px', backgroundColor: '#FFFFFF', padding: '4px' }}>
+        {cart.length === 0 ? (
+          <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
+            <ShoppingCart size={28} style={{ margin: '0 auto 6px', opacity: 0.5 }} />
+            Cart is empty. Click items in the catalog to add.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {cart.map((item) => (
+              <div
+                key={item.medicine.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '6px 8px',
+                  borderBottom: '1px solid #F1F5F9',
+                  backgroundColor: '#F8FAFC'
+                }}
+              >
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.medicine.name}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#64748B' }}>
+                    UGX {item.medicine.selling_price.toLocaleString()} x {item.quantity} = <strong style={{ color: '#0F8A6A' }}>UGX {(item.medicine.selling_price * item.quantity).toLocaleString()}</strong>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button
+                    onClick={() => handleUpdateQty(item.medicine.id, -1)}
+                    style={{ width: '20px', height: '20px', padding: 0, fontSize: '10px' }}
+                  >
+                    <Minus size={10} />
+                  </button>
+                  <span style={{ fontSize: '11px', fontWeight: 700, width: '18px', textAlign: 'center' }}>
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => handleUpdateQty(item.medicine.id, 1)}
+                    style={{ width: '20px', height: '20px', padding: 0, fontSize: '10px' }}
+                  >
+                    <Plus size={10} />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveFromCart(item.medicine.id)}
+                    style={{ width: '20px', height: '20px', padding: 0, color: '#EF4444', backgroundColor: '#FEE2E2', border: 'none', marginLeft: '4px' }}
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Payment Selection & Total Calculation */}
+      <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+          Payment Method
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
+          <button
+            onClick={() => setPaymentMethod('Cash')}
+            style={{
+              height: '26px',
+              fontSize: '10px',
+              fontWeight: 600,
+              gap: '4px',
+              backgroundColor: paymentMethod === 'Cash' ? '#ECFDF5' : '#FFFFFF',
+              borderColor: paymentMethod === 'Cash' ? '#0F8A6A' : '#CBD5E1',
+              color: paymentMethod === 'Cash' ? '#065F46' : '#334155'
+            }}
+          >
+            <Banknote size={11} /> Cash
+          </button>
+          <button
+            onClick={() => setPaymentMethod('Mobile Money')}
+            style={{
+              height: '26px',
+              fontSize: '10px',
+              fontWeight: 600,
+              gap: '4px',
+              backgroundColor: paymentMethod === 'Mobile Money' ? '#ECFDF5' : '#FFFFFF',
+              borderColor: paymentMethod === 'Mobile Money' ? '#0F8A6A' : '#CBD5E1',
+              color: paymentMethod === 'Mobile Money' ? '#065F46' : '#334155'
+            }}
+          >
+            <Smartphone size={11} /> MoMo
+          </button>
+          <button
+            onClick={() => setPaymentMethod('Card')}
+            style={{
+              height: '26px',
+              fontSize: '10px',
+              fontWeight: 600,
+              gap: '4px',
+              backgroundColor: paymentMethod === 'Card' ? '#ECFDF5' : '#FFFFFF',
+              borderColor: paymentMethod === 'Card' ? '#0F8A6A' : '#CBD5E1',
+              color: paymentMethod === 'Card' ? '#065F46' : '#334155'
+            }}
+          >
+            <CreditCard size={11} /> Card
+          </button>
+        </div>
+
+        {/* Total Summary Box */}
+        <div
+          style={{
+            padding: '8px 10px',
+            backgroundColor: '#0F172A',
+            color: '#FFFFFF',
+            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>TOTAL DUE:</span>
+          <span style={{ fontSize: '15px', fontWeight: 700, color: '#34D399' }}>
+            UGX {cartTotal.toLocaleString()}
+          </span>
+        </div>
+
+        {/* Approve & Complete Sale Button */}
+        <button
+          onClick={handleApproveSale}
+          disabled={cart.length === 0 || isProcessing}
+          className="desktop-btn-primary"
+          style={{
+            height: '32px',
+            fontSize: '12px',
+            width: '100%',
+            gap: '6px',
+            opacity: cart.length === 0 || isProcessing ? 0.6 : 1
+          }}
+        >
+          <CheckCircle size={14} />
+          <span>{isProcessing ? 'Processing Sale...' : 'Approve & Complete Sale (F10)'}</span>
+        </button>
+      </div>
+
+      {/* Completed Sale Receipt Modal */}
       {isCheckoutOpen && completedSale && (
         <div
           style={{
@@ -509,80 +445,68 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
+            backgroundColor: 'rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
+            zIndex: 1000
           }}
         >
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '380px',
-              padding: '20px',
-              border: '1px solid #E5E7EB',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+              border: '1px solid #CBD5E1',
+              borderRadius: '2px',
+              width: '380px',
+              padding: '16px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
             }}
           >
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ECFDF5', color: '#065F46', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
-                <CheckCircle size={22} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#111827' }}>
-                Sale Completed
-              </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6B7280' }}>
-                Invoice #{completedSale.invoice_number}
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>POS RECEIPT #{completedSale.invoice_number}</span>
+              <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'none' }}><X size={14} /></button>
             </div>
 
-            <div style={{ backgroundColor: '#F9FAFB', padding: '12px', borderRadius: '6px', border: '1px solid #E5E7EB', fontSize: '12px', marginBottom: '16px' }}>
-              <div style={{ textAlign: 'center', borderBottom: '1px dashed #D1D5DB', paddingBottom: '8px', marginBottom: '8px' }}>
-                <div style={{ fontWeight: 600 }}>LANGRATIA PHARMACY</div>
-                <div style={{ color: '#6B7280', fontSize: '11px' }}>Cashier: {completedSale.username}</div>
-              </div>
+            <div style={{ padding: '12px 0', fontSize: '11px', color: '#334155' }}>
+              <div>Operator: <strong>{completedSale.username}</strong></div>
+              <div>Payment Method: <strong>{completedSale.payment_method}</strong></div>
+              <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
-                {completedSale.items.map((it: any, idx: number) => (
+              <div style={{ margin: '10px 0', borderTop: '1px dashed #CBD5E1', borderBottom: '1px dashed #CBD5E1', padding: '6px 0' }}>
+                {completedSale.items?.map((it: any, idx: number) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>{it.medicine_name} x{it.quantity}</span>
-                    <span style={{ fontWeight: 600 }}>UGX {it.subtotal.toLocaleString()}</span>
+                    <span>UGX {(it.subtotal || (it.unit_price * it.quantity)).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
 
-              <div style={{ borderTop: '1px dashed #D1D5DB', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#0F8A6A' }}>
-                <span>TOTAL ({completedSale.payment_method})</span>
-                <span>UGX {completedSale.total_amount.toLocaleString()}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, color: '#0F8A6A' }}>
+                <span>TOTAL PAID:</span>
+                <span>UGX {completedSale.total_amount?.toLocaleString()}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <DesktopButton
-                variant="outline"
-                size="md"
-                icon={<Printer size={15} />}
-                onClick={handlePrintReceipt}
-                style={{ flex: 1 }}
-              >
-                Print
-              </DesktopButton>
-              <DesktopButton
-                variant="primary"
-                size="md"
-                onClick={() => setIsCheckoutOpen(false)}
-                style={{ flex: 1 }}
-              >
-                Next Sale
-              </DesktopButton>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '4px' }}>
+                <Printer size={13} /> Print Receipt
+              </button>
+              <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1 }}>
+                Done
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+
+  return (
+    <SplitPane
+      primaryPane={primaryContent}
+      inspectorPane={cartContent}
+      inspectorTitle={`CART INSPECTOR (${cart.length})`}
+      inspectorWidth="380px"
+    />
   );
 };

@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Upload, Shield, AlertTriangle } from 'lucide-react';
+import { Download, Upload, Shield, Users, Database, FileSpreadsheet, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ListUsers, CreateUser, ExportDatabase, RestoreDatabase, ListAuditLogs, ResetAndSeedDatabase } from '../../../wailsjs/go/main/App';
 import { models } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
-import { DesktopButton } from '../../components/ui/DesktopButton';
-import { StatusBadge } from '../../components/ui/StatusBadge';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { SplitPane } from '../../components/ui/SplitPane';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -78,45 +77,24 @@ export const SettingsPage: React.FC = () => {
       await ExportDatabase(destPath, user.id, user.username);
       toast.success(`Database exported to ${destPath}`);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to export database');
+      toast.error(err.message || 'Export failed');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRestoreDB = async () => {
-    if (!user) return;
-    const confirmRestore = window.confirm("WARNING: This will overwrite current database and restart app. Proceed?");
-    if (!confirmRestore) return;
-
-    try {
-      setIsLoading(true);
-      const sourcePath = prompt("Enter exact path to backup .db file:");
-      if (!sourcePath) {
-        setIsLoading(false);
-        return;
-      }
-      
-      await RestoreDatabase(sourcePath, user.id, user.username);
-      toast.success('Database restored successfully!');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to restore database');
-    } finally {
-      setIsLoading(false);
+  const handleResetSeedDB = async () => {
+    if (!user || user.role !== 'admin') return;
+    if (!window.confirm('WARNING: Reset & Seed Database will wipe all existing data and create demo records. Continue?')) {
+      return;
     }
-  };
-
-  const handleSeedDatabase = async () => {
-    const confirmSeed = window.confirm("CRITICAL WARNING: This will WIPE ALL EXISTING DATA and replace with test records. Proceed?");
-    if (!confirmSeed) return;
-
     try {
       setIsLoading(true);
       await ResetAndSeedDatabase();
-      toast.success('Database successfully reset and seeded!');
-      fetchUsers();
+      toast.success('Database reset & seeded with demo data');
+      window.location.reload();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to seed database');
+      toast.error(err.message || 'Reset failed');
     } finally {
       setIsLoading(false);
     }
@@ -124,29 +102,26 @@ export const SettingsPage: React.FC = () => {
 
   const userColumns: Column<models.User>[] = [
     {
-      key: 'full_name',
-      header: 'Full Name',
-      accessor: (u) => <span style={{ fontWeight: 600, color: '#111827' }}>{u.full_name}</span>
-    },
-    {
       key: 'username',
       header: 'Username',
-      accessor: (u) => <span style={{ color: '#6B7280' }}>@{u.username}</span>
+      width: '30%',
+      accessor: (u) => <span style={{ fontWeight: 600, color: '#0F172A' }}>{u.username}</span>
+    },
+    {
+      key: 'full_name',
+      header: 'Full Name',
+      width: '40%',
+      accessor: (u) => <span style={{ fontSize: '11px', color: '#334155' }}>{u.full_name || '-'}</span>
     },
     {
       key: 'role',
-      header: 'Role',
+      header: 'Role Privilege',
+      width: '30%',
       accessor: (u) => (
-        <StatusBadge
-          status={u.role === 'admin' ? 'active' : 'pending'}
-          label={u.role.toUpperCase()}
-        />
+        <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: u.role === 'admin' ? '#FEF3C7' : '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '2px', fontWeight: 700, color: u.role === 'admin' ? '#B45309' : '#334155', textTransform: 'uppercase' }}>
+          {u.role}
+        </span>
       )
-    },
-    {
-      key: 'created_at',
-      header: 'Created Date',
-      accessor: (u) => <span style={{ color: '#6B7280' }}>{new Date(u.created_at).toLocaleDateString()}</span>
     }
   ];
 
@@ -154,180 +129,199 @@ export const SettingsPage: React.FC = () => {
     {
       key: 'timestamp',
       header: 'Timestamp',
-      accessor: (log) => <span style={{ color: '#6B7280' }}>{new Date(log.timestamp).toLocaleString()}</span>
+      width: '25%',
+      accessor: (log) => <span style={{ fontSize: '10px', color: '#64748B' }}>{new Date(log.timestamp).toLocaleString()}</span>
     },
     {
       key: 'username',
-      header: 'User',
-      accessor: (log) => <span style={{ fontWeight: 600, color: '#111827' }}>@{log.username}</span>
+      header: 'Operator',
+      width: '20%',
+      accessor: (log) => <span style={{ fontWeight: 600, color: '#0F172A' }}>{log.username}</span>
     },
     {
       key: 'action',
-      header: 'Action',
-      accessor: (log) => (
-        <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: '#F3F4F6', fontSize: '11px', fontWeight: 600 }}>
-          {log.action}
-        </span>
-      )
+      header: 'System Action',
+      width: '25%',
+      accessor: (log) => <span style={{ fontWeight: 600, color: '#0F8A6A' }}>{log.action}</span>
     },
     {
       key: 'details',
-      header: 'Details',
-      accessor: (log) => <span style={{ color: '#6B7280' }}>{log.details}</span>
+      header: 'Audit Trail Details',
+      width: '30%',
+      accessor: (log) => <span style={{ fontSize: '10px', color: '#334155' }}>{log.details}</span>
     }
   ];
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+  // Category Sidebar Pane
+  const primaryContent = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
       <SectionHeader
-        title="Settings & Administration"
-        subtitle="User account management, security roles, system database backups, and audit logs."
+        title="System Administration Workspace"
+        subtitle="Configure user access control, security policies, database backups, and audit logs"
       />
 
-      <Panel noPadding style={{ padding: '8px 12px' }}>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {[
-            { key: 'users', label: 'User Accounts' },
-            { key: 'backups', label: 'Database & Backups' },
-            { key: 'audit', label: 'Audit Log' }
-          ].map((tab) => (
-            <DesktopButton
-              key={tab.key}
-              variant={activeTab === tab.key ? 'primary' : 'ghost'}
-              size="sm"
-              onClick={() => setActiveTab(tab.key as any)}
+      <div style={{ display: 'flex', gap: '8px', flex: 1, overflow: 'hidden' }}>
+        {/* Navigation Categories Pane */}
+        <Panel noPadding style={{ width: '200px', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px' }}>
+            <button
+              onClick={() => setActiveTab('users')}
+              style={{
+                height: '28px',
+                fontSize: '11px',
+                fontWeight: 600,
+                justifyContent: 'flex-start',
+                gap: '8px',
+                backgroundColor: activeTab === 'users' ? '#ECFDF5' : 'transparent',
+                borderColor: activeTab === 'users' ? '#0F8A6A' : 'transparent',
+                color: activeTab === 'users' ? '#065F46' : '#334155'
+              }}
             >
-              {tab.label}
-            </DesktopButton>
-          ))}
-        </div>
-      </Panel>
+              <Users size={14} /> User Accounts
+            </button>
+            <button
+              onClick={() => setActiveTab('backups')}
+              style={{
+                height: '28px',
+                fontSize: '11px',
+                fontWeight: 600,
+                justifyContent: 'flex-start',
+                gap: '8px',
+                backgroundColor: activeTab === 'backups' ? '#ECFDF5' : 'transparent',
+                borderColor: activeTab === 'backups' ? '#0F8A6A' : 'transparent',
+                color: activeTab === 'backups' ? '#065F46' : '#334155'
+              }}
+            >
+              <Database size={14} /> DB & Maintenance
+            </button>
+            <button
+              onClick={() => setActiveTab('audit')}
+              style={{
+                height: '28px',
+                fontSize: '11px',
+                fontWeight: 600,
+                justifyContent: 'flex-start',
+                gap: '8px',
+                backgroundColor: activeTab === 'audit' ? '#ECFDF5' : 'transparent',
+                borderColor: activeTab === 'audit' ? '#0F8A6A' : 'transparent',
+                color: activeTab === 'audit' ? '#065F46' : '#334155'
+              }}
+            >
+              <Shield size={14} /> Audit Trail Logs
+            </button>
+          </div>
+        </Panel>
 
-      <Panel noPadding style={{ padding: '16px' }}>
-        {/* USERS TAB */}
-        {activeTab === 'users' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px' }}>
+        {/* Content Pane View */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          {activeTab === 'users' && (
             <DataGrid
               columns={userColumns}
               data={users}
               keyExtractor={(u) => u.id}
               isLoading={isLoading}
-              emptyMessage="No users registered in system."
               compactRows={true}
               zebraStriping={true}
-              maxHeight="calc(100vh - 280px)"
+              maxHeight="calc(100vh - 130px)"
+              style={{ flex: 1 }}
             />
+          )}
 
-            {user?.role === 'admin' && (
-              <div style={{ backgroundColor: '#F9FAFB', padding: '16px', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px' }}>
-                  <Shield size={16} /> Create User Account
-                </span>
-                <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Full Name</label>
-                    <input 
-                      type="text" required value={newUser.full_name} onChange={e => setNewUser({...newUser, full_name: e.target.value})}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Username</label>
-                    <input 
-                      type="text" required value={newUser.username} onChange={e => setNewUser({...newUser, username: e.target.value})}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Password</label>
-                    <input 
-                      type="password" required value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>System Role</label>
-                    <select 
-                      value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})}
-                      style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', boxSizing: 'border-box' }}
-                    >
-                      <option value="cashier">Cashier</option>
-                      <option value="admin">Administrator</option>
-                    </select>
-                  </div>
-                  <DesktopButton
-                    type="submit"
-                    variant="primary"
-                    size="md"
-                    disabled={isLoading}
-                    style={{ marginTop: '4px' }}
-                  >
-                    {isLoading ? 'Creating...' : 'Create Account'}
-                  </DesktopButton>
-                </form>
-              </div>
-            )}
-          </div>
-        )}
+          {activeTab === 'audit' && (
+            <DataGrid
+              columns={auditColumns}
+              data={auditLogs}
+              keyExtractor={(log) => log.id}
+              isLoading={isLoading}
+              compactRows={true}
+              zebraStriping={true}
+              maxHeight="calc(100vh - 130px)"
+              style={{ flex: 1 }}
+            />
+          )}
 
-        {/* BACKUPS TAB */}
-        {activeTab === 'backups' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '560px' }}>
-            <div style={{ padding: '16px', border: '1px solid #E5E7EB', borderRadius: '6px', backgroundColor: '#FFFFFF' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                <Download size={20} color="#0F8A6A" />
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#111827' }}>Export Database Backup</h4>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#6B7280' }}>Create local file snapshot of SQLite database.</p>
+          {activeTab === 'backups' && (
+            <Panel title="DATABASE BACKUP & SYSTEM RECOVERY" style={{ height: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', color: '#334155' }}>
+                <div style={{ padding: '8px', border: '1px solid #CBD5E1', borderRadius: '2px', backgroundColor: '#F8FAFC' }}>
+                  <strong>Export Database Snapshot:</strong> Creates a full standalone SQLite backup of sales, inventory, and users.
+                  <div style={{ marginTop: '6px' }}>
+                    <button onClick={handleExportDB} className="desktop-btn-primary" style={{ height: '26px', gap: '4px' }}>
+                      <Download size={12} /> Export SQLite Backup (.db)
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <DesktopButton variant="outline" size="sm" onClick={handleExportDB} disabled={isLoading}>
-                Export Now
-              </DesktopButton>
-            </div>
 
-            <div style={{ padding: '16px', border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', borderRadius: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                <Upload size={20} color="#EF4444" />
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#991B1B' }}>Restore Database</h4>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#B91C1C' }}>Overwrite current database with backup file.</p>
-                </div>
+                {user?.role === 'admin' && (
+                  <div style={{ padding: '8px', border: '1px solid #FCA5A5', borderRadius: '2px', backgroundColor: '#FEE2E2', color: '#991B1B' }}>
+                    <strong>System Reset & Demo Data Seeding:</strong> Wipes existing database tables and reinstates demo dataset.
+                    <div style={{ marginTop: '6px' }}>
+                      <button onClick={handleResetSeedDB} style={{ height: '26px', backgroundColor: '#EF4444', color: '#FFFFFF', border: 'none', fontWeight: 600, gap: '4px' }}>
+                        Reset & Seed Demo Database
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <DesktopButton variant="danger" size="sm" onClick={handleRestoreDB} disabled={isLoading}>
-                Restore Backup
-              </DesktopButton>
-            </div>
-
-            <div style={{ padding: '16px', border: '1px solid #FDE68A', backgroundColor: '#FFFBEB', borderRadius: '6px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                <AlertTriangle size={20} color="#F59E0B" />
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#92400E' }}>Factory Reset & Seed Test Data</h4>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#B45309' }}>Wipes DB and populates 100 realistic records.</p>
-                </div>
-              </div>
-              <DesktopButton variant="secondary" size="sm" onClick={handleSeedDatabase} disabled={isLoading}>
-                Reset & Seed
-              </DesktopButton>
-            </div>
-          </div>
-        )}
-
-        {/* AUDIT TAB */}
-        {activeTab === 'audit' && (
-          <DataGrid
-            columns={auditColumns}
-            data={auditLogs}
-            keyExtractor={(log) => log.id}
-            isLoading={isLoading}
-            emptyMessage="No audit logs available."
-            compactRows={true}
-            zebraStriping={true}
-            maxHeight="calc(100vh - 280px)"
-          />
-        )}
-      </Panel>
+            </Panel>
+          )}
+        </div>
+      </div>
     </div>
+  );
+
+  // Inspector Docked Pane
+  const inspectorContent = (
+    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+      {activeTab === 'users' ? (
+        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <UserPlus size={14} color="#0F8A6A" /> CREATE OPERATOR ACCOUNT
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Full Name *</label>
+            <input type="text" required value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })} style={{ width: '100%' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Username *</label>
+            <input type="text" required value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} style={{ width: '100%' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Password *</label>
+            <input type="password" required value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} style={{ width: '100%' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Role Privilege</label>
+            <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%' }}>
+              <option value="cashier">Cashier</option>
+              <option value="pharmacist">Pharmacist</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+
+          <button type="submit" className="desktop-btn-primary" style={{ height: '28px', fontSize: '11px', marginTop: '10px', gap: '4px' }}>
+            <UserPlus size={12} />
+            <span>Create User Account</span>
+          </button>
+        </form>
+      ) : (
+        <div style={{ padding: '20px 10px', color: '#64748B', fontSize: '11px' }}>
+          Select user accounts to manage access credentials.
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <SplitPane
+      primaryPane={primaryContent}
+      inspectorPane={inspectorContent}
+      inspectorTitle="ADMIN INSPECTOR"
+      inspectorWidth="320px"
+    />
   );
 };
