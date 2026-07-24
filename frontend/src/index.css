@@ -158,4 +158,29 @@ a {
   color: var(--color-text-muted);
 }
 
+/* Smooth Hardware-Accelerated Scrolling */
+* {
+  box-sizing: border-box;
+}
+
+.datagrid-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  will-change: scroll-position;
+}
+
+.datagrid-row {
+  transition: background-color 100ms ease-out;
+}
+.datagrid-row:hover {
+  background-color: #F3F4F6 !important;
+}
+.datagrid-row.selected {
+  background-color: #ECFDF5 !important;
+}
+
+
 

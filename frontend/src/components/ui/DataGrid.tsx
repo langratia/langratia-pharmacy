@@ -53,9 +53,8 @@ export function DataGrid<T>({
       }}
     >
       <div
+        className="datagrid-scroll-container"
         style={{
-          overflowX: 'auto',
-          overflowY: 'auto',
           maxHeight: maxHeight || 'calc(100vh - 220px)',
           position: 'relative'
         }}
@@ -148,22 +147,12 @@ export function DataGrid<T>({
                   <tr
                     key={key}
                     onClick={() => onRowClick?.(row)}
+                    className={`datagrid-row ${isSelected ? 'selected' : ''}`}
                     style={{
                       backgroundColor: bg,
                       height: rowHeight,
                       borderBottom: '1px solid #F3F4F6',
-                      cursor: onRowClick ? 'pointer' : 'default',
-                      transition: 'background-color 150ms ease-out'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = '#F3F4F6';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = bg;
-                      }
+                      cursor: onRowClick ? 'pointer' : 'default'
                     }}
                   >
                     {columns.map((col) => (

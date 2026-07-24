@@ -47,6 +47,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView
               height: 'calc(100vh - 80px)',
               maxHeight: 'calc(100vh - 80px)',
               overflowY: 'auto',
+              overscrollBehaviorY: 'contain',
+              // @ts-ignore
+              WebkitOverflowScrolling: 'touch',
               padding: '16px 20px',
               boxSizing: 'border-box'
             }}
