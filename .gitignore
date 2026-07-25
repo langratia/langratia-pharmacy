@@ -2,3 +2,6 @@ build/bin
 node_modules
 frontend/dist
 *.db
+*.db-wal
+*.db-shm
+config.json
