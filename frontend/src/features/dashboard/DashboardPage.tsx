@@ -151,10 +151,10 @@ export const DashboardPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Pharmacy Operations Overview
           </div>
@@ -162,7 +162,7 @@ export const DashboardPage: React.FC = () => {
       </Panel>
 
       {/* KPI Metric Strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px' }}>
         {kpiCards.map((card, idx) => {
           const Icon = card.icon;
           return (
@@ -185,7 +185,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Workstation Activity Split Grids */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px', flex: 1, overflow: 'hidden' }}>
         <Panel title="LIVE POS TRANSACTIONS LOG" noPadding style={{ height: '100%' }}>
           <DataGrid
             columns={salesColumns}

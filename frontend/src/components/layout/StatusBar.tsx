@@ -19,30 +19,30 @@ export const StatusBar: React.FC = () => {
   return (
     <footer
       style={{
-        height: '24px',
-        maxHeight: '24px',
+        height: '20px',
+        maxHeight: '20px',
         backgroundColor: '#0F172A',
         color: '#94A3B8',
         borderTop: '1px solid #1E293B',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 10px',
-        fontSize: '11px',
+        padding: '0 8px',
+        fontSize: '10px',
         fontWeight: 500,
         userSelect: 'none',
         zIndex: 100
       }}
     >
       {/* Left Status: DB Connection & Active User */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981' }}>
-          <Database size={12} />
-          <span style={{ fontSize: '11px', fontWeight: 600 }}>Wails SQLite DB Connected</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10B981' }}>
+          <Database size={11} />
+          <span style={{ fontSize: '10px', fontWeight: 600 }}>Wails SQLite DB Connected</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#CBD5E1' }}>
-          <UserCheck size={12} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#CBD5E1' }}>
+          <UserCheck size={11} />
           <span>
             Operator: <strong>{user?.full_name || user?.username || 'Pharmacist'}</strong> ({user?.role || 'user'})
           </span>

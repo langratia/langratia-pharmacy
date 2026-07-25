@@ -154,17 +154,17 @@ export const SettingsPage: React.FC = () => {
 
   // Category Sidebar Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             System Administration & Control
           </div>
         </div>
       </Panel>
 
-      <div style={{ display: 'flex', gap: '8px', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '4px', flex: 1, overflow: 'hidden' }}>
         {/* Navigation Categories Pane */}
         <Panel noPadding style={{ width: '200px', height: '100%' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px' }}>
@@ -175,7 +175,7 @@ export const SettingsPage: React.FC = () => {
                 fontSize: '11px',
                 fontWeight: 600,
                 justifyContent: 'flex-start',
-                gap: '8px',
+                gap: '4px',
                 backgroundColor: activeTab === 'users' ? '#ECFDF5' : 'transparent',
                 borderColor: activeTab === 'users' ? '#0F8A6A' : 'transparent',
                 color: activeTab === 'users' ? '#065F46' : '#334155'
@@ -190,7 +190,7 @@ export const SettingsPage: React.FC = () => {
                 fontSize: '11px',
                 fontWeight: 600,
                 justifyContent: 'flex-start',
-                gap: '8px',
+                gap: '4px',
                 backgroundColor: activeTab === 'backups' ? '#ECFDF5' : 'transparent',
                 borderColor: activeTab === 'backups' ? '#0F8A6A' : 'transparent',
                 color: activeTab === 'backups' ? '#065F46' : '#334155'
@@ -205,7 +205,7 @@ export const SettingsPage: React.FC = () => {
                 fontSize: '11px',
                 fontWeight: 600,
                 justifyContent: 'flex-start',
-                gap: '8px',
+                gap: '4px',
                 backgroundColor: activeTab === 'audit' ? '#ECFDF5' : 'transparent',
                 borderColor: activeTab === 'audit' ? '#0F8A6A' : 'transparent',
                 color: activeTab === 'audit' ? '#065F46' : '#334155'
@@ -247,7 +247,7 @@ export const SettingsPage: React.FC = () => {
           {activeTab === 'backups' && (
             <Panel title="DATABASE BACKUP & SYSTEM RECOVERY" style={{ height: '100%' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '11px', color: '#334155' }}>
-                <div style={{ padding: '8px', border: '1px solid #CBD5E1', borderRadius: '2px', backgroundColor: '#F8FAFC' }}>
+                <div style={{ padding: '4px', border: '1px solid #CBD5E1', borderRadius: '2px', backgroundColor: '#F8FAFC' }}>
                   <strong>Export Database Snapshot:</strong> Creates a full standalone SQLite backup of sales, inventory, and users.
                   <div style={{ marginTop: '6px' }}>
                     <button onClick={handleExportDB} className="desktop-btn-primary" style={{ height: '26px', gap: '4px' }}>
@@ -257,7 +257,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
 
                 {user?.role === 'admin' && (
-                  <div style={{ padding: '8px', border: '1px solid #FCA5A5', borderRadius: '2px', backgroundColor: '#FEE2E2', color: '#991B1B' }}>
+                  <div style={{ padding: '4px', border: '1px solid #FCA5A5', borderRadius: '2px', backgroundColor: '#FEE2E2', color: '#991B1B' }}>
                     <strong>System Reset & Demo Data Seeding:</strong> Wipes existing database tables and reinstates demo dataset.
                     <div style={{ marginTop: '6px' }}>
                       <button onClick={handleResetSeedDB} style={{ height: '26px', backgroundColor: '#EF4444', color: '#FFFFFF', border: 'none', fontWeight: 600, gap: '4px' }}>
@@ -276,9 +276,9 @@ export const SettingsPage: React.FC = () => {
 
   // Inspector Docked Pane
   const inspectorContent = (
-    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
       {activeTab === 'users' ? (
-        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <UserPlus size={14} color="#0F8A6A" /> CREATE OPERATOR ACCOUNT
           </div>

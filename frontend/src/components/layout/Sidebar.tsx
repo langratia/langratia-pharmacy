@@ -95,8 +95,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       {/* Brand & Collapse Header */}
       <div
         style={{
-          height: '38px',
-          padding: isCollapsed ? '0 10px' : '0 12px',
+          height: '34px',
+          padding: isCollapsed ? '0 6px' : '0 10px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: isCollapsed ? 'center' : 'space-between',
@@ -104,12 +104,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
           backgroundColor: '#0B132B'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <div
             style={{
-              width: '22px',
-              height: '22px',
-              borderRadius: '2px',
+              width: '18px',
+              height: '18px',
+              borderRadius: '0px',
               backgroundColor: '#0F8A6A',
               display: 'flex',
               alignItems: 'center',
@@ -139,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
           style={{
             width: '20px',
             height: '20px',
-            borderRadius: '2px',
+            borderRadius: '0px',
             color: '#94A3B8',
             backgroundColor: 'transparent',
             border: 'none',
@@ -165,10 +165,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       <nav
         style={{
           flex: 1,
-          padding: isCollapsed ? '6px 4px' : '6px 8px',
+          padding: isCollapsed ? '4px 2px' : '4px 6px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '8px',
+          gap: '4px',
           overflowY: 'auto'
         }}
       >
@@ -207,17 +207,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      gap: '8px',
-                      padding: isCollapsed ? '6px' : '5px 8px',
-                      borderRadius: '2px',
-                      fontSize: '12px',
+                      gap: '6px',
+                      padding: isCollapsed ? '4px' : '4px 6px',
+                      borderRadius: '0px',
+                      fontSize: '11px',
                       fontWeight: isActive ? 600 : 500,
                       color: isActive ? '#FFFFFF' : '#94A3B8',
                       backgroundColor: isActive ? '#0F8A6A' : 'transparent',
                       border: 'none',
                       textAlign: 'left',
                       width: '100%',
-                      height: '28px'
+                      height: '24px'
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
@@ -245,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       {/* Footer / Sign Out */}
       <div
         style={{
-          padding: isCollapsed ? '6px 4px' : '6px 8px',
+          padding: isCollapsed ? '4px 2px' : '4px 6px',
           borderTop: '1px solid #1E293B'
         }}
       >
@@ -256,17 +256,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
             display: 'flex',
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'flex-start',
-            gap: '8px',
+            gap: '6px',
             width: '100%',
-            padding: isCollapsed ? '6px' : '5px 8px',
-            borderRadius: '2px',
+            padding: isCollapsed ? '4px' : '4px 6px',
+            borderRadius: '0px',
             backgroundColor: 'transparent',
             border: 'none',
             color: '#F87171',
             fontWeight: 500,
             fontSize: '11px',
             cursor: 'pointer',
-            height: '28px'
+            height: '24px'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';

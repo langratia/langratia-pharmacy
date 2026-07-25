@@ -36,14 +36,14 @@ export function DataGrid<T>({
   maxHeight,
   style
 }: DataGridProps<T>) {
-  const rowHeight = compactRows ? '28px' : '34px';
+  const rowHeight = compactRows ? '24px' : '28px';
 
   return (
     <div
       style={{
         width: '100%',
         border: '1px solid #CBD5E1',
-        borderRadius: '2px',
+        borderRadius: '0px',
         backgroundColor: '#FFFFFF',
         overflow: 'hidden',
         boxShadow: 'none',
@@ -83,10 +83,10 @@ export function DataGrid<T>({
                 <th
                   key={col.key}
                   style={{
-                    padding: compactRows ? '4px 8px' : '6px 10px',
+                    padding: compactRows ? '2px 4px' : '4px 6px',
                     fontWeight: 700,
                     color: '#334155',
-                    fontSize: '11px',
+                    fontSize: '10px',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                     width: col.width || 'auto',
@@ -160,13 +160,14 @@ export function DataGrid<T>({
                       <td
                         key={col.key}
                         style={{
-                          padding: compactRows ? '3px 8px' : '5px 10px',
+                          padding: compactRows ? '1px 4px' : '2px 6px',
                           textAlign: col.align || 'left',
                           whiteSpace: 'nowrap',
                           verticalAlign: 'middle',
                           color: isSelected ? '#0369A1' : '#0F172A',
                           borderRight: '1px solid #F1F5F9',
-                          fontWeight: isSelected ? 600 : 400
+                          fontWeight: isSelected ? 600 : 400,
+                          fontSize: compactRows ? '11px' : '12px'
                         }}
                       >
                         {col.accessor ? col.accessor(row) : (row as any)[col.key]}

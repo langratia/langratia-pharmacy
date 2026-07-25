@@ -43,9 +43,10 @@
   --statusbar-height: 24px;
 
   /* Crisp Desktop Radii */
-  --radius-sm: 2px;
-  --radius-md: 3px;
-  --radius-lg: 4px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-full: 0px;
 
   /* Elevation */
   --shadow-subtle: none;
@@ -108,18 +109,18 @@ body {
 /* Base Form Elements: High Density Desktop Controls */
 button {
   font-family: inherit;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   border: 1px solid var(--color-border);
   background: var(--color-panel-bg);
   outline: none;
-  border-radius: var(--radius-sm);
+  border-radius: 0px;
   color: var(--color-text-primary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 10px;
-  height: 28px;
+  padding: 2px 8px;
+  height: 24px;
   box-sizing: border-box;
   backdrop-filter: var(--glass-blur);
 }
@@ -140,9 +141,9 @@ input, select, textarea {
   color: var(--color-text-primary);
   background-color: var(--color-panel-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  height: 28px;
+  border-radius: 0px;
+  padding: 2px 6px;
+  height: 24px;
   box-sizing: border-box;
   outline: none;
   backdrop-filter: var(--glass-blur);
@@ -174,8 +175,8 @@ a {
 
 /* Crisp Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-desktop-bg);
@@ -188,7 +189,15 @@ a {
   background: var(--color-text-muted);
 }
 
-/* Glassmorphism Panel & Card Classes */
+/* Desktop workstation and glass surface classes */
+.card-container, .desktop-panel {
+  background-color: var(--color-panel-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0px;
+  padding: 10px;
+  box-shadow: none;
+}
+
 .glass-panel {
   background: var(--glass-bg) !important;
   backdrop-filter: var(--glass-blur);
@@ -210,8 +219,8 @@ a {
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 6px 8px;
+  border-radius: 0px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

@@ -30,7 +30,7 @@ export const Panel: React.FC<PanelProps> = ({
         backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)',
         border: '1px solid var(--color-border)',
-        borderRadius: '2px',
+        borderRadius: '0px',
         boxShadow: 'var(--shadow-glass)',
         overflow: 'hidden',
         display: 'flex',
@@ -41,9 +41,9 @@ export const Panel: React.FC<PanelProps> = ({
       {(title || actions) && (
         <div
           style={{
-            height: '30px',
-            maxHeight: '30px',
-            padding: '0 10px',
+            height: '24px',
+            maxHeight: '24px',
+            padding: '0 6px',
             borderBottom: '1px solid var(--color-border)',
             display: 'flex',
             alignItems: 'center',
@@ -52,31 +52,31 @@ export const Panel: React.FC<PanelProps> = ({
             flexShrink: 0
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
             {title && (
-              <h3 style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+              <h3 style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                 {title}
               </h3>
             )}
             {subtitle && (
               <>
-                <span style={{ color: 'var(--color-border)' }}>|</span>
+                {title && <span style={{ color: 'var(--color-border)' }}>|</span>}
                 <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {subtitle}
                 </span>
               </>
             )}
           </div>
-          {actions && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>{actions}</div>}
+          {actions && <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>{actions}</div>}
         </div>
       )}
       <div
         style={{
-          padding: noPadding ? 0 : '8px',
+          padding: noPadding ? '0' : '4px',
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'auto'
         }}
       >
         {children}

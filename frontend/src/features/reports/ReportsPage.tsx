@@ -126,11 +126,11 @@ export const ReportsPage: React.FC = () => {
   const totalValuation = medicines.reduce((acc, m) => acc + (m.current_stock * m.selling_price), 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
               Analytics & Financial Reports
             </div>
@@ -164,7 +164,7 @@ export const ReportsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <div style={{ fontSize: '11px', color: 'var(--color-text-primary)' }}>
               Valuation: <strong style={{ color: 'var(--color-accent)' }}>UGX {totalValuation.toLocaleString()}</strong>
             </div>

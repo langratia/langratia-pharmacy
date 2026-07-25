@@ -273,15 +273,15 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
 
   // Primary Workspace Content
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Prescription Processing
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <SearchBar
               value={searchQuery}
               onChange={setSearchQuery}
@@ -333,14 +333,14 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
 
   // Inspector Docked Panel Content
   const inspectorContent = (
-    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
       {!selectedRx ? (
         <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
           <FileText size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
           Select a prescription to inspect details and dispense.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
               RX #{selectedRx.prescription_number}
@@ -348,14 +348,14 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
             <StatusBadge status={selectedRx.status === 'Pending' ? 'pending' : selectedRx.status === 'Dispensed' ? 'completed' : 'cancelled'} />
           </div>
 
-          <div style={{ padding: '8px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '2px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#0F172A', fontWeight: 600 }}>
+          <div style={{ padding: '4px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '2px', fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#0F172A', fontWeight: 600 }}>
               <User size={13} color="#0F8A6A" /> {selectedRx.patient_name} ({selectedRx.patient_age} yrs)
             </div>
             <div style={{ color: '#64748B', fontSize: '10px' }}>
               Phone: {selectedRx.patient_phone || 'N/A'}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', marginTop: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', color: '#334155', marginTop: '2px' }}>
               <Stethoscope size={13} color="#0284C7" /> Dr. {selectedRx.doctor_name}
             </div>
           </div>
@@ -375,8 +375,8 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
             ))}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: '2px' }}>
               <button
                 onClick={() => handleStatusChange(selectedRx.id, 'Pending')}
                 style={{ flex: 1, height: '24px', fontSize: '10px' }}
@@ -394,7 +394,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
             <button
               onClick={() => handleDispenseToPOS(selectedRx)}
               className="desktop-btn-primary"
-              style={{ height: '30px', fontSize: '11px', width: '100%', gap: '6px' }}
+              style={{ height: '30px', fontSize: '11px', width: '100%', gap: '2px' }}
             >
               <ShoppingCart size={13} />
               <span>Transfer & Dispense in POS Workstation</span>
@@ -411,18 +411,18 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
               CREATE NEW DOCTOR PRESCRIPTION
             </div>
 
-            <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
                 <input placeholder="Patient Name *" required value={patientName} onChange={e => setPatientName(e.target.value)} />
                 <input placeholder="Patient Phone" value={patientPhone} onChange={e => setPatientPhone(e.target.value)} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
                 <input placeholder="Doctor Name *" required value={doctorName} onChange={e => setDoctorName(e.target.value)} />
                 <input placeholder="Doctor Contact" value={doctorContact} onChange={e => setDoctorContact(e.target.value)} />
               </div>
 
               <div style={{ borderTop: '1px solid #CBD5E1', paddingTop: '6px', fontSize: '11px', fontWeight: 700 }}>ADD PRESCRIPTION LINE ITEM</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '6px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '2px' }}>
                 <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))}>
                   <option value="">Select Medicine...</option>
                   {availableMedicines.map(m => (
@@ -442,7 +442,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
                 ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '2px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setShowNewModal(false)} className="desktop-btn-secondary">Cancel</button>
                 <button type="submit" className="desktop-btn-primary">Save Prescription</button>
               </div>
