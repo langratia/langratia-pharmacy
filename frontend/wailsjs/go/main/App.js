@@ -110,6 +110,10 @@ export function ListPrescriptions(arg1, arg2) {
   return window['go']['main']['App']['ListPrescriptions'](arg1, arg2);
 }
 
+export function ListPurchaseItems(arg1) {
+  return window['go']['main']['App']['ListPurchaseItems'](arg1);
+}
+
 export function ListPurchases() {
   return window['go']['main']['App']['ListPurchases']();
 }

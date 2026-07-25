@@ -68,12 +68,14 @@ type Purchase struct {
 }
 
 type PurchaseItem struct {
-	ID          int64   `json:"id"`
-	PurchaseID  int64   `json:"purchase_id"`
-	MedicineID  int64   `json:"medicine_id"`
-	BatchID     *int64  `json:"batch_id,omitempty"`
-	Quantity    int     `json:"quantity"`
-	BuyingPrice float64 `json:"buying_price"`
+	ID           int64   `json:"id"`
+	PurchaseID   int64   `json:"purchase_id"`
+	MedicineID   int64   `json:"medicine_id"`
+	MedicineName string  `json:"medicine_name,omitempty"`
+	BatchID      *int64  `json:"batch_id,omitempty"`
+	BatchNumber  string  `json:"batch_number,omitempty"`
+	Quantity     int     `json:"quantity"`
+	BuyingPrice  float64 `json:"buying_price"`
 }
 
 type Sale struct {

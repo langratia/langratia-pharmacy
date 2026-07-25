@@ -256,6 +256,13 @@ func (a *App) ListPurchases() ([]models.Purchase, error) {
 	return a.purchaseService.ListPurchases()
 }
 
+func (a *App) ListPurchaseItems(purchaseID int64) ([]models.PurchaseItem, error) {
+	if a.purchaseService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.purchaseService.ListPurchaseItems(purchaseID)
+}
+
 func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurchases, error) {
 	if a.purchaseService == nil {
 		return nil, fmt.Errorf("service not initialized")

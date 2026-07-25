@@ -202,6 +202,38 @@ func (s *PurchaseService) ListPurchasesPaginated(page, pageSize int) (*models.Pa
 }
 
 
+// ListPurchaseItems retrieves line items for a purchase invoice with medicine names.
+func (s *PurchaseService) ListPurchaseItems(purchaseID int64) ([]models.PurchaseItem, error) {
+	query := `
+		SELECT pi.id, pi.purchase_id, pi.medicine_id, pi.batch_id, pi.quantity, pi.buying_price,
+		       COALESCE(m.name, ''), COALESCE(b.batch_number, '')
+		FROM purchase_items pi
+		LEFT JOIN medicines m ON pi.medicine_id = m.id
+		LEFT JOIN batches b ON pi.batch_id = b.id
+		WHERE pi.purchase_id = ?`
+
+	rows, err := s.db.Query(query, purchaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []models.PurchaseItem
+	for rows.Next() {
+		var item models.PurchaseItem
+		var batchID sql.NullInt64
+		err := rows.Scan(&item.ID, &item.PurchaseID, &item.MedicineID, &batchID, &item.Quantity, &item.BuyingPrice, &item.MedicineName, &item.BatchNumber)
+		if err != nil {
+			return nil, err
+		}
+		if batchID.Valid {
+			item.BatchID = &batchID.Int64
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
 func (s *PurchaseService) logAction(userID int64, username, action, details string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,

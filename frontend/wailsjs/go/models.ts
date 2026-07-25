@@ -272,7 +272,9 @@ export namespace models {
 	    id: number;
 	    purchase_id: number;
 	    medicine_id: number;
+	    medicine_name?: string;
 	    batch_id?: number;
+	    batch_number?: string;
 	    quantity: number;
 	    buying_price: number;
 	
@@ -285,7 +287,9 @@ export namespace models {
 	        this.id = source["id"];
 	        this.purchase_id = source["purchase_id"];
 	        this.medicine_id = source["medicine_id"];
+	        this.medicine_name = source["medicine_name"];
 	        this.batch_id = source["batch_id"];
+	        this.batch_number = source["batch_number"];
 	        this.quantity = source["quantity"];
 	        this.buying_price = source["buying_price"];
 	    }
