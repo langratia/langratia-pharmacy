@@ -56,7 +56,7 @@ export function ListMedicines(arg1:string,arg2:string,arg3:boolean):Promise<Arra
 
 export function ListMedicinesPaginated(arg1:string,arg2:string,arg3:boolean,arg4:number,arg5:number):Promise<models.PaginatedMedicines>;
 
-export function ListPrescriptions(arg1:string,arg2:number):Promise<Array<models.Prescription>>;
+export function ListPrescriptions(arg1:string,arg2:string,arg3:number):Promise<Array<models.Prescription>>;
 
 export function ListPurchaseItems(arg1:number):Promise<Array<models.PurchaseItem>>;
 

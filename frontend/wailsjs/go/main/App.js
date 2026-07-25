@@ -106,8 +106,8 @@ export function ListMedicinesPaginated(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['ListMedicinesPaginated'](arg1, arg2, arg3, arg4, arg5);
 }
 
-export function ListPrescriptions(arg1, arg2) {
-  return window['go']['main']['App']['ListPrescriptions'](arg1, arg2);
+export function ListPrescriptions(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ListPrescriptions'](arg1, arg2, arg3);
 }
 
 export function ListPurchaseItems(arg1) {

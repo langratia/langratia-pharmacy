@@ -1,8 +1,10 @@
 package services
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
+	"math/big"
 	"time"
 
 	"app/backend/db"
@@ -30,11 +32,31 @@ func (p *PrescriptionService) CreatePrescription(userID int64, username string, 
 	if patientName == "" {
 		return nil, fmt.Errorf("patient name is required")
 	}
+	if patientAge <= 0 {
+		return nil, fmt.Errorf("patient age must be positive")
+	}
 	if doctorName == "" {
 		return nil, fmt.Errorf("doctor name is required")
 	}
 	if len(items) == 0 {
 		return nil, fmt.Errorf("at least one medicine item is required")
+	}
+	for i, item := range items {
+		if item.MedicineID <= 0 {
+			return nil, fmt.Errorf("item %d: invalid medicine", i)
+		}
+		if item.Dosage == "" {
+			return nil, fmt.Errorf("item %d: dosage is required", i)
+		}
+		if item.Frequency == "" {
+			return nil, fmt.Errorf("item %d: frequency is required", i)
+		}
+		if item.DurationDays <= 0 {
+			return nil, fmt.Errorf("item %d: duration must be positive", i)
+		}
+		if item.QuantityPrescribed <= 0 {
+			return nil, fmt.Errorf("item %d: quantity must be positive", i)
+		}
 	}
 
 	tx, err := p.db.Begin()
@@ -43,7 +65,8 @@ func (p *PrescriptionService) CreatePrescription(userID int64, username string, 
 	}
 	defer tx.Rollback()
 
-	rxNumber := fmt.Sprintf("RX-%s-%d", time.Now().Format("20060102"), time.Now().UnixNano()%10000)
+	n, _ := rand.Int(rand.Reader, big.NewInt(1000000))
+	rxNumber := fmt.Sprintf("RX-%s-%06d", time.Now().Format("20060102"), n.Int64())
 
 	res, err := tx.Exec(`
 		INSERT INTO prescriptions (prescription_number, patient_name, patient_age, patient_phone, doctor_name, doctor_contact, status, notes, created_by)
@@ -70,9 +93,14 @@ func (p *PrescriptionService) CreatePrescription(userID int64, username string, 
 			return nil, fmt.Errorf("failed to insert prescription item: %w", err)
 		}
 
-		itemID, _ := itemRes.LastInsertId()
+		itemID, err := itemRes.LastInsertId()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get insert id for prescription item: %w", err)
+		}
 		var medName string
-		_ = tx.QueryRow(`SELECT name FROM medicines WHERE id = ?`, item.MedicineID).Scan(&medName)
+		if err := tx.QueryRow(`SELECT name FROM medicines WHERE id = ?`, item.MedicineID).Scan(&medName); err != nil {
+			medName = ""
+		}
 
 		rxItems = append(rxItems, models.PrescriptionItem{
 			ID:                 itemID,
@@ -110,8 +138,8 @@ func (p *PrescriptionService) CreatePrescription(userID int64, username string, 
 	}, nil
 }
 
-// ListPrescriptions fetches prescriptions with optional status filtering.
-func (p *PrescriptionService) ListPrescriptions(status string, limit int) ([]models.Prescription, error) {
+// ListPrescriptions fetches prescriptions with optional status and search filtering.
+func (p *PrescriptionService) ListPrescriptions(status string, search string, limit int) ([]models.Prescription, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -119,12 +147,17 @@ func (p *PrescriptionService) ListPrescriptions(status string, limit int) ([]mod
 	query := `
 		SELECT p.id, p.prescription_number, p.patient_name, p.patient_age, p.patient_phone, p.doctor_name, p.doctor_contact, p.status, p.notes, p.created_by, COALESCE(u.username, 'System'), p.created_at
 		FROM prescriptions p
-		LEFT JOIN users u ON p.created_by = u.id`
+		LEFT JOIN users u ON p.created_by = u.id WHERE 1=1`
 	
 	args := []interface{}{}
 	if status != "" && status != "All" {
-		query += ` WHERE p.status = ?`
+		query += ` AND p.status = ?`
 		args = append(args, status)
+	}
+	if search != "" {
+		query += ` AND (p.prescription_number LIKE ? OR p.patient_name LIKE ? OR p.doctor_name LIKE ?)`
+		searchPattern := "%" + search + "%"
+		args = append(args, searchPattern, searchPattern, searchPattern)
 	}
 
 	query += ` ORDER BY p.created_at DESC LIMIT ?`
@@ -171,7 +204,7 @@ func (p *PrescriptionService) GetPrescriptionDetails(prescriptionID int64) (*mod
 		&rx.DoctorName, &rx.DoctorContact, &rx.Status, &rx.Notes, &uid, &rx.CreatedByName, &rx.CreatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("prescription not found: %w", err)
 	}
 	if uid.Valid {
 		rx.CreatedBy = &uid.Int64
@@ -185,18 +218,22 @@ func (p *PrescriptionService) GetPrescriptionDetails(prescriptionID int64) (*mod
 		WHERE pi.prescription_id = ?`
 
 	rows, err := p.db.Query(itemQuery, prescriptionID)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var pi models.PrescriptionItem
-			err := rows.Scan(
-				&pi.ID, &pi.PrescriptionID, &pi.MedicineID, &pi.MedicineName, &pi.MedicinePrice, &pi.CurrentStock,
-				&pi.Dosage, &pi.Frequency, &pi.DurationDays, &pi.QuantityPrescribed, &pi.QuantityDispensed,
-			)
-			if err == nil {
-				rx.Items = append(rx.Items, pi)
-			}
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch prescription items: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var pi models.PrescriptionItem
+		if err := rows.Scan(
+			&pi.ID, &pi.PrescriptionID, &pi.MedicineID, &pi.MedicineName, &pi.MedicinePrice, &pi.CurrentStock,
+			&pi.Dosage, &pi.Frequency, &pi.DurationDays, &pi.QuantityPrescribed, &pi.QuantityDispensed,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan prescription item: %w", err)
 		}
+		rx.Items = append(rx.Items, pi)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating prescription items: %w", err)
 	}
 
 	return &rx, nil
@@ -204,6 +241,10 @@ func (p *PrescriptionService) GetPrescriptionDetails(prescriptionID int64) (*mod
 
 // UpdatePrescriptionStatus updates status ('Pending', 'Dispensed', 'Cancelled')
 func (p *PrescriptionService) UpdatePrescriptionStatus(userID int64, username string, prescriptionID int64, status string) error {
+	validStatuses := map[string]bool{"Pending": true, "Dispensed": true, "Cancelled": true}
+	if !validStatuses[status] {
+		return fmt.Errorf("invalid status: %s (must be Pending, Dispensed, or Cancelled)", status)
+	}
 	_, err := p.db.Exec(`UPDATE prescriptions SET status = ? WHERE id = ?`, status, prescriptionID)
 	if err != nil {
 		return err
@@ -214,8 +255,10 @@ func (p *PrescriptionService) UpdatePrescriptionStatus(userID int64, username st
 }
 
 func (p *PrescriptionService) logAction(userID int64, username, action, details string) {
-	_, _ = p.db.Exec(
+	if _, err := p.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
 		userID, username, action, details,
-	)
+	); err != nil {
+		fmt.Printf("WARNING: failed to write audit log: %v\n", err)
+	}
 }

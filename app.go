@@ -369,11 +369,11 @@ func (a *App) CreatePrescription(userID int64, username string, patientName stri
 	return a.prescriptionService.CreatePrescription(userID, username, patientName, patientAge, patientPhone, doctorName, doctorContact, notes, items)
 }
 
-func (a *App) ListPrescriptions(status string, limit int) ([]models.Prescription, error) {
+func (a *App) ListPrescriptions(status string, search string, limit int) ([]models.Prescription, error) {
 	if a.prescriptionService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
-	return a.prescriptionService.ListPrescriptions(status, limit)
+	return a.prescriptionService.ListPrescriptions(status, search, limit)
 }
 
 func (a *App) GetPrescriptionDetails(prescriptionID int64) (*models.Prescription, error) {
