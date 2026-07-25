@@ -53,6 +53,13 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   const [stockFilter, setStockFilter] = useState<string>(initialFilter || 'all');
   const [includeArchived, setIncludeArchived] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Inspector & Form State
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
@@ -97,8 +104,8 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       }
       setMedicines(data || []);
 
-      // Auto select first medicine if none selected
-      if (data && data.length > 0 && !selectedMedicine && !isNewRecord) {
+      // Auto select first medicine only on initial load
+      if (data && data.length > 0 && !selectedMedicine && !isNewRecord && medicines.length === 0) {
         handleSelectMedicine(data[0]);
       }
     } catch (err: any) {
@@ -111,7 +118,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
   useEffect(() => {
     fetchMedicines();
-  }, [search, category, includeArchived]);
+  }, [debouncedSearch, category, includeArchived]);
 
   const handleSelectMedicine = (med: Medicine) => {
     setSelectedMedicine(med);
@@ -202,6 +209,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     const file = e.target.files?.[0];
     if (!file || !isAdmin) return;
 
+    setCsvLoading(true);
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
@@ -258,6 +266,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       } catch (err: any) {
         toast.error('Failed to import CSV: ' + (err.message || err));
       } finally {
+        setCsvLoading(false);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -365,8 +374,8 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   });
 
   // Calculate Metrics Summary
-  const lowStockCount = medicines.filter(m => m.current_stock <= m.reorder_level && !m.is_archived).length;
-  const totalStockValuation = filteredMedicines.reduce((acc, m) => acc + (m.current_stock * m.buying_price), 0);
+  const lowStockCount = medicines.filter(m => m.current_stock > 0 && m.current_stock <= m.reorder_level && !m.is_archived).length;
+  const totalStockValuation = medicines.reduce((acc, m) => acc + (m.current_stock * m.buying_price), 0);
 
   // Master Primary Pane Content
   const primaryContent = (
@@ -425,17 +434,30 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
+
+              {isAdmin && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <input
+                    type="checkbox"
+                    checked={includeArchived}
+                    onChange={(e) => setIncludeArchived(e.target.checked)}
+                    style={{ margin: 0, width: '14px', height: '14px', cursor: 'pointer' }}
+                  />
+                  Archived
+                </label>
+              )}
             </div>
 
             {isAdmin && (
               <>
                 <button
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={csvLoading}
                   className="desktop-btn-secondary"
-                  style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}
+                  style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px', opacity: csvLoading ? 0.6 : 1 }}
                 >
                   <Upload size={14} />
-                  <span>Import CSV</span>
+                  <span>{csvLoading ? 'Importing...' : 'Import CSV'}</span>
                 </button>
                 <button
                   onClick={handleCreateNewRecord}
@@ -639,7 +661,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 type="number"
                 disabled={!isAdmin}
                 min="0"
-                step="any"
+                step="0.01"
                 value={formData.buying_price}
                 onChange={(e) => setFormData({ ...formData, buying_price: sanitizePriceInput(e.target.value) })}
                 style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
@@ -653,7 +675,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 type="number"
                 disabled={!isAdmin}
                 min="0"
-                step="any"
+                step="0.01"
                 value={formData.selling_price}
                 onChange={(e) => setFormData({ ...formData, selling_price: sanitizePriceInput(e.target.value) })}
                 style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-accent)', fontWeight: 700, boxSizing: 'border-box' }}
@@ -706,16 +728,32 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
           {isAdmin && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
-              {selectedMedicine && (
-                <button
-                  type="button"
-                  onClick={() => handleToggleArchive(selectedMedicine)}
-                  style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid', borderColor: selectedMedicine.is_archived ? 'var(--color-info-border)' : 'var(--color-danger-border)', color: selectedMedicine.is_archived ? 'var(--color-info-text)' : 'var(--color-danger-text)', backgroundColor: 'transparent', cursor: 'pointer' }}
-                >
-                  {selectedMedicine.is_archived ? <RotateCcw size={14} /> : <Archive size={14} />}
-                  <span>{selectedMedicine.is_archived ? 'Restore' : 'Archive'}</span>
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                {selectedMedicine && (
+                  <button
+                    type="button"
+                    onClick={() => handleToggleArchive(selectedMedicine)}
+                    style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid', borderColor: selectedMedicine.is_archived ? 'var(--color-info-border)' : 'var(--color-danger-border)', color: selectedMedicine.is_archived ? 'var(--color-info-text)' : 'var(--color-danger-text)', backgroundColor: 'transparent', cursor: 'pointer' }}
+                  >
+                    {selectedMedicine.is_archived ? <RotateCcw size={14} /> : <Archive size={14} />}
+                    <span>{selectedMedicine.is_archived ? 'Restore' : 'Archive'}</span>
+                  </button>
+                )}
+                {(isNewRecord || isEditingMode) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNewRecord(false);
+                      setIsEditingMode(false);
+                      setSelectedMedicine(null);
+                      setInspectorError(null);
+                    }}
+                    style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
               <button
                 type="submit"
                 className="desktop-btn-primary"

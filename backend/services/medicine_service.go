@@ -61,13 +61,13 @@ func (s *MedicineService) UpdateMedicine(med models.Medicine, userID int64, user
 		UPDATE medicines SET
 			name = ?, generic_name = ?, brand_name = ?, category = ?, dosage_strength = ?,
 			medicine_form = ?, pack_size = ?, buying_price = ?, selling_price = ?,
-			reorder_level = ?, manufacturer = ?, description = ?
+			current_stock = ?, reorder_level = ?, manufacturer = ?, description = ?
 		WHERE id = ?`
 
 	res, err := s.db.Exec(query,
 		med.Name, med.GenericName, med.BrandName, med.Category, med.DosageStrength,
 		med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
-		med.ReorderLevel, med.Manufacturer, med.Description, med.ID,
+		med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.Description, med.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update medicine: %w", err)
