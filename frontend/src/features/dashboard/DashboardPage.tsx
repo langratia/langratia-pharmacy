@@ -22,7 +22,8 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) => {
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [hasError, setHasError] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [secondsAgo, setSecondsAgo] = useState<number>(0);
   const [summary, setSummary] = useState<any>({
     sales_today: 0,
@@ -39,6 +40,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
 
   const fetchDashboardData = async () => {
     setLoading(true);
+    setHasError(false);
     try {
       let data: any = null;
       try {
@@ -49,21 +51,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           data = await wailsApp.GetDashboardSummary();
         }
       }
-      setSummary(data || {
-        sales_today: 0,
-        total_medicines: 0,
-        low_stock_count: 0,
-        out_of_stock_count: 0,
-        expiring_soon_count: 0,
-        recent_sales: [],
-        recent_purchases: [],
-        expiring_items: [],
-        low_stock_items: [],
-        sales_trend: []
-      });
-      setLastUpdated(new Date());
-      setSecondsAgo(0);
+      if (!data) {
+        setHasError(true);
+        toast.error('Failed to load live metrics');
+      } else {
+        setSummary(data);
+        setLastUpdated(new Date());
+        setSecondsAgo(0);
+      }
     } catch (err: any) {
+      setHasError(true);
       console.error(err);
       toast.error('Failed to load live metrics');
     } finally {
@@ -157,6 +154,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       bg = 'rgba(156, 39, 176, 0.12)';
       border = 'rgba(156, 39, 176, 0.3)';
       color = '#ab47bc';
+    } else if (!m.includes('cash')) {
+      bg = 'rgba(100, 116, 139, 0.12)';
+      border = 'rgba(100, 116, 139, 0.3)';
+      color = '#64748b';
     }
 
     return (
@@ -179,19 +180,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
   // Sparkline Chart Component for 7-day Sales Trend
   const SparklineChart: React.FC<{ data: any[] }> = ({ data }) => {
     if (!data || data.length === 0) {
-      // Fallback visual mock trend line if server hasn't generated trend data
-      data = [
-        { amount: 120000 }, { amount: 180000 }, { amount: 150000 },
-        { amount: 240000 }, { amount: 210000 }, { amount: 290000 },
-        { amount: summary.sales_today || 320000 }
-      ];
+      return null;
     }
     const max = Math.max(...data.map(d => d.amount), 1);
     const min = Math.min(...data.map(d => d.amount), 0);
     const range = max - min || 1;
 
-    const width = 68;
-    const height = 24;
+    const width = 110;
+    const height = 28;
     const points = data.map((d, idx) => {
       const x = (idx / (data.length - 1)) * width;
       const y = height - ((d.amount - min) / range) * (height - 6) - 3;
@@ -373,16 +369,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             Pharmacy Operational Dashboard
           </span>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 8px', backgroundColor: 'var(--color-success-bg, rgba(46, 125, 50, 0.12))', border: '1px solid var(--color-success-border, rgba(46, 125, 50, 0.3))', borderRadius: '0px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-success-text, #4caf50)', boxShadow: '0 0 6px var(--color-success-text, #4caf50)' }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-success-text, #4caf50)', letterSpacing: '0.04em' }}>LIVE</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 8px', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: '0px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-success-text)', boxShadow: '0 0 6px var(--color-success-text)' }} />
+            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-success-text)', letterSpacing: '0.04em' }}>LIVE</span>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-            Updated {secondsAgo}s ago
-          </span>
+          {lastUpdated && (
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+              Updated {secondsAgo}s ago
+            </span>
+          )}
           <button
             onClick={fetchDashboardData}
             title="Refresh Live Dashboard Metrics"
@@ -405,8 +403,39 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
         </div>
       </div>
 
+      {/* Error Banner */}
+      {hasError && !loading && (
+        <div style={{
+          padding: '8px 12px',
+          backgroundColor: 'var(--color-danger-bg)',
+          border: '1px solid var(--color-danger-border)',
+          color: 'var(--color-danger-text)',
+          fontSize: '12px',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <AlertTriangle size={14} />
+          <span>Could not load dashboard data. Check the backend connection and try again.</span>
+          <button onClick={fetchDashboardData} style={{
+            marginLeft: 'auto',
+            height: '22px',
+            fontSize: '11px',
+            padding: '0 10px',
+            backgroundColor: 'var(--color-danger-text)',
+            color: 'var(--color-text-inverse)',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 600
+          }}>
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* KPI Metric Strip (All Cards Clickable) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
         {kpiCards.map((card) => {
           const Icon = card.icon;
           return (
@@ -420,6 +449,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
                 transition: 'transform 0.1s ease, border-color 0.1s ease',
                 position: 'relative'
               }}
+              className="dashboard-kpi-card"
               onClick={() => onSelectView?.(card.targetView, card.filter)}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -535,7 +565,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
           headerRight={
             <button
-              onClick={() => onSelectView?.('reports')}
+              onClick={() => onSelectView?.('reports', 'expiring')}
               style={{
                 background: 'none',
                 border: 'none',

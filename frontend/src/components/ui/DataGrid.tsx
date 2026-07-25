@@ -155,7 +155,7 @@ export function DataGrid<T>({
                     className={`datagrid-row ${isSelected ? 'selected' : ''}`}
                     style={{
                       backgroundColor: bg,
-                      height: '40px',
+                      height: rowHeight,
                       borderBottom: '1px solid var(--color-border-subtle)',
                       cursor: onRowClick ? 'pointer' : 'default'
                     }}

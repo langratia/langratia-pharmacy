@@ -455,3 +455,17 @@ a {
   z-index: 9999;
   padding: 24px;
 }
+
+.dashboard-kpi-card:hover {
+  border-color: var(--color-accent-base) !important;
+  box-shadow: var(--shadow-dropdown);
+}
+
+.dashboard-kpi-card:active {
+  transform: scale(0.98);
+}
+
+.dashboard-kpi-card:focus-visible {
+  outline: 2px solid var(--color-accent-base);
+  outline-offset: 2px;
+}
