@@ -10,11 +10,6 @@ import (
 	"app/backend/models"
 )
 
-type SalesService struct {
-	db           *db.DB
-	batchService *BatchService
-}
-
 type CashierPerformanceMetrics struct {
 	TotalSales   int     `json:"total_sales"`
 	ItemsSold    int     `json:"items_sold"`
@@ -26,6 +21,11 @@ type CashierPerformance struct {
 	Today     CashierPerformanceMetrics `json:"today"`
 	ThisWeek  CashierPerformanceMetrics `json:"this_week"`
 	ThisMonth CashierPerformanceMetrics `json:"this_month"`
+}
+
+type SalesService struct {
+	db           *db.DB
+	batchService *BatchService
 }
 
 
@@ -196,42 +196,30 @@ func (s *SalesService) GetUserTodaySalesTotal(userID int64) (float64, error) {
 
 // GetCashierPerformance retrieves aggregated sales metrics for a specific user.
 func (s *SalesService) GetCashierPerformance(userID int64) (*CashierPerformance, error) {
+	query := `
+		SELECT
+			COALESCE(SUM(CASE WHEN DATE(s.sale_date, 'localtime') = DATE('now', 'localtime') THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN DATE(s.sale_date, 'localtime') = DATE('now', 'localtime') THEN si.quantity ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN DATE(s.sale_date, 'localtime') = DATE('now', 'localtime') THEN si.subtotal ELSE 0.0 END), 0.0),
+			COALESCE(SUM(CASE WHEN DATE(s.sale_date, 'localtime') >= DATE('now', '-7 days', 'localtime') THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN DATE(s.sale_date, 'localtime') >= DATE('now', '-7 days', 'localtime') THEN si.quantity ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN DATE(s.sale_date, 'localtime') >= DATE('now', '-7 days', 'localtime') THEN si.subtotal ELSE 0.0 END), 0.0),
+			COALESCE(SUM(CASE WHEN strftime('%Y-%m', s.sale_date, 'localtime') = strftime('%Y-%m', 'now', 'localtime') THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN strftime('%Y-%m', s.sale_date, 'localtime') = strftime('%Y-%m', 'now', 'localtime') THEN si.quantity ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN strftime('%Y-%m', s.sale_date, 'localtime') = strftime('%Y-%m', 'now', 'localtime') THEN si.subtotal ELSE 0.0 END), 0.0)
+		FROM sales s
+		LEFT JOIN sale_items si ON s.id = si.sale_id
+		WHERE s.user_id = ?`
+
 	perf := &CashierPerformance{UserID: userID}
-
-	// Helper to fetch metrics for a date condition
-	fetchMetrics := func(dateCondition string) (CashierPerformanceMetrics, error) {
-		query := fmt.Sprintf(`
-			SELECT 
-				COUNT(DISTINCT s.id), 
-				COALESCE(SUM(si.quantity), 0), 
-				COALESCE(SUM(si.subtotal), 0.0)
-			FROM sales s
-			LEFT JOIN sale_items si ON s.id = si.sale_id
-			WHERE s.user_id = ? AND %s
-		`, dateCondition)
-		
-		var m CashierPerformanceMetrics
-		err := s.db.QueryRow(query, userID).Scan(&m.TotalSales, &m.ItemsSold, &m.TotalRevenue)
-		if err != nil && err != sql.ErrNoRows {
-			return m, err
-		}
-		return m, nil
+	err := s.db.QueryRow(query, userID).Scan(
+		&perf.Today.TotalSales, &perf.Today.ItemsSold, &perf.Today.TotalRevenue,
+		&perf.ThisWeek.TotalSales, &perf.ThisWeek.ItemsSold, &perf.ThisWeek.TotalRevenue,
+		&perf.ThisMonth.TotalSales, &perf.ThisMonth.ItemsSold, &perf.ThisMonth.TotalRevenue,
+	)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
 	}
-
-	var err error
-	
-	// Today
-	perf.Today, err = fetchMetrics(`DATE(s.sale_date, 'localtime') = DATE('now', 'localtime')`)
-	if err != nil { return nil, err }
-	
-	// This Week (last 7 days)
-	perf.ThisWeek, err = fetchMetrics(`DATE(s.sale_date, 'localtime') >= DATE('now', '-7 days', 'localtime')`)
-	if err != nil { return nil, err }
-	
-	// This Month (current calendar month)
-	perf.ThisMonth, err = fetchMetrics(`strftime('%%Y-%%m', s.sale_date, 'localtime') = strftime('%%Y-%%m', 'now', 'localtime')`)
-	if err != nil { return nil, err }
-
 	return perf, nil
 }
 
