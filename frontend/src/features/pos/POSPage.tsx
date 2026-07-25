@@ -278,7 +278,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               <div
                 key={med.id}
                 className={`product-card ${inCart ? 'selected' : ''}`}
-                onClick={() => handleAddToCart(med)}
+                onClick={() => !isOutOfStock && handleAddToCart(med)}
                 style={{
                   opacity: isOutOfStock ? 0.6 : 1,
                   display: 'flex',
