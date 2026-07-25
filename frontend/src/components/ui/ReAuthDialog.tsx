@@ -29,13 +29,7 @@ export const ReAuthDialog: React.FC<ReAuthDialogProps> = ({
     setIsVerifying(true);
 
     try {
-      const wailsApp = (window as any)?.go?.main?.App;
-      if (!wailsApp || !wailsApp.VerifyPassword) {
-        setError('Verification unavailable');
-        setIsVerifying(false);
-        return;
-      }
-      const ok = await wailsApp.VerifyPassword(userId, password);
+      const ok = await VerifyPassword(userId, password);
       if (ok) {
         setPassword('');
         onVerified();
