@@ -34,6 +34,14 @@ export function BulkImportMedicines(arg1, arg2, arg3) {
   return window['go']['main']['App']['BulkImportMedicines'](arg1, arg2, arg3);
 }
 
+export function ChangePassword(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ChangePassword'](arg1, arg2, arg3);
+}
+
+export function AdminResetPassword(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AdminResetPassword'](arg1, arg2, arg3);
+}
+
 export function CreatePrescription(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
   return window['go']['main']['App']['CreatePrescription'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
 }

@@ -166,6 +166,23 @@ func (a *App) UpdateUser(id int64, role, fullName string, userID int64) error {
 	return a.authService.UpdateUser(id, role, fullName)
 }
 
+func (a *App) ChangePassword(userID int64, oldPassword, newPassword string) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.authService.ChangePassword(userID, oldPassword, newPassword)
+}
+
+func (a *App) AdminResetPassword(adminID int64, targetUserID int64, newPassword string) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(adminID); err != nil {
+		return err
+	}
+	return a.authService.AdminResetPassword(adminID, targetUserID, newPassword)
+}
+
 func (a *App) DeactivateUser(id int64, userID int64) error {
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")

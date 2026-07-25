@@ -170,6 +170,75 @@ func (s *AuthService) DeactivateUser(id int64) error {
 	return err
 }
 
+// ChangePassword allows a user to change their own password after verifying the old one.
+func (s *AuthService) ChangePassword(userID int64, oldPassword, newPassword string) error {
+	if oldPassword == "" || newPassword == "" {
+		return errors.New("both old and new passwords are required")
+	}
+	if len(newPassword) < 4 {
+		return errors.New("new password must be at least 4 characters")
+	}
+
+	var currentHash string
+	err := s.db.QueryRow("SELECT password_hash FROM users WHERE id = ? AND active = 1", userID).Scan(&currentHash)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(oldPassword)); err != nil {
+		return errors.New("current password is incorrect")
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	now := time.Now()
+	_, err = s.db.Exec("UPDATE users SET password_hash = ?, password_changed_at = ? WHERE id = ?", string(newHash), now, userID)
+	if err != nil {
+		return err
+	}
+
+	// Record username for audit
+	var username string
+	s.db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	s.logAction(userID, username, "CHANGE_PASSWORD", "User changed their own password")
+	return nil
+}
+
+// AdminResetPassword allows an admin to reset any user's password.
+func (s *AuthService) AdminResetPassword(adminID int64, targetUserID int64, newPassword string) error {
+	if newPassword == "" {
+		return errors.New("new password is required")
+	}
+	if len(newPassword) < 4 {
+		return errors.New("password must be at least 4 characters")
+	}
+
+	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	now := time.Now()
+	res, err := s.db.Exec("UPDATE users SET password_hash = ?, password_changed_at = ?, failed_login_attempts = 0, locked_until = NULL WHERE id = ?", string(newHash), now, targetUserID)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("user not found")
+	}
+
+	// Record audit with admin and target usernames
+	var adminUser, targetUser string
+	s.db.QueryRow("SELECT username FROM users WHERE id = ?", adminID).Scan(&adminUser)
+	s.db.QueryRow("SELECT username FROM users WHERE id = ?", targetUserID).Scan(&targetUser)
+	s.logAction(adminID, adminUser, "ADMIN_RESET_PASSWORD", fmt.Sprintf("Admin reset password for user %s", targetUser))
+	return nil
+}
+
 func (s *AuthService) logAction(userID int64, username, action, details string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
