@@ -19,7 +19,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
-import { ListMedicines } from '../../../wailsjs/go/main/App';
+import { ListMedicines, GetExpiringBatches } from '../../../wailsjs/go/main/App';
 
 import { formatCurrency, sanitizePriceInput } from '../../utils/formatters';
 
@@ -64,6 +64,22 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
   // CSV file ref
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Expiring batches data for filter
+  const [expiringMedicineIds, setExpiringMedicineIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (stockFilter === 'expiring') {
+      (async () => {
+        try {
+          const batches = await GetExpiringBatches(60);
+          setExpiringMedicineIds(new Set(batches.map(b => b.medicine_id)));
+        } catch {
+          setExpiringMedicineIds(new Set());
+        }
+      })();
+    }
+  }, [stockFilter]);
 
   const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
   const medicineForms = ['Tablet', 'Capsule', 'Syrup / Suspension', 'Injection', 'Ointment / Cream', 'Drops', 'Inhaler', 'Powder'];
@@ -344,7 +360,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       return med.current_stock <= 0;
     }
     if (stockFilter === 'expiring') {
-      return med.current_stock > 0;
+      return expiringMedicineIds.has(med.id);
     }
     return true;
   });
