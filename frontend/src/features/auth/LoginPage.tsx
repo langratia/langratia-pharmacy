@@ -10,7 +10,8 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) return;
-    await login(username, password);
+    const ok = await login(username, password);
+    if (!ok) setPassword('');
   };
 
   return (
@@ -105,6 +106,7 @@ export const LoginPage: React.FC = () => {
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
                 required
+                autoFocus
                 style={{
                   width: '100%',
                   padding: '6px 10px 6px 32px',
