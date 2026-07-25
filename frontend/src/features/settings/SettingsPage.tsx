@@ -42,7 +42,7 @@ export const SettingsPage: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const data = await ListUsers();
+      const data = await ListUsers(user!.id);
       setUsers(data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load users');
@@ -52,7 +52,7 @@ export const SettingsPage: React.FC = () => {
   const fetchAuditLogs = async () => {
     setIsLoading(true);
     try {
-      const data = await ListAuditLogs(100);
+      const data = await ListAuditLogs(100, user!.id);
       setAuditLogs(data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load audit logs');
@@ -70,7 +70,7 @@ export const SettingsPage: React.FC = () => {
     
     try {
       setIsLoading(true);
-      await CreateUser(newUser.username, newUser.password, newUser.role, newUser.full_name);
+      await CreateUser(newUser.username, newUser.password, newUser.role, newUser.full_name, user!.id);
       toast.success('User created successfully');
       setNewUser({ username: '', password: '', role: 'cashier', full_name: '' });
       fetchUsers();
@@ -102,7 +102,7 @@ export const SettingsPage: React.FC = () => {
     }
     try {
       setIsLoading(true);
-      await ResetAndSeedDatabase();
+      await ResetAndSeedDatabase(user!.id);
       toast.success('Database reset & seeded with demo data');
       window.location.reload();
     } catch (err: any) {
@@ -130,7 +130,7 @@ export const SettingsPage: React.FC = () => {
         toast.error('Deactivation is unavailable in this build.');
         return;
       }
-      await wailsApp.DeactivateUser(uId);
+      await wailsApp.DeactivateUser(uId, user!.id);
       toast.success(`Operator ${username} deactivated`);
       fetchUsers();
     } catch (err: any) {
@@ -185,7 +185,7 @@ export const SettingsPage: React.FC = () => {
         toast.error('Server mode is unavailable on this platform.', { id: loadingToast, duration: 4000 });
         return;
       }
-      await wailsApp.EnableMainServerMode();
+      await wailsApp.EnableMainServerMode(user!.id);
       toast.success('Main Server mode enabled! This PC is now visible to other Cashier PCs.', { id: loadingToast, duration: 6000 });
     } catch (err: any) {
       toast.error(err.message || 'Failed to enable Main Server mode.', { id: loadingToast });

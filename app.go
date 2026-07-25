@@ -49,6 +49,23 @@ func NewApp() *App {
 	return &App{}
 }
 
+// requireAdmin checks that the user with the given ID has admin role.
+// This prevents frontend-level role bypass by re-verifying on the backend.
+func (a *App) requireAdmin(userID int64) error {
+	if a.database == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	var role string
+	err := a.database.QueryRow("SELECT role FROM users WHERE id = ? AND active = 1", userID).Scan(&role)
+	if err != nil {
+		return fmt.Errorf("user not found or inactive")
+	}
+	if role != "admin" {
+		return fmt.Errorf("admin privileges required")
+	}
+	return nil
+}
+
 // startup is called when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
@@ -112,30 +129,42 @@ func (a *App) Login(username, password string) (*models.User, error) {
 	return a.authService.Login(username, password)
 }
 
-func (a *App) CreateUser(username, password, role, fullName string) (*models.User, error) {
+func (a *App) CreateUser(username, password, role, fullName string, userID int64) (*models.User, error) {
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
 	}
 	return a.authService.CreateUser(username, password, role, fullName)
 }
 
-func (a *App) ListUsers() ([]models.User, error) {
+func (a *App) ListUsers(userID int64) ([]models.User, error) {
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
 	}
 	return a.authService.ListUsers()
 }
 
-func (a *App) UpdateUser(id int64, role, fullName string) error {
+func (a *App) UpdateUser(id int64, role, fullName string, userID int64) error {
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
 	}
 	return a.authService.UpdateUser(id, role, fullName)
 }
 
-func (a *App) DeactivateUser(id int64) error {
+func (a *App) DeactivateUser(id int64, userID int64) error {
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
 	}
 	return a.authService.DeactivateUser(id)
 }
@@ -180,6 +209,9 @@ func (a *App) BulkImportMedicines(medicines []models.Medicine, userID int64, use
 	if a.medicineService == nil {
 		return 0, fmt.Errorf("service not initialized")
 	}
+	if err := a.requireAdmin(userID); err != nil {
+		return 0, err
+	}
 	return a.medicineService.BulkImportMedicines(medicines, userID, username)
 }
 
@@ -217,12 +249,18 @@ func (a *App) AddSupplier(sup models.Supplier, userID int64, username string) (*
 	if a.supplierService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
+	}
 	return a.supplierService.AddSupplier(sup, userID, username)
 }
 
 func (a *App) UpdateSupplier(sup models.Supplier, userID int64, username string) error {
 	if a.supplierService == nil {
 		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
 	}
 	return a.supplierService.UpdateSupplier(sup, userID, username)
 }
@@ -238,6 +276,9 @@ func (a *App) ArchiveSupplier(id int64, archive bool, userID int64, username str
 	if a.supplierService == nil {
 		return fmt.Errorf("service not initialized")
 	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
 	return a.supplierService.ArchiveSupplier(id, archive, userID, username)
 }
 
@@ -245,6 +286,9 @@ func (a *App) ArchiveSupplier(id int64, archive bool, userID int64, username str
 func (a *App) RecordPurchase(invoiceNumber string, supplierID *int64, items []services.IncomingStockItem, notes string, userID int64, username string) (*models.Purchase, error) {
 	if a.purchaseService == nil {
 		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
 	}
 	return a.purchaseService.RecordPurchase(invoiceNumber, supplierID, items, notes, userID, username)
 }
@@ -305,6 +349,9 @@ func (a *App) ExportDatabase(destPath string, userID int64, username string) err
 	if a.backupService == nil {
 		return fmt.Errorf("service not initialized")
 	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
 	return a.backupService.ExportDatabase(destPath, userID, username)
 }
 
@@ -312,20 +359,29 @@ func (a *App) RestoreDatabase(sourceBackupPath string, userID int64, username st
 	if a.backupService == nil {
 		return fmt.Errorf("service not initialized")
 	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
 	return a.backupService.RestoreDatabase(sourceBackupPath, userID, username)
 }
 
-func (a *App) ListAuditLogs(limit int) ([]models.AuditLog, error) {
+func (a *App) ListAuditLogs(limit int, userID int64) ([]models.AuditLog, error) {
 	if a.backupService == nil {
 		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
 	}
 	return a.backupService.ListAuditLogs(limit)
 }
 
 // ResetAndSeedDatabase drops all table contents and seeds realistic testing records.
-func (a *App) ResetAndSeedDatabase() error {
+func (a *App) ResetAndSeedDatabase(userID int64) error {
 	if a.database == nil {
 		return fmt.Errorf("database not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
 	}
 	return a.database.SeedDatabase()
 }
@@ -417,7 +473,10 @@ func (a *App) UpdateDatabaseConfig(newPath string) error {
 }
 
 // EnableMainServerMode automatically configures Windows to share the DB folder
-func (a *App) EnableMainServerMode() error {
+func (a *App) EnableMainServerMode(userID int64) error {
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
 	if runtime.GOOS != "windows" {
 		return fmt.Errorf("auto-sharing is only supported on Windows")
 	}

@@ -21,8 +21,8 @@ import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 
-type PaymentMethod = 'cash' | 'momo';
-const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', momo: 'Mobile Money' };
+type PaymentMethod = 'cash' | 'card' | 'momo';
+const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', card: 'Card', momo: 'Mobile Money' };
 
 interface CartItem {
   medicine: Medicine;

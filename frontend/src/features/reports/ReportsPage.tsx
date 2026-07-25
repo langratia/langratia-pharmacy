@@ -6,6 +6,7 @@ import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { formatCurrency } from '../../utils/formatters';
 import { ListMedicines, GetExpiringBatches, GetSalesSummary, ListUsers, GetCashierPerformance, ListAuditLogs } from '../../../wailsjs/go/main/App';
+import { useAuth } from '../../context/AuthContext';
 
 type TabKey = 'inventory' | 'expiry' | 'performance' | 'audit' | 'sales';
 
@@ -41,6 +42,7 @@ async function tryLoad<T>(fn: () => Promise<T>, fb: () => Promise<T | undefined>
 }
 
 export const ReportsPage: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('inventory');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [expiringBatches, setExpiringBatches] = useState<Batch[]>([]);
@@ -77,7 +79,7 @@ export const ReportsPage: React.FC = () => {
       }
 
       if (tab === 'performance') {
-        const users = await tryLoad(() => ListUsers(), () => (window as any)?.go?.main?.App?.ListUsers?.());
+        const users = await tryLoad(() => ListUsers(user!.id), () => (window as any)?.go?.main?.App?.ListUsers?.(user!.id));
         if (abortRef.current) return;
         setAllUsers(users || []);
         const perfMap = new Map<number, services.CashierPerformance>();
@@ -96,7 +98,7 @@ export const ReportsPage: React.FC = () => {
       }
 
       if (tab === 'audit') {
-        const logs = await tryLoad(() => ListAuditLogs(200), () => (window as any)?.go?.main?.App?.ListAuditLogs?.(200));
+        const logs = await tryLoad(() => ListAuditLogs(200, user!.id), () => (window as any)?.go?.main?.App?.ListAuditLogs?.(200, user!.id));
         if (abortRef.current) return;
         setAuditLogs(logs || []);
       }

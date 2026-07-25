@@ -38,16 +38,16 @@ export function CreatePrescription(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg
   return window['go']['main']['App']['CreatePrescription'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
 }
 
-export function CreateUser(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['CreateUser'](arg1, arg2, arg3, arg4);
+export function CreateUser(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['CreateUser'](arg1, arg2, arg3, arg4, arg5);
 }
 
-export function DeactivateUser(arg1) {
-  return window['go']['main']['App']['DeactivateUser'](arg1);
+export function DeactivateUser(arg1, arg2) {
+  return window['go']['main']['App']['DeactivateUser'](arg1, arg2);
 }
 
-export function EnableMainServerMode() {
-  return window['go']['main']['App']['EnableMainServerMode']();
+export function EnableMainServerMode(arg1) {
+  return window['go']['main']['App']['EnableMainServerMode'](arg1);
 }
 
 export function ExportDatabase(arg1, arg2, arg3) {
@@ -94,8 +94,8 @@ export function GlobalSearch(arg1, arg2) {
   return window['go']['main']['App']['GlobalSearch'](arg1, arg2);
 }
 
-export function ListAuditLogs(arg1) {
-  return window['go']['main']['App']['ListAuditLogs'](arg1);
+export function ListAuditLogs(arg1, arg2) {
+  return window['go']['main']['App']['ListAuditLogs'](arg1, arg2);
 }
 
 export function ListMedicines(arg1, arg2, arg3) {
@@ -130,8 +130,8 @@ export function ListSuppliers(arg1) {
   return window['go']['main']['App']['ListSuppliers'](arg1);
 }
 
-export function ListUsers() {
-  return window['go']['main']['App']['ListUsers']();
+export function ListUsers(arg1) {
+  return window['go']['main']['App']['ListUsers'](arg1);
 }
 
 export function Login(arg1, arg2) {
@@ -146,8 +146,8 @@ export function RecordPurchase(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['RecordPurchase'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
-export function ResetAndSeedDatabase() {
-  return window['go']['main']['App']['ResetAndSeedDatabase']();
+export function ResetAndSeedDatabase(arg1) {
+  return window['go']['main']['App']['ResetAndSeedDatabase'](arg1);
 }
 
 export function RestoreDatabase(arg1, arg2, arg3) {
@@ -170,6 +170,6 @@ export function UpdateSupplier(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdateSupplier'](arg1, arg2, arg3);
 }
 
-export function UpdateUser(arg1, arg2, arg3) {
-  return window['go']['main']['App']['UpdateUser'](arg1, arg2, arg3);
+export function UpdateUser(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['UpdateUser'](arg1, arg2, arg3, arg4);
 }
