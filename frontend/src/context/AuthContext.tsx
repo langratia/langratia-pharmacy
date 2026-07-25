@@ -24,46 +24,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
 
     try {
-      // Check if Wails JS bindings are available
       const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp && typeof wailsApp.Login === 'function') {
-        const loggedUser: User = await wailsApp.Login(username, password);
-        setUser(loggedUser);
-        localStorage.setItem('langratia_user', JSON.stringify(loggedUser));
+      if (!wailsApp || typeof wailsApp.Login !== 'function') {
+        setError('Application backend is not available');
         setIsLoading(false);
-        return true;
-      } else {
-        // Dev fallback for browser testing when wails dev server is running without native IPC
-        if (username === 'admin' && password === 'admin123') {
-          const devAdmin: User = {
-            id: 1,
-            username: 'admin',
-            role: 'admin',
-            full_name: 'System Administrator',
-            created_at: new Date().toISOString()
-          };
-          setUser(devAdmin);
-          localStorage.setItem('langratia_user', JSON.stringify(devAdmin));
-          setIsLoading(false);
-          return true;
-        } else if (username === 'cashier' && password === 'cashier123') {
-          const devCashier: User = {
-            id: 2,
-            username: 'cashier',
-            role: 'cashier',
-            full_name: 'Pharmacy Cashier',
-            created_at: new Date().toISOString()
-          };
-          setUser(devCashier);
-          localStorage.setItem('langratia_user', JSON.stringify(devCashier));
-          setIsLoading(false);
-          return true;
-        } else {
-          setError('Invalid username or password');
-          setIsLoading(false);
-          return false;
-        }
+        return false;
       }
+      const loggedUser: User = await wailsApp.Login(username, password);
+      setUser(loggedUser);
+      localStorage.setItem('langratia_user', JSON.stringify(loggedUser));
+      setIsLoading(false);
+      return true;
     } catch (err: any) {
       setError(err?.message || 'Login failed. Please check your credentials.');
       setIsLoading(false);
