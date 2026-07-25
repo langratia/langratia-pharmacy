@@ -187,30 +187,30 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     window.print();
   };
 
-  // Primary Pane Content - Strict 4-Column Desktop Workstation Tiles Grid
+  // Primary Pane Content - Spacious Desktop Workstation Tiles Grid
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
-      {/* 1-Line Compact Application Toolbar */}
-      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-            Checkout Workstation
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0', height: '100%', backgroundColor: 'var(--color-desktop-bg)' }}>
+      {/* Spacious Application Toolbar */}
+      <Panel noPadding style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border-subtle)', background: 'var(--color-panel-solid)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            Special Menu for you
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <SearchBar
               value={search}
               onChange={setSearch}
               placeholder="Barcode or search medicine name, brand..."
-              width="280px"
+              width="320px"
               showShortcut={false}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={12} style={{ color: 'var(--color-text-muted)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-desktop-bg)', padding: '4px 12px', borderRadius: '8px' }}>
+              <Filter size={16} style={{ color: 'var(--color-text-muted)' }} />
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                style={{ height: '26px', fontSize: '11px', padding: '2px 4px' }}
+                style={{ height: '32px', fontSize: '13px', border: 'none', background: 'transparent', outline: 'none' }}
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -221,15 +221,15 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         </div>
       </Panel>
 
-      {/* Strict 4-Column Desktop Workspace Product Tiles */}
+      {/* Spacious Product Grid */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '2px',
-          padding: '2px',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: '24px',
+          padding: '24px',
           alignContent: 'start'
         }}
       >
@@ -250,86 +250,63 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             return (
               <div
                 key={med.id}
-                className="product-card"
+                className={`product-card ${inCart ? 'selected' : ''}`}
                 onClick={() => handleAddToCart(med)}
                 style={{
-                  opacity: isOutOfStock ? 0.5 : 1,
-                  borderColor: inCart ? 'var(--color-accent)' : undefined,
-                  padding: '6px 8px',
-                  height: '92px'
+                  opacity: isOutOfStock ? 0.6 : 1,
                 }}
               >
-                {/* Tile Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      padding: '1px 4px',
-                      backgroundColor: 'var(--color-border-subtle)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '2px',
-                      color: 'var(--color-text-secondary)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '90px'
-                    }}
-                  >
-                    {med.category}
-                  </span>
-                  <span style={{ fontSize: '9px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                    {med.medicine_form}
-                  </span>
+                {/* Image Placeholder */}
+                <div style={{
+                  width: '100px',
+                  height: '100px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--color-desktop-bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '8px'
+                }}>
+                  <img 
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(med.name)}&background=random&color=fff&size=100&font-size=0.33`} 
+                    alt={med.name} 
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
+                  />
                 </div>
 
-                {/* Medicine Title */}
-                <div style={{ overflow: 'hidden' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {/* Medicine Title & Category */}
+                <div style={{ textAlign: 'center', width: '100%' }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.3, marginBottom: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {med.name}
                   </div>
-                  <div style={{ fontSize: '9px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {med.generic_name || med.brand_name || '-'}
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    UGX {med.selling_price.toLocaleString()}
                   </div>
                 </div>
 
-                {/* Tile Bottom Row */}
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '3px', borderTop: '1px solid var(--color-border-subtle)' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-accent)' }}>
-                      UGX {med.selling_price.toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        color: isOutOfStock ? '#EF4444' : isLowStock ? '#D97706' : '#10B981'
-                      }}
-                    >
-                      {isOutOfStock ? '0' : `Qty: ${med.current_stock}`}
+                {/* Button */}
+                <div style={{ width: '100%', marginTop: '8px' }}>
+                  <button
+                    disabled={isOutOfStock}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(med);
+                    }}
+                    className="pos-add-btn"
+                  >
+                    <span style={{ 
+                      backgroundColor: 'rgba(255,255,255,0.2)', 
+                      borderRadius: '50%', 
+                      width: '20px', 
+                      height: '20px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      {inCart ? <PackageCheck size={12} /> : <Plus size={12} />}
                     </span>
-
-                    <button
-                      disabled={isOutOfStock}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToCart(med);
-                      }}
-                      className="desktop-btn-primary"
-                      style={{
-                        height: '20px',
-                        padding: '0 5px',
-                        fontSize: '9px',
-                        gap: '2px'
-                      }}
-                    >
-                      {inCart ? <PackageCheck size={10} /> : <Plus size={10} />}
-                      <span>{inCart ? `+${inCart.quantity}` : 'Add'}</span>
-                    </button>
-                  </div>
+                    <span>{inCart ? `ADD (${inCart.quantity})` : 'ADD'}</span>
+                  </button>
                 </div>
               </div>
             );
@@ -339,18 +316,23 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     </div>
   );
 
-  // Inspector Docked Cart Content (Streamlined, No Payment Method Buttons)
+  // Inspector Docked Cart Content (Spacious Desktop Style)
   const cartContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '4px', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', boxSizing: 'border-box', backgroundColor: 'var(--color-desktop-bg)', borderLeft: '1px solid var(--color-border-subtle)' }}>
+      
+      <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
+        Current Order
+      </div>
+
       {/* Cart Items List */}
-      <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: '2px', backgroundColor: 'var(--color-panel-bg)', padding: '4px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', padding: '0 4px 0 0' }}>
         {cart.length === 0 ? (
-          <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '11px' }}>
-            <ShoppingCart size={28} style={{ margin: '0 auto 6px', opacity: 0.5 }} />
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', backgroundColor: 'var(--color-panel-solid)', borderRadius: '20px', border: '1px solid var(--color-border-subtle)' }}>
+            <ShoppingCart size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
             Cart is empty. Click workstation product tiles to add to sale.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {cart.map((item) => (
               <div
                 key={item.medicine.id}
@@ -358,41 +340,45 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '4px 6px',
-                  borderBottom: '1px solid var(--color-border-subtle)',
-                  backgroundColor: 'var(--color-desktop-bg)'
+                  padding: '16px 20px',
+                  borderRadius: '16px',
+                  backgroundColor: 'var(--color-panel-solid)',
+                  border: '1px solid var(--color-border-subtle)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                 }}
               >
-                <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ flex: 1, overflow: 'hidden', paddingRight: '8px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
                     {item.medicine.name}
                   </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-                    UGX {item.medicine.selling_price.toLocaleString()} x {item.quantity} = <strong style={{ color: 'var(--color-accent)' }}>UGX {(item.medicine.selling_price * item.quantity).toLocaleString()}</strong>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                    UGX {item.medicine.selling_price.toLocaleString()}
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                  <button
-                    onClick={() => handleUpdateQty(item.medicine.id, -1)}
-                    style={{ width: '18px', height: '18px', padding: 0, fontSize: '10px' }}
-                  >
-                    <Minus size={9} />
-                  </button>
-                  <span style={{ fontSize: '11px', fontWeight: 700, width: '16px', textAlign: 'center' }}>
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => handleUpdateQty(item.medicine.id, 1)}
-                    style={{ width: '18px', height: '18px', padding: 0, fontSize: '10px' }}
-                  >
-                    <Plus size={9} />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--color-desktop-bg)', borderRadius: '24px', padding: '4px' }}>
+                    <button
+                      onClick={() => handleUpdateQty(item.medicine.id, -1)}
+                      style={{ width: '36px', height: '36px', padding: 0, borderRadius: '50%', backgroundColor: 'var(--color-panel-solid)', border: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <Minus size={14} color="var(--color-text-secondary)" />
+                    </button>
+                    <span style={{ fontSize: '13px', fontWeight: 700, width: '32px', textAlign: 'center' }}>
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => handleUpdateQty(item.medicine.id, 1)}
+                      style={{ width: '36px', height: '36px', padding: 0, borderRadius: '50%', backgroundColor: 'var(--color-panel-solid)', border: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <Plus size={14} color="var(--color-text-secondary)" />
+                    </button>
+                  </div>
                   <button
                     onClick={() => handleRemoveFromCart(item.medicine.id)}
-                    style={{ width: '18px', height: '18px', padding: 0, color: '#EF4444', backgroundColor: '#FEE2E2', border: 'none', marginLeft: '3px' }}
+                    style={{ width: '44px', height: '44px', padding: 0, borderRadius: '50%', color: '#EF4444', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                   >
-                    <Trash2 size={9} />
+                    <Trash2 size={18} />
                   </button>
                 </div>
               </div>
@@ -402,21 +388,22 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       </div>
 
       {/* Total Calculation & Approve Sale */}
-      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Total Summary Box */}
         <div
           style={{
-            padding: '8px 10px',
+            padding: '20px 24px',
             backgroundColor: '#0F172A',
             color: '#FFFFFF',
-            borderRadius: '2px',
+            borderRadius: '20px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 24px rgba(15,23,42,0.15)'
           }}
         >
-          <span style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8' }}>TOTAL DUE:</span>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: '#34D399' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>TOTAL DUE</span>
+          <span style={{ fontSize: '20px', fontWeight: 700, color: '#34D399' }}>
             UGX {cartTotal.toLocaleString()}
           </span>
         </div>
@@ -427,14 +414,16 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           disabled={cart.length === 0 || isProcessing}
           className="desktop-btn-primary"
           style={{
-            height: '32px',
-            fontSize: '12px',
+            height: '48px',
+            fontSize: '14px',
+            borderRadius: '24px',
             width: '100%',
-            gap: '2px',
-            opacity: cart.length === 0 || isProcessing ? 0.6 : 1
+            gap: '8px',
+            opacity: cart.length === 0 || isProcessing ? 0.6 : 1,
+            boxShadow: '0 4px 12px rgba(15, 138, 106, 0.2)'
           }}
         >
-          <CheckCircle size={14} />
+          <CheckCircle size={18} />
           <span>{isProcessing ? 'Processing Sale...' : 'Approve & Complete Sale (F10)'}</span>
         </button>
       </div>
@@ -452,48 +441,49 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000
+            zIndex: 1000,
+            backdropFilter: 'blur(4px)'
           }}
         >
           <div
             style={{
-              backgroundColor: 'var(--color-panel-bg)',
-              border: '1px solid var(--color-border)',
-              borderRadius: '2px',
-              width: '360px',
-              padding: '14px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              backgroundColor: 'var(--color-panel-solid)',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: '24px',
+              width: '400px',
+              padding: '24px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.15)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
-              <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'none' }}><X size={14} /></button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
+              <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'var(--color-desktop-bg)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
             </div>
 
-            <div style={{ padding: '10px 0', fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-              <div>Operator: <strong>{completedSale.username}</strong></div>
+            <div style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+              <div style={{ marginBottom: '4px' }}>Operator: <strong>{completedSale.username}</strong></div>
               <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
 
-              <div style={{ margin: '8px 0', borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '4px 0' }}>
+              <div style={{ margin: '16px 0', borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {completedSale.items?.map((it: any, idx: number) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>{it.medicine_name} x{it.quantity}</span>
-                    <span>UGX {(it.subtotal || (it.unit_price * it.quantity)).toLocaleString()}</span>
+                    <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
+                    <span style={{ fontWeight: 600 }}>UGX {(it.subtotal || (it.unit_price * it.quantity)).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 700, color: 'var(--color-accent)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent)' }}>
                 <span>TOTAL PAID:</span>
                 <span>UGX {completedSale.total_amount?.toLocaleString()}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '2px', marginTop: '8px' }}>
-              <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '4px' }}>
-                <Printer size={13} /> Print Receipt
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '20px' }}>
+                <Printer size={16} /> Print Receipt
               </button>
-              <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1 }}>
+              <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
                 Done
               </button>
             </div>

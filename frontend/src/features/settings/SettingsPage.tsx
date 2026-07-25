@@ -154,28 +154,30 @@ export const SettingsPage: React.FC = () => {
 
   // Category Sidebar Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', padding: '24px', backgroundColor: 'var(--color-desktop-bg)' }}>
       {/* 1-Line Compact Application Command Toolbar */}
-      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+      <Panel noPadding style={{ padding: '0 24px', height: '64px', minHeight: '64px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             System Administration & Control
           </div>
         </div>
       </Panel>
 
-      <div style={{ display: 'flex', gap: '4px', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', gap: '24px', flex: 1, overflow: 'hidden' }}>
         {/* Navigation Categories Pane */}
-        <Panel noPadding style={{ width: '200px', height: '100%' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', padding: '4px' }}>
+        <Panel noPadding style={{ width: '260px', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px' }}>
             <button
               onClick={() => setActiveTab('users')}
               style={{
-                height: '28px',
-                fontSize: '11px',
+                height: '48px',
+                fontSize: '14px',
                 fontWeight: 600,
                 justifyContent: 'flex-start',
-                gap: '4px',
+                gap: '8px',
+                padding: '0 16px',
+                borderRadius: '12px',
                 backgroundColor: activeTab === 'users' ? '#ECFDF5' : 'transparent',
                 borderColor: activeTab === 'users' ? '#0F8A6A' : 'transparent',
                 color: activeTab === 'users' ? '#065F46' : '#334155'
@@ -276,44 +278,44 @@ export const SettingsPage: React.FC = () => {
 
   // Inspector Docked Pane
   const inspectorContent = (
-    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', boxSizing: 'border-box' }}>
       {activeTab === 'users' ? (
-        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <UserPlus size={14} color="#0F8A6A" /> CREATE OPERATOR ACCOUNT
+        <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <UserPlus size={18} color="#0F8A6A" /> CREATE OPERATOR ACCOUNT
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Full Name *</label>
-            <input type="text" required value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })} style={{ width: '100%' }} />
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Full Name *</label>
+            <input type="text" required value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Username *</label>
-            <input type="text" required value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} style={{ width: '100%' }} />
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Username *</label>
+            <input type="text" required value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Password *</label>
-            <input type="password" required value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} style={{ width: '100%' }} />
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Password *</label>
+            <input type="password" required value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Role Privilege</label>
-            <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Role Privilege</label>
+            <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
               <option value="cashier">Cashier</option>
               <option value="pharmacist">Pharmacist</option>
               <option value="admin">Administrator</option>
             </select>
           </div>
 
-          <button type="submit" className="desktop-btn-primary" style={{ height: '28px', fontSize: '11px', marginTop: '10px', gap: '4px' }}>
-            <UserPlus size={12} />
+          <button type="submit" className="desktop-btn-primary" style={{ height: '48px', fontSize: '14px', marginTop: '16px', gap: '8px', borderRadius: '24px' }}>
+            <UserPlus size={16} />
             <span>Create User Account</span>
           </button>
         </form>
       ) : (
-        <div style={{ padding: '20px 10px', color: '#64748B', fontSize: '11px' }}>
+        <div style={{ padding: '20px 10px', color: '#64748B', fontSize: '14px' }}>
           Select user accounts to manage access credentials.
         </div>
       )}

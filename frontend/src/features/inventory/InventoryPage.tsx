@@ -333,7 +333,7 @@ export const InventoryPage: React.FC = () => {
 
   // Master Primary Pane Content
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', padding: '24px', backgroundColor: 'var(--color-desktop-bg)' }}>
       <input
         type="file"
         ref={fileInputRef}
@@ -343,13 +343,13 @@ export const InventoryPage: React.FC = () => {
       />
 
       {/* 1-Line Compact Application Command Toolbar */}
-      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+      <Panel noPadding style={{ padding: '0 24px', height: '64px', minHeight: '64px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Inventory Management
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, justifyContent: 'flex-end' }}>
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -358,12 +358,12 @@ export const InventoryPage: React.FC = () => {
               showShortcut={false}
             />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={12} style={{ color: 'var(--color-text-muted)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Filter size={16} style={{ color: 'var(--color-text-muted)' }} />
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                style={{ height: '26px', fontSize: '11px', padding: '2px 4px' }}
+                style={{ height: '40px', fontSize: '14px', padding: '0 16px', borderRadius: '20px', border: '1px solid #D1D5DB', backgroundColor: '#FFFFFF', outline: 'none' }}
               >
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -376,17 +376,17 @@ export const InventoryPage: React.FC = () => {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="desktop-btn-secondary"
-                  style={{ height: '24px', fontSize: '11px', gap: '4px' }}
+                  style={{ height: '40px', fontSize: '14px', gap: '8px', padding: '0 20px', borderRadius: '20px' }}
                 >
-                  <Upload size={12} />
+                  <Upload size={16} />
                   <span>Import CSV</span>
                 </button>
                 <button
                   onClick={handleCreateNewRecord}
                   className="desktop-btn-primary"
-                  style={{ height: '24px', fontSize: '11px', gap: '4px' }}
+                  style={{ height: '40px', fontSize: '14px', gap: '8px', padding: '0 20px', borderRadius: '20px' }}
                 >
-                  <Plus size={12} />
+                  <Plus size={16} />
                   <span>Add Medicine</span>
                 </button>
               </>
@@ -445,22 +445,22 @@ export const InventoryPage: React.FC = () => {
 
   // Inspector Docked Panel Content
   const inspectorContent = (
-    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', boxSizing: 'border-box' }}>
       {inspectorError && (
-        <div style={{ padding: '6px 8px', borderRadius: '2px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: '11px' }}>
+        <div style={{ padding: '12px 16px', borderRadius: '8px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: '14px' }}>
           {inspectorError}
         </div>
       )}
 
       {(!selectedMedicine && !isNewRecord) ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>
-          <Package size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '14px' }}>
+          <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
           Select a medicine from the data grid to inspect details and edit stock records.
         </div>
       ) : (
-        <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '6px' }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
+        <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '12px' }}>
+            <span style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>
               {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
             </span>
             {selectedMedicine && (
@@ -469,7 +469,7 @@ export const InventoryPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
               Medicine Name *
             </label>
             <input
@@ -479,13 +479,13 @@ export const InventoryPage: React.FC = () => {
               placeholder="e.g. Amoxicillin Trihydrate"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{ width: '100%' }}
+              style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Generic Composition
               </label>
               <input
@@ -494,11 +494,11 @@ export const InventoryPage: React.FC = () => {
                 placeholder="e.g. Amoxicillin"
                 value={formData.generic_name}
                 onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Brand Name
               </label>
               <input
@@ -507,21 +507,21 @@ export const InventoryPage: React.FC = () => {
                 placeholder="e.g. Amoxil"
                 value={formData.brand_name}
                 onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Category
               </label>
               <select
                 disabled={!isAdmin}
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               >
                 {categories.filter(c => c !== 'All').map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -529,14 +529,14 @@ export const InventoryPage: React.FC = () => {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Form
               </label>
               <select
                 disabled={!isAdmin}
                 value={formData.medicine_form}
                 onChange={(e) => setFormData({ ...formData, medicine_form: e.target.value })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               >
                 {medicineForms.map(form => (
                   <option key={form} value={form}>{form}</option>
@@ -545,9 +545,9 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Dosage / Strength
               </label>
               <input
@@ -556,11 +556,11 @@ export const InventoryPage: React.FC = () => {
                 placeholder="e.g. 500mg"
                 value={formData.dosage_strength}
                 onChange={(e) => setFormData({ ...formData, dosage_strength: e.target.value })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Pack Specification
               </label>
               <input
@@ -569,14 +569,14 @@ export const InventoryPage: React.FC = () => {
                 placeholder="e.g. 10x10"
                 value={formData.pack_size}
                 onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Buy Price (UGX)
               </label>
               <input
@@ -585,11 +585,11 @@ export const InventoryPage: React.FC = () => {
                 min="0"
                 value={formData.buying_price}
                 onChange={(e) => setFormData({ ...formData, buying_price: parseFloat(e.target.value) || 0 })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Sell Price (UGX)
               </label>
               <input
@@ -598,14 +598,14 @@ export const InventoryPage: React.FC = () => {
                 min="0"
                 value={formData.selling_price}
                 onChange={(e) => setFormData({ ...formData, selling_price: parseFloat(e.target.value) || 0 })}
-                style={{ width: '100%', fontWeight: 700, color: '#0F8A6A' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box', fontWeight: 700, color: '#0F8A6A' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Current Stock Qty
               </label>
               <input
@@ -614,11 +614,11 @@ export const InventoryPage: React.FC = () => {
                 min="0"
                 value={formData.current_stock || 0}
                 onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) || 0 })}
-                style={{ width: '100%', fontWeight: 700 }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box', fontWeight: 700 }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
                 Reorder Threshold
               </label>
               <input
@@ -627,13 +627,13 @@ export const InventoryPage: React.FC = () => {
                 min="0"
                 value={formData.reorder_level}
                 onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>
               Manufacturer
             </label>
             <input
@@ -642,28 +642,28 @@ export const InventoryPage: React.FC = () => {
               placeholder="e.g. Rene Industries"
               value={formData.manufacturer}
               onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-              style={{ width: '100%' }}
+              style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1', boxSizing: 'border-box' }}
             />
           </div>
 
           {isAdmin && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px' }}>
               {selectedMedicine && (
                 <button
                   type="button"
                   onClick={() => handleToggleArchive(selectedMedicine)}
-                  style={{ height: '26px', fontSize: '11px', color: selectedMedicine.is_archived ? '#0284C7' : '#EF4444' }}
+                  style={{ height: '48px', padding: '0 16px', fontSize: '14px', borderRadius: '24px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid', borderColor: selectedMedicine.is_archived ? '#0284C7' : '#EF4444', color: selectedMedicine.is_archived ? '#0284C7' : '#EF4444', backgroundColor: 'transparent', cursor: 'pointer' }}
                 >
-                  {selectedMedicine.is_archived ? <RotateCcw size={12} /> : <Archive size={12} />}
+                  {selectedMedicine.is_archived ? <RotateCcw size={16} /> : <Archive size={16} />}
                   <span>{selectedMedicine.is_archived ? 'Restore' : 'Archive'}</span>
                 </button>
               )}
               <button
                 type="submit"
                 className="desktop-btn-primary"
-                style={{ height: '26px', fontSize: '11px', marginLeft: 'auto', gap: '4px' }}
+                style={{ height: '48px', fontSize: '14px', marginLeft: 'auto', gap: '8px', borderRadius: '24px', padding: '0 24px' }}
               >
-                <Save size={12} />
+                <Save size={16} />
                 <span>{isNewRecord ? 'Save Record' : 'Update Record'}</span>
               </button>
             </div>

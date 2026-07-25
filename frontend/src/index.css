@@ -215,24 +215,50 @@ a {
 }
 
 .product-card {
-  background: var(--glass-card-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--color-border);
-  border-radius: 0px;
-  padding: 8px 10px;
+  background: var(--color-panel-solid);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: all 120ms ease-out;
+  transition: all 150ms ease;
   user-select: none;
+  gap: 12px;
 }
 .product-card:hover {
   border-color: var(--color-accent);
+  box-shadow: 0 8px 24px rgba(15, 138, 106, 0.12);
+  transform: translateY(-2px);
+}
+.product-card.selected {
   background-color: var(--color-accent-light);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 138, 106, 0.15);
+  border-color: var(--color-accent);
+}
+
+.pos-add-btn {
+  width: 100%;
+  height: 36px;
+  border-radius: 18px;
+  background-color: var(--color-accent);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background-color 150ms ease;
+}
+.pos-add-btn:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+.pos-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Desktop Utility Buttons */

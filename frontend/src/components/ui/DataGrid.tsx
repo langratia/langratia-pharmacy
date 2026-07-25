@@ -42,8 +42,8 @@ export function DataGrid<T>({
     <div
       style={{
         width: '100%',
-        border: '1px solid #CBD5E1',
-        borderRadius: '0px',
+        border: 'none',
+        borderRadius: '16px',
         backgroundColor: '#FFFFFF',
         overflow: 'hidden',
         boxShadow: 'none',
@@ -64,7 +64,7 @@ export function DataGrid<T>({
             width: '100%',
             borderCollapse: 'collapse',
             textAlign: 'left',
-            fontSize: compactRows ? '12px' : '13px',
+            fontSize: '14px',
             color: '#0F172A'
           }}
         >
@@ -83,17 +83,17 @@ export function DataGrid<T>({
                 <th
                   key={col.key}
                   style={{
-                    padding: compactRows ? '2px 4px' : '4px 6px',
+                    padding: '16px 20px',
                     fontWeight: 700,
-                    color: '#334155',
-                    fontSize: '10px',
+                    color: '#64748B',
+                    fontSize: '12px',
                     textTransform: 'uppercase',
                     letterSpacing: '0.04em',
                     width: col.width || 'auto',
                     textAlign: col.align || 'left',
                     whiteSpace: 'nowrap',
-                    borderBottom: '1px solid #CBD5E1',
-                    borderRight: '1px solid #E2E8F0'
+                    borderBottom: '2px solid #F1F5F9',
+                    borderRight: 'none'
                   }}
                 >
                   {col.header}
@@ -151,8 +151,8 @@ export function DataGrid<T>({
                     className={`datagrid-row ${isSelected ? 'selected' : ''}`}
                     style={{
                       backgroundColor: bg,
-                      height: rowHeight,
-                      borderBottom: '1px solid #E2E8F0',
+                      height: '56px',
+                      borderBottom: '1px solid #F1F5F9',
                       cursor: onRowClick ? 'pointer' : 'default'
                     }}
                   >
@@ -160,14 +160,14 @@ export function DataGrid<T>({
                       <td
                         key={col.key}
                         style={{
-                          padding: compactRows ? '1px 4px' : '2px 6px',
+                          padding: '12px 20px',
                           textAlign: col.align || 'left',
                           whiteSpace: 'nowrap',
                           verticalAlign: 'middle',
                           color: isSelected ? '#0369A1' : '#0F172A',
-                          borderRight: '1px solid #F1F5F9',
-                          fontWeight: isSelected ? 600 : 400,
-                          fontSize: compactRows ? '11px' : '12px'
+                          borderRight: 'none',
+                          fontWeight: isSelected ? 600 : 500,
+                          fontSize: '14px'
                         }}
                       >
                         {col.accessor ? col.accessor(row) : (row as any)[col.key]}

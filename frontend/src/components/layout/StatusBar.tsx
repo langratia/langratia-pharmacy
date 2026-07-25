@@ -19,30 +19,30 @@ export const StatusBar: React.FC = () => {
   return (
     <footer
       style={{
-        height: '20px',
-        maxHeight: '20px',
+        height: '28px',
+        maxHeight: '28px',
         backgroundColor: '#0F172A',
         color: '#94A3B8',
         borderTop: '1px solid #1E293B',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 8px',
-        fontSize: '10px',
+        padding: '0 12px',
+        fontSize: '12px',
         fontWeight: 500,
         userSelect: 'none',
         zIndex: 100
       }}
     >
       {/* Left Status: DB Connection & Active User */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10B981' }}>
-          <Database size={11} />
-          <span style={{ fontSize: '10px', fontWeight: 600 }}>Wails SQLite DB Connected</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981' }}>
+          <Database size={13} />
+          <span style={{ fontSize: '12px', fontWeight: 600 }}>Wails SQLite DB Connected</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#CBD5E1' }}>
-          <UserCheck size={11} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#CBD5E1' }}>
+          <UserCheck size={13} />
           <span>
             Operator: <strong>{user?.full_name || user?.username || 'Pharmacist'}</strong> ({user?.role || 'user'})
           </span>
@@ -50,9 +50,9 @@ export const StatusBar: React.FC = () => {
       </div>
 
       {/* Center Status: Keyboard Shortcuts Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', color: '#64748B' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <Keyboard size={11} /> <strong>Ctrl+K</strong> Palette
+      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#64748B' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <Keyboard size={13} /> <strong>Ctrl+K</strong> Palette
         </span>
         <span>•</span>
         <span>Workstation v1.0.4</span>

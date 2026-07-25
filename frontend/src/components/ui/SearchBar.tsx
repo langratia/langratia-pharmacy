@@ -9,6 +9,7 @@ interface SearchBarProps {
   onBlur?: () => void;
   width?: string;
   showShortcut?: boolean;
+  autoFocus?: boolean;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -18,7 +19,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onFocus,
   onBlur,
   width = '320px',
-  showShortcut = true
+  showShortcut = true,
+  autoFocus = false
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -31,9 +33,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
         border: `1px solid ${isFocused ? '#0F8A6A' : '#D1D5DB'}`,
-        borderRadius: '8px',
-        padding: '0 10px',
-        height: '34px',
+        borderRadius: '20px',
+        padding: '0 16px',
+        height: '40px',
         boxShadow: isFocused ? '0 0 0 2px rgba(15, 138, 106, 0.15)' : '0 1px 2px rgba(0, 0, 0, 0.04)',
         transition: 'all 150ms ease-out'
       }}
@@ -41,6 +43,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <Search size={15} style={{ color: isFocused ? '#0F8A6A' : '#9CA3AF', marginRight: '8px', flexShrink: 0 }} />
       <input
         type="text"
+        autoFocus={autoFocus}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

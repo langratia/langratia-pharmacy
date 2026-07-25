@@ -176,15 +176,15 @@ export const PurchasesPage: React.FC = () => {
 
   // Primary Workspace Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', padding: '24px', backgroundColor: 'var(--color-desktop-bg)' }}>
       {/* 1-Line Compact Application Command Toolbar */}
-      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+      <Panel noPadding style={{ padding: '0 24px', height: '64px', minHeight: '64px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Procurement & Purchase Orders
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button
               onClick={() => {
                 setIsCreatingPO(true);
@@ -193,9 +193,9 @@ export const PurchasesPage: React.FC = () => {
                 setInvoiceNumber(`PO-${Date.now().toString().slice(-6)}`);
               }}
               className="desktop-btn-primary"
-              style={{ height: '24px', fontSize: '11px', gap: '4px' }}
+              style={{ height: '40px', fontSize: '14px', gap: '8px', padding: '0 20px', borderRadius: '20px' }}
             >
-              <Plus size={12} />
+              <Plus size={16} />
               <span>New Purchase Order</span>
             </button>
           </div>
@@ -223,58 +223,58 @@ export const PurchasesPage: React.FC = () => {
 
   // Inspector Pane Content
   const inspectorContent = (
-    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', boxSizing: 'border-box' }}>
       {isCreatingPO ? (
-        <form onSubmit={handleSavePurchase} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
+        <form onSubmit={handleSavePurchase} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '12px' }}>
             NEW PURCHASE ORDER ENTRY
           </div>
-          {error && <div style={{ color: '#EF4444', fontSize: '10px' }}>{error}</div>}
+          {error && <div style={{ color: '#EF4444', fontSize: '13px' }}>{error}</div>}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-            <input placeholder="Invoice Number *" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} required />
-            <select value={supplierId} onChange={e => setSupplierId(Number(e.target.value))} required>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <input placeholder="Invoice Number *" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} required style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+            <select value={supplierId} onChange={e => setSupplierId(Number(e.target.value))} required style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
               <option value="">Select Supplier...</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
 
-          <div style={{ borderTop: '1px solid #CBD5E1', paddingTop: '4px', fontSize: '10px', fontWeight: 700 }}>ADD BATCH ITEM</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))}>
+          <div style={{ borderTop: '1px solid #CBD5E1', paddingTop: '12px', fontSize: '13px', fontWeight: 700 }}>ADD BATCH ITEM</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))} style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
               <option value="">Select Medicine...</option>
               {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px' }}>
-              <input placeholder="Batch #" value={batchNum} onChange={e => setBatchNum(e.target.value)} />
-              <input type="number" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value ? Number(e.target.value) : '')} />
-              <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+              <input placeholder="Batch #" value={batchNum} onChange={e => setBatchNum(e.target.value)} style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+              <input type="number" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value ? Number(e.target.value) : '')} style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+              <input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} style={{ height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
             </div>
-            <button type="button" onClick={handleAddItem} className="desktop-btn-secondary" style={{ height: '24px', fontSize: '10px' }}>Add Line Item</button>
+            <button type="button" onClick={handleAddItem} className="desktop-btn-secondary" style={{ height: '40px', fontSize: '14px', borderRadius: '20px' }}>Add Line Item</button>
           </div>
 
-          <div style={{ flex: 1, maxHeight: '120px', overflowY: 'auto', border: '1px solid #E2E8F0', padding: '4px' }}>
+          <div style={{ flex: 1, maxHeight: '200px', overflowY: 'auto', border: '1px solid #E2E8F0', padding: '8px', borderRadius: '12px' }}>
             {items.map((it, idx) => (
-              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', padding: '2px 4px' }}>
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', padding: '12px', borderBottom: '1px solid #F1F5F9' }}>
                 <span>{it.medicine_name} (Batch: {it.batch_number}) x{it.quantity}</span>
-                <button type="button" onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: '#EF4444' }}><Trash2 size={10} /></button>
+                <button type="button" onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: '#EF4444', background: 'transparent', cursor: 'pointer' }}><Trash2 size={16} /></button>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '2px', marginTop: 'auto' }}>
-            <button type="button" onClick={() => setIsCreatingPO(false)} className="desktop-btn-secondary">Cancel</button>
-            <button type="submit" className="desktop-btn-primary">Save Order</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: 'auto' }}>
+            <button type="button" onClick={() => setIsCreatingPO(false)} className="desktop-btn-secondary" style={{ height: '40px', padding: '0 20px', borderRadius: '20px' }}>Cancel</button>
+            <button type="submit" className="desktop-btn-primary" style={{ height: '40px', padding: '0 20px', borderRadius: '20px' }}>Save Order</button>
           </div>
         </form>
       ) : !selectedPurchase ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '11px' }}>
-          <Truck size={32} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '14px' }}>
+          <Truck size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
           Select a purchase order to inspect invoice breakdown.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '12px' }}>
             INVOICE #{selectedPurchase.invoice_number}
           </div>
           <div style={{ fontSize: '11px', color: '#334155' }}>

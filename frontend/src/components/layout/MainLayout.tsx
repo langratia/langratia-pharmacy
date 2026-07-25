@@ -46,9 +46,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView
           <main
             style={{
               flex: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              padding: '4px',
+              overflow: 'hidden',
+              padding: 0,
               boxSizing: 'border-box',
               display: 'flex',
               flexDirection: 'column'

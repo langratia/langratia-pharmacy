@@ -78,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
   return (
     <aside
       style={{
-        width: isCollapsed ? '52px' : '220px',
+        width: isCollapsed ? '80px' : '260px',
         height: '100%',
         backgroundColor: '#0F172A',
         borderRight: '1px solid #1E293B',
@@ -95,13 +95,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       {/* Brand & Collapse Header */}
       <div
         style={{
-          height: '34px',
-          padding: isCollapsed ? '0 6px' : '0 10px',
+          height: '64px',
+          padding: isCollapsed ? '0 12px' : '0 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: isCollapsed ? 'center' : 'space-between',
           borderBottom: '1px solid #1E293B',
-          backgroundColor: '#0B132B'
+          backgroundColor: 'transparent'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -122,10 +122,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
           </div>
           {!isCollapsed && (
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
+              <span style={{ fontSize: '16px', fontWeight: 700, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
                 Langratia
               </span>
-              <span style={{ fontSize: '10px', color: '#94A3B8', marginLeft: '4px', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', color: '#94A3B8', marginLeft: '6px', fontWeight: 600 }}>
                 POS
               </span>
             </div>
@@ -165,10 +165,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       <nav
         style={{
           flex: 1,
-          padding: isCollapsed ? '4px 2px' : '4px 6px',
+          padding: isCollapsed ? '16px 12px' : '16px 20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '8px',
           overflowY: 'auto'
         }}
       >
@@ -184,8 +184,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
               {!isCollapsed && (
                 <div
                   style={{
-                    padding: '3px 8px',
-                    fontSize: '9px',
+                    padding: '8px 12px',
+                    fontSize: '11px',
                     fontWeight: 700,
                     color: '#64748B',
                     letterSpacing: '0.06em'
@@ -207,21 +207,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      gap: '6px',
-                      padding: isCollapsed ? '4px' : '4px 6px',
-                      borderRadius: '0px',
-                      fontSize: '11px',
+                      gap: '12px',
+                      padding: isCollapsed ? '14px' : '14px 16px',
+                      borderRadius: '12px',
+                      fontSize: '15px',
                       fontWeight: isActive ? 600 : 500,
-                      color: isActive ? '#FFFFFF' : '#94A3B8',
-                      backgroundColor: isActive ? '#0F8A6A' : 'transparent',
+                      color: isActive ? '#34D399' : '#94A3B8',
+                      backgroundColor: isActive ? 'rgba(15, 138, 106, 0.15)' : 'transparent',
                       border: 'none',
                       textAlign: 'left',
                       width: '100%',
-                      height: '24px'
+                      minHeight: '48px',
+                      cursor: 'pointer'
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        e.currentTarget.style.backgroundColor = '#1E293B';
+                        e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
                         e.currentTarget.style.color = '#F8FAFC';
                       }
                     }}
@@ -232,7 +233,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
                       }
                     }}
                   >
-                    <Icon size={14} color={isActive ? '#FFFFFF' : '#94A3B8'} />
+                    <Icon size={20} color={isActive ? '#34D399' : '#94A3B8'} />
                     {!isCollapsed && <span>{item.label}</span>}
                   </button>
                 );
@@ -245,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       {/* Footer / Sign Out */}
       <div
         style={{
-          padding: isCollapsed ? '4px 2px' : '4px 6px',
+          padding: isCollapsed ? '16px 12px' : '16px 20px',
           borderTop: '1px solid #1E293B'
         }}
       >
@@ -256,17 +257,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
             display: 'flex',
             alignItems: 'center',
             justifyContent: isCollapsed ? 'center' : 'flex-start',
-            gap: '6px',
+            gap: '12px',
             width: '100%',
-            padding: isCollapsed ? '4px' : '4px 6px',
-            borderRadius: '0px',
+            padding: isCollapsed ? '14px' : '14px 16px',
+            borderRadius: '12px',
             backgroundColor: 'transparent',
             border: 'none',
             color: '#F87171',
             fontWeight: 500,
-            fontSize: '11px',
-            cursor: 'pointer',
-            height: '24px'
+            fontSize: '15px',
+            minHeight: '48px',
+            cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
@@ -275,7 +276,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
         >
-          <LogOut size={14} />
+          <LogOut size={20} />
           {!isCollapsed && <span>Sign Out</span>}
         </button>
       </div>

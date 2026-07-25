@@ -29,9 +29,9 @@ export const Panel: React.FC<PanelProps> = ({
         backgroundColor: 'var(--glass-bg)',
         backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)',
-        border: '1px solid var(--color-border)',
-        borderRadius: '0px',
-        boxShadow: 'var(--shadow-glass)',
+        border: '1px solid var(--color-border-subtle)',
+        borderRadius: '16px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -41,10 +41,10 @@ export const Panel: React.FC<PanelProps> = ({
       {(title || actions) && (
         <div
           style={{
-            height: '24px',
-            maxHeight: '24px',
-            padding: '0 6px',
-            borderBottom: '1px solid var(--color-border)',
+            height: '48px',
+            maxHeight: '48px',
+            padding: '0 16px',
+            borderBottom: '1px solid var(--color-border-subtle)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -54,14 +54,14 @@ export const Panel: React.FC<PanelProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
             {title && (
-              <h3 style={{ margin: 0, fontSize: '10px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+              <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
                 {title}
               </h3>
             )}
             {subtitle && (
               <>
-                {title && <span style={{ color: 'var(--color-border)' }}>|</span>}
-                <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {title && <span style={{ color: 'var(--color-border-subtle)' }}>|</span>}
+                <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {subtitle}
                 </span>
               </>

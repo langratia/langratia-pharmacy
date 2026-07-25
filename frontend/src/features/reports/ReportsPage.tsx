@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Printer, BarChart2, AlertCircle, Package } from 'lucide-react';
+import { Printer, BarChart2, AlertCircle, Package, Clock, Download } from 'lucide-react';
 import { Medicine, Batch } from '../../types';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
@@ -126,51 +126,59 @@ export const ReportsPage: React.FC = () => {
   const totalValuation = medicines.reduce((acc, m) => acc + (m.current_stock * m.selling_price), 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', padding: '24px', backgroundColor: 'var(--color-desktop-bg)' }}>
       {/* 1-Line Compact Application Command Toolbar */}
-      <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+      <Panel noPadding style={{ padding: '0 24px', height: '64px', minHeight: '64px', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
               Analytics & Financial Reports
             </div>
-            <div style={{ display: 'flex', gap: '4px', marginLeft: '10px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginLeft: '16px' }}>
               <button
                 onClick={() => setActiveTab('inventory')}
                 style={{
-                  height: '24px',
-                  fontSize: '10px',
+                  height: '40px',
+                  padding: '0 16px',
+                  borderRadius: '20px',
+                  fontSize: '14px',
                   fontWeight: 600,
                   backgroundColor: activeTab === 'inventory' ? 'var(--color-accent-light)' : 'var(--color-panel-bg)',
                   borderColor: activeTab === 'inventory' ? 'var(--color-accent)' : 'var(--color-border)',
                   color: activeTab === 'inventory' ? '#065F46' : 'var(--color-text-primary)'
                 }}
               >
-                <Package size={11} /> Inventory ({medicines.length})
+                <Package size={16} /> Inventory ({medicines.length})
               </button>
               <button
                 onClick={() => setActiveTab('expiry')}
                 style={{
-                  height: '24px',
-                  fontSize: '10px',
+                  height: '40px',
+                  padding: '0 16px',
+                  borderRadius: '20px',
+                  fontSize: '14px',
                   fontWeight: 600,
                   backgroundColor: activeTab === 'expiry' ? '#FEF3C7' : 'var(--color-panel-bg)',
                   borderColor: activeTab === 'expiry' ? '#F59E0B' : 'var(--color-border)',
                   color: activeTab === 'expiry' ? '#B45309' : 'var(--color-text-primary)'
                 }}
               >
-                <AlertCircle size={11} /> Expiry Risk ({expiringBatches.length})
+                <Clock size={16} /> Expiry Tracking ({expiringBatches.length})
               </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--color-text-primary)' }}>
-              Valuation: <strong style={{ color: 'var(--color-accent)' }}>UGX {totalValuation.toLocaleString()}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              Stock Value: <span style={{ color: '#0F8A6A' }}>UGX {totalValuation.toLocaleString()}</span>
             </div>
-            <button onClick={handlePrint} className="desktop-btn-primary" style={{ height: '24px', fontSize: '11px', gap: '4px' }}>
-              <Printer size={12} />
-              <span>Print</span>
+            <button
+              onClick={() => {}}
+              className="desktop-btn-primary"
+              style={{ height: '40px', fontSize: '14px', gap: '8px', padding: '0 20px', borderRadius: '20px' }}
+            >
+              <Download size={16} />
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
