@@ -19,6 +19,8 @@ export function CreatePrescription(arg1:number,arg2:string,arg3:string,arg4:numb
 
 export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string):Promise<models.User>;
 
+export function DeactivateUser(arg1:number):Promise<void>;
+
 export function ExportDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
 
 export function GetBatchesByMedicine(arg1:number):Promise<Array<models.Batch>>;
@@ -68,3 +70,5 @@ export function UpdateMedicine(arg1:models.Medicine,arg2:number,arg3:string):Pro
 export function UpdatePrescriptionStatus(arg1:number,arg2:string,arg3:number,arg4:string):Promise<void>;
 
 export function UpdateSupplier(arg1:models.Supplier,arg2:number,arg3:string):Promise<void>;
+
+export function UpdateUser(arg1:number,arg2:string,arg3:string):Promise<void>;

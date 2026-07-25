@@ -97,9 +97,30 @@ func (s *AuthService) ListUsers() ([]models.User, error) {
 	return users, nil
 }
 
+// UpdateUser updates user details.
+func (s *AuthService) UpdateUser(id int64, role, fullName string) error {
+	if id <= 0 || role == "" || fullName == "" {
+		return errors.New("invalid parameters for user update")
+	}
+	query := `UPDATE users SET role = ?, full_name = ? WHERE id = ?`
+	_, err := s.db.Exec(query, role, fullName, id)
+	return err
+}
+
+// DeactivateUser removes/deactivates a user.
+func (s *AuthService) DeactivateUser(id int64) error {
+	if id <= 0 {
+		return errors.New("invalid user ID")
+	}
+	query := `DELETE FROM users WHERE id = ?`
+	_, err := s.db.Exec(query, id)
+	return err
+}
+
 func (s *AuthService) logAction(userID int64, username, action, details string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
 		userID, username, action, details,
 	)
 }
+

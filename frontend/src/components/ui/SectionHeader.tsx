@@ -24,9 +24,9 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 10px',
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #CBD5E1',
-        borderRadius: '2px',
+        backgroundColor: 'var(--color-bg-panel)',
+        border: '1px solid var(--color-border-default)',
+        borderRadius: '0px',
         boxSizing: 'border-box',
         ...style
       }}
@@ -37,7 +37,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
             margin: 0,
             fontSize: isPageTitle ? '13px' : '12px',
             fontWeight: 700,
-            color: '#0F172A',
+            color: 'var(--color-text-primary)',
             letterSpacing: '-0.01em',
             whiteSpace: 'nowrap'
           }}
@@ -46,8 +46,8 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         </h1>
         {subtitle && (
           <>
-            <span style={{ color: '#CBD5E1', userSelect: 'none' }}>|</span>
-            <span style={{ fontSize: '11px', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ color: 'var(--color-border-default)', userSelect: 'none' }}>|</span>
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {subtitle}
             </span>
           </>

@@ -19,8 +19,16 @@ import { PrescriptionsPage } from './features/prescriptions/PrescriptionsPage';
 const MainApp: React.FC = () => {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState<NavItemKey>('dashboard');
+  const [inventoryFilter, setInventoryFilter] = useState<string>('all');
   const [posCartItems, setPosCartItems] = useState<any[]>([]);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  const handleSelectView = (view: NavItemKey, filter?: string) => {
+    if (filter) {
+      setInventoryFilter(filter);
+    }
+    setActiveView(view);
+  };
 
   // Global Ctrl+K / ⌘K keyboard shortcut listener
   useEffect(() => {
@@ -41,18 +49,18 @@ const MainApp: React.FC = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <DashboardPage />;
+        return <DashboardPage onSelectView={handleSelectView} />;
       case 'pos':
         return <POSPage externalCartItems={posCartItems} onClearExternalCart={() => setPosCartItems([])} />;
       case 'prescriptions':
         return (
           <PrescriptionsPage 
-            onSelectView={setActiveView} 
+            onSelectView={(v) => handleSelectView(v)} 
             onLoadPrescriptionToPOS={(items) => setPosCartItems(items)} 
           />
         );
       case 'inventory':
-        return <InventoryPage />;
+        return <InventoryPage initialFilter={inventoryFilter} onFilterChange={setInventoryFilter} />;
       case 'purchases':
         return <PurchasesPage />;
       case 'suppliers':
@@ -62,20 +70,20 @@ const MainApp: React.FC = () => {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardPage />;
+        return <DashboardPage onSelectView={handleSelectView} />;
     }
   };
 
   return (
     <>
-      <MainLayout activeView={activeView} onSelectView={setActiveView}>
+      <MainLayout activeView={activeView} onSelectView={(v) => handleSelectView(v)}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeView}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.1, ease: 'easeOut' }}
             style={{ height: '100%' }}
           >
             {renderContent()}
@@ -105,23 +113,24 @@ function App() {
           position="top-right"
           toastOptions={{
             style: {
-              background: '#1F2937',
-              color: '#FFFFFF',
-              borderRadius: '6px',
-              fontSize: '13px',
+              background: 'var(--color-bg-elevated)',
+              color: 'var(--color-text-primary)',
+              borderRadius: '0px',
+              border: '1px solid var(--color-border-default)',
+              fontSize: '12px',
               fontWeight: 500,
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+              boxShadow: 'var(--shadow-dropdown)'
             },
             success: {
               iconTheme: {
-                primary: '#0F8A6A',
-                secondary: '#FFFFFF'
+                primary: 'var(--color-success-text)',
+                secondary: 'var(--color-success-bg)'
               }
             },
             error: {
               iconTheme: {
-                primary: '#EF4444',
-                secondary: '#FFFFFF'
+                primary: 'var(--color-danger-text)',
+                secondary: 'var(--color-danger-bg)'
               }
             }
           }}

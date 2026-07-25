@@ -639,6 +639,60 @@ export namespace services {
 	        this.unit_price = source["unit_price"];
 	    }
 	}
+	export class SalesTrendPoint {
+	    date: string;
+	    amount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SalesTrendPoint(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.date = source["date"];
+	        this.amount = source["amount"];
+	    }
+	}
+	export class LowStockItemSummary {
+	    id: number;
+	    medicine_name: string;
+	    current_stock: number;
+	    reorder_level: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new LowStockItemSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.medicine_name = source["medicine_name"];
+	        this.current_stock = source["current_stock"];
+	        this.reorder_level = source["reorder_level"];
+	    }
+	}
+	export class ExpiringItemSummary {
+	    id: number;
+	    medicine_name: string;
+	    batch_number: string;
+	    expiry_date: string;
+	    days_until_expiry: number;
+	    quantity_remaining: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ExpiringItemSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.medicine_name = source["medicine_name"];
+	        this.batch_number = source["batch_number"];
+	        this.expiry_date = source["expiry_date"];
+	        this.days_until_expiry = source["days_until_expiry"];
+	        this.quantity_remaining = source["quantity_remaining"];
+	    }
+	}
 	export class DashboardSummary {
 	    sales_today: number;
 	    total_medicines: number;
@@ -647,6 +701,9 @@ export namespace services {
 	    expiring_soon_count: number;
 	    recent_sales: models.Sale[];
 	    recent_purchases: models.Purchase[];
+	    expiring_items: ExpiringItemSummary[];
+	    low_stock_items: LowStockItemSummary[];
+	    sales_trend: SalesTrendPoint[];
 	
 	    static createFrom(source: any = {}) {
 	        return new DashboardSummary(source);
@@ -661,6 +718,9 @@ export namespace services {
 	        this.expiring_soon_count = source["expiring_soon_count"];
 	        this.recent_sales = this.convertValues(source["recent_sales"], models.Sale);
 	        this.recent_purchases = this.convertValues(source["recent_purchases"], models.Purchase);
+	        this.expiring_items = this.convertValues(source["expiring_items"], ExpiringItemSummary);
+	        this.low_stock_items = this.convertValues(source["low_stock_items"], LowStockItemSummary);
+	        this.sales_trend = this.convertValues(source["sales_trend"], SalesTrendPoint);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -681,6 +741,7 @@ export namespace services {
 		    return a;
 		}
 	}
+	
 	export class IncomingStockItem {
 	    medicine_id: number;
 	    batch_number: string;
@@ -703,6 +764,7 @@ export namespace services {
 	        this.expiry_date = source["expiry_date"];
 	    }
 	}
+	
 	export class PrescriptionItemInput {
 	    medicine_id: number;
 	    dosage: string;

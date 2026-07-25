@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
-import { 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  Printer, 
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  Printer,
   X,
   Filter,
   CheckCircle,
   PackageCheck,
-  Loader
+  Loader,
+  Scan,
+  PauseCircle,
+  Pill
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { Panel } from '../../components/ui/Panel';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { SplitPane } from '../../components/ui/SplitPane';
+import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
+import { formatCurrency } from '../../utils/formatters';
 
 interface CartItem {
   medicine: Medicine;
@@ -32,11 +37,18 @@ interface POSPageProps {
 
 export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExternalCart }) => {
   const { user } = useAuth();
+  const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
   const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
+  const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'momo'>('cash');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
+  const [completedSale, setCompletedSale] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Load external cart items from Prescriptions if passed
   useEffect(() => {
@@ -47,13 +59,6 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       }
     }
   }, [externalCartItems]);
-
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
-  const [completedSale, setCompletedSale] = useState<any>(null);
-  const [showSuccessAnim, setShowSuccessAnim] = useState<boolean>(false);
-
-  const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
 
   const fetchMedicines = async () => {
     setIsLoading(true);
@@ -177,7 +182,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       setCart([]);
       setIsCheckoutOpen(true);
       setShowSuccessAnim(true);
-      
+
       // We no longer need the top toast since we have a dedicated success screen
       // toast.success(`POS Sale Approved! Total: UGX ${cartTotal.toLocaleString()}`);
       fetchMedicines();
@@ -194,63 +199,76 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   // Primary Pane Content - Spacious Desktop Workstation Tiles Grid
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', backgroundColor: 'var(--color-desktop-bg)' }}>
-      {/* Spacious Application Toolbar */}
-      <Panel noPadding style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border-subtle)', background: 'var(--color-panel-solid)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Special Menu for you
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', backgroundColor: 'var(--color-bg-base)' }}>
+      {/* Contextual Command Toolbar */}
+      <ContextualToolbar
+        title="PRODUCT CATALOG"
+        subtitle="Point of Sale Workstation"
+        searchQuery={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Scan barcode or type medicine name/brand..."
+        categories={categories}
+        selectedCategory={category}
+        onCategorySelect={setCategory}
+        categoryMode="chips"
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        statusBadges={
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--color-success-text)', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', padding: '3px 8px', borderRadius: '0px' }}>
+            <Scan size={13} />
+            <span>SCANNER READY</span>
           </div>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={() => toast('Held Sales Queue: 0 sales currently held', { icon: 'ℹ️' })}
+            style={{
+              height: '28px',
+              padding: '0 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'var(--color-bg-panel)',
+              border: '1px solid var(--color-border-default)',
+              color: 'var(--color-text-primary)',
+              borderRadius: '0px',
+              cursor: 'pointer'
+            }}
+          >
+            <PauseCircle size={14} style={{ color: 'var(--color-accent-base)' }} />
+            <span>HELD SALES (0)</span>
+          </button>
+        }
+      />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Barcode or search medicine name, brand..."
-              width="320px"
-              showShortcut={false}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--color-desktop-bg)', padding: '4px 12px', borderRadius: '8px' }}>
-              <Filter size={16} style={{ color: 'var(--color-text-muted)' }} />
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={{ height: '32px', fontSize: '13px', border: 'none', background: 'transparent', outline: 'none' }}
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </Panel>
-
-      {/* Spacious Product Grid */}
+      {/* Product Catalog Grid / List */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '24px',
-          padding: '0',
+          display: viewMode === 'grid' ? 'grid' : 'flex',
+          flexDirection: viewMode === 'grid' ? undefined : 'column',
+          gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(180px, 1fr))' : undefined,
+          gap: viewMode === 'grid' ? '16px' : '8px',
+          padding: '0 16px 16px',
           alignContent: 'start'
         }}
       >
         {isLoading ? (
-          <div style={{ gridColumn: 'span 4', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', gap: '12px' }}>
-            <Loader size={24} className="animate-spin" style={{ color: 'var(--color-accent)' }} />
+          <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', gap: '12px' }}>
+            <Loader size={24} className="animate-spin" style={{ color: 'var(--color-accent-base)' }} />
             <span>Loading catalog items...</span>
           </div>
         ) : medicines.length === 0 ? (
-          <div style={{ gridColumn: 'span 4', padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
             No medicines matching search query.
           </div>
         ) : (
           medicines.map((med) => {
             const isOutOfStock = med.current_stock <= 0;
-            const isLowStock = med.current_stock > 0 && med.current_stock <= med.reorder_level;
             const inCart = cart.find(c => c.medicine.id === med.id);
 
             return (
@@ -260,38 +278,47 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 onClick={() => handleAddToCart(med)}
                 style={{
                   opacity: isOutOfStock ? 0.6 : 1,
+                  display: 'flex',
+                  flexDirection: viewMode === 'grid' ? 'column' : 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: viewMode === 'grid' ? '16px' : '10px 16px'
                 }}
               >
-                {/* Image Placeholder */}
+                {/* Neutral Monogram Avatar Icon */}
                 <div style={{
-                  width: '100px',
-                  height: '100px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--color-desktop-bg)',
+                  width: viewMode === 'grid' ? '56px' : '36px',
+                  height: viewMode === 'grid' ? '56px' : '36px',
+                  borderRadius: '0px',
+                  backgroundColor: 'var(--color-bg-base)',
+                  border: '1px solid var(--color-border-subtle)',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '8px'
+                  marginBottom: viewMode === 'grid' ? '10px' : '0',
+                  flexShrink: 0
                 }}>
-                  <img 
-                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(med.name)}&background=random&color=fff&size=100&font-size=0.33`} 
-                    alt={med.name} 
-                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} 
-                  />
+                  <Pill size={viewMode === 'grid' ? 20 : 16} style={{ color: 'var(--color-accent-base)' }} />
+                  {viewMode === 'grid' && (
+                    <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginTop: '2px' }}>
+                      {med.name.substring(0, 3)}
+                    </span>
+                  )}
                 </div>
 
-                {/* Medicine Title & Category */}
-                <div style={{ textAlign: 'center', width: '100%' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.3, marginBottom: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {/* Title & Price */}
+                <div style={{ textAlign: viewMode === 'grid' ? 'center' : 'left', flex: 1, marginLeft: viewMode === 'grid' ? '0' : '16px', marginRight: viewMode === 'grid' ? '0' : '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.3, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: viewMode === 'grid' ? 'normal' : 'nowrap' }}>
                     {med.name}
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    UGX {med.selling_price.toLocaleString()}
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-accent)' }}>
+                    UGX {formatCurrency(med.selling_price)}
                   </div>
                 </div>
 
-                {/* Button */}
-                <div style={{ width: '100%', marginTop: '8px' }}>
+                {/* Add Button */}
+                <div style={{ width: viewMode === 'grid' ? '100%' : 'auto', marginTop: viewMode === 'grid' ? '10px' : '0' }}>
                   <button
                     disabled={isOutOfStock}
                     onClick={(e) => {
@@ -300,16 +327,16 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     }}
                     className="pos-add-btn"
                   >
-                    <span style={{ 
-                      backgroundColor: 'rgba(255,255,255,0.2)', 
-                      borderRadius: '50%', 
-                      width: '20px', 
-                      height: '20px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
+                    <span style={{
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      {inCart ? <PackageCheck size={12} /> : <Plus size={12} />}
+                      {inCart ? <PackageCheck size={11} /> : <Plus size={11} />}
                     </span>
                     <span>{inCart ? `ADD (${inCart.quantity})` : 'ADD'}</span>
                   </button>
@@ -325,7 +352,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   // Inspector Docked Cart Content (Spacious Desktop Style)
   const cartContent = (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', boxSizing: 'border-box', backgroundColor: 'var(--color-desktop-bg)', borderLeft: '1px solid var(--color-border-subtle)' }}>
-      
+
       <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
         Current Order
       </div>
@@ -358,7 +385,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     {item.medicine.name}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    UGX {item.medicine.selling_price.toLocaleString()}
+                    UGX {formatCurrency(item.medicine.selling_price)}
                   </div>
                 </div>
 
@@ -382,9 +409,9 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   </div>
                   <button
                     onClick={() => handleRemoveFromCart(item.medicine.id)}
-                    style={{ width: '44px', height: '44px', padding: 0, borderRadius: '50%', color: '#EF4444', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    style={{ width: '28px', height: '28px', padding: 0, borderRadius: '0px', color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
@@ -394,23 +421,24 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       </div>
 
       {/* Total Calculation & Approve Sale */}
-      <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {/* Total Summary Box */}
         <div
           style={{
-            padding: '20px 24px',
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
-            borderRadius: '20px',
+            padding: '12px 16px',
+            backgroundColor: 'var(--color-bg-base)',
+            color: 'var(--color-text-primary)',
+            border: '1px solid var(--color-border-default)',
+            borderRadius: '0px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxShadow: '0 8px 24px rgba(15,23,42,0.15)'
+            boxShadow: 'none'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>TOTAL DUE</span>
-          <span style={{ fontSize: '20px', fontWeight: 700, color: '#34D399' }}>
-            UGX {cartTotal.toLocaleString()}
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>TOTAL DUE</span>
+          <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-accent)' }}>
+            UGX {formatCurrency(cartTotal)}
           </span>
         </div>
 
@@ -420,16 +448,16 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           disabled={cart.length === 0 || isProcessing}
           className="desktop-btn-primary"
           style={{
-            height: '48px',
-            fontSize: '14px',
-            borderRadius: '24px',
+            height: '36px',
+            fontSize: '13px',
+            borderRadius: '0px',
             width: '100%',
-            gap: '8px',
+            gap: '6px',
             opacity: cart.length === 0 || isProcessing ? 0.6 : 1,
-            boxShadow: '0 4px 12px rgba(15, 138, 106, 0.2)'
+            boxShadow: 'none'
           }}
         >
-          <CheckCircle size={18} />
+          <CheckCircle size={16} />
           <span>{isProcessing ? 'Processing Sale...' : 'Approve & Complete Sale (F10)'}</span>
         </button>
       </div>
@@ -441,31 +469,31 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             className="animate-popup"
             onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: 'var(--color-panel-solid)',
-              border: '1px solid var(--color-border-subtle)',
-              borderRadius: '24px',
+              backgroundColor: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border-default)',
+              borderRadius: '0px',
               width: '400px',
-              padding: '24px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+              padding: '20px',
+              boxShadow: 'var(--shadow-dropdown)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'stretch'
             }}
           >
             {showSuccessAnim ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <div className="animate-success-pop" style={{ color: '#10B981' }}>
-                  <CheckCircle size={80} />
+              <div style={{ padding: '24px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div className="animate-success-pop" style={{ color: 'var(--color-success-text)' }}>
+                  <CheckCircle size={64} />
                 </div>
-                <h2 style={{ margin: 0, fontSize: '24px', color: 'var(--color-text-primary)' }}>Sale Successful!</h2>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', margin: 0 }}>
-                  Amount Paid: <strong style={{ color: 'var(--color-accent)' }}>UGX {completedSale.total_amount?.toLocaleString()}</strong>
+                <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Sale Successful!</h2>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', margin: 0 }}>
+                  Amount Paid: <strong style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(completedSale.total_amount)}</strong>
                 </p>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '24px', width: '100%' }}>
-                  <button onClick={() => setShowSuccessAnim(false)} className="desktop-btn-secondary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px', width: '100%' }}>
+                  <button onClick={() => setShowSuccessAnim(false)} className="desktop-btn-secondary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
                     View Receipt
                   </button>
-                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
+                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
                     New Sale
                   </button>
                 </div>
@@ -485,14 +513,14 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     {completedSale.items?.map((it: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
-                        <span style={{ fontWeight: 600 }}>UGX {(it.subtotal || (it.unit_price * it.quantity)).toLocaleString()}</span>
+                        <span style={{ fontWeight: 600 }}>UGX {formatCurrency(it.subtotal || (it.unit_price * it.quantity))}</span>
                       </div>
                     ))}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent)' }}>
                     <span>TOTAL PAID:</span>
-                    <span>UGX {completedSale.total_amount?.toLocaleString()}</span>
+                    <span>UGX {formatCurrency(completedSale.total_amount)}</span>
                   </div>
                 </div>
 

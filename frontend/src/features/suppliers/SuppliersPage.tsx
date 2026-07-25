@@ -3,7 +3,6 @@ import { Plus, Users, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
@@ -103,7 +102,7 @@ export const SuppliersPage: React.FC = () => {
       header: 'Supplier Name',
       width: '35%',
       accessor: (sup) => (
-        <span style={{ fontWeight: 600, color: '#0F172A' }}>{sup.name}</span>
+        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{sup.name}</span>
       )
     },
     {
@@ -111,7 +110,7 @@ export const SuppliersPage: React.FC = () => {
       header: 'Contact Representative',
       width: '30%',
       accessor: (sup) => (
-        <span style={{ fontSize: '11px', color: '#334155' }}>{sup.contact_person || '-'}</span>
+        <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{sup.contact_person || '-'}</span>
       )
     },
     {
@@ -119,26 +118,26 @@ export const SuppliersPage: React.FC = () => {
       header: 'Telephone',
       width: '35%',
       accessor: (sup) => (
-        <span style={{ fontSize: '11px', color: '#64748B' }}>{sup.phone || '-'}</span>
+        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{sup.phone || '-'}</span>
       )
     }
   ];
 
   // Primary Workspace Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', padding: '24px', backgroundColor: 'var(--color-desktop-bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', padding: '0', backgroundColor: 'var(--color-bg-base)' }}>
       {/* 1-Line Compact Application Command Toolbar */}
-      <Panel noPadding style={{ padding: '0 24px', height: '64px', minHeight: '64px', justifyContent: 'center' }}>
+      <Panel noPadding style={{ padding: '0 16px', height: '44px', minHeight: '44px', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Supplier Registry
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact..." width="280px" showShortcut={false} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact..." width="240px" showShortcut={false} />
             {isAdmin && (
-              <button onClick={handleOpenAdd} className="desktop-btn-primary" style={{ height: '40px', fontSize: '14px', gap: '8px', padding: '0 20px', borderRadius: '20px' }}>
-                <Plus size={16} />
+              <button onClick={handleOpenAdd} className="desktop-btn-primary" style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}>
+                <Plus size={14} />
                 <span>Add Supplier</span>
               </button>
             )}
@@ -164,49 +163,49 @@ export const SuppliersPage: React.FC = () => {
 
   // Inspector Docked Pane
   const inspectorContent = (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', boxSizing: 'border-box' }}>
-      {error && <div style={{ color: '#EF4444', fontSize: '14px', paddingBottom: '12px' }}>{error}</div>}
+    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
+      {error && <div style={{ color: 'var(--color-danger-text)', fontSize: '12px' }}>{error}</div>}
 
       {(!selectedSupplier && !isNewSupplier) ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: '#94A3B8', fontSize: '14px' }}>
-          <Users size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+        <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+          <Users size={36} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
           Select a supplier to view details and edit contact directory.
         </div>
       ) : (
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '12px' }}>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
             {isNewSupplier ? 'NEW SUPPLIER ENTRY' : selectedSupplier?.name}
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Supplier Company Name *</label>
-            <input type="text" required disabled={!isAdmin} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Supplier Company Name *</label>
+            <input type="text" required disabled={!isAdmin} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Contact Person</label>
-            <input type="text" disabled={!isAdmin} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Contact Person</label>
+            <input type="text" disabled={!isAdmin} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Telephone</label>
-              <input type="text" disabled={!isAdmin} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Telephone</label>
+              <input type="text" disabled={!isAdmin} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Email</label>
-              <input type="email" disabled={!isAdmin} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', height: '40px', padding: '0 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Email</label>
+              <input type="email" disabled={!isAdmin} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px', textTransform: 'uppercase' }}>Physical Office Address</label>
-            <textarea rows={3} disabled={!isAdmin} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #CBD5E1' }} />
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Physical Office Address</label>
+            <textarea rows={3} disabled={!isAdmin} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '6px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
           </div>
 
           {isAdmin && (
-            <button type="submit" className="desktop-btn-primary" style={{ height: '48px', fontSize: '14px', marginTop: '16px', gap: '8px', borderRadius: '24px' }}>
-              <Save size={16} />
+            <button type="submit" className="desktop-btn-primary" style={{ height: '32px', fontSize: '13px', marginTop: '8px', gap: '6px', borderRadius: '0px' }}>
+              <Save size={14} />
               <span>{isNewSupplier ? 'Save Supplier' : 'Update Record'}</span>
             </button>
           )}

@@ -12,14 +12,38 @@ type ReportService struct {
 	db *db.DB
 }
 
+type ExpiringItemSummary struct {
+	ID                int64  `json:"id"`
+	MedicineName      string `json:"medicine_name"`
+	BatchNumber       string `json:"batch_number"`
+	ExpiryDate        string `json:"expiry_date"`
+	DaysUntilExpiry   int    `json:"days_until_expiry"`
+	QuantityRemaining int    `json:"quantity_remaining"`
+}
+
+type LowStockItemSummary struct {
+	ID           int64  `json:"id"`
+	MedicineName string `json:"medicine_name"`
+	CurrentStock int    `json:"current_stock"`
+	ReorderLevel int    `json:"reorder_level"`
+}
+
+type SalesTrendPoint struct {
+	Date   string  `json:"date"`
+	Amount float64 `json:"amount"`
+}
+
 type DashboardSummary struct {
-	SalesToday        float64           `json:"sales_today"`
-	TotalMedicines    int               `json:"total_medicines"`
-	LowStockCount     int               `json:"low_stock_count"`
-	OutOfStockCount   int               `json:"out_of_stock_count"`
-	ExpiringSoonCount int               `json:"expiring_soon_count"`
-	RecentSales       []models.Sale     `json:"recent_sales"`
-	RecentPurchases   []models.Purchase `json:"recent_purchases"`
+	SalesToday        float64               `json:"sales_today"`
+	TotalMedicines    int                   `json:"total_medicines"`
+	LowStockCount     int                   `json:"low_stock_count"`
+	OutOfStockCount   int                   `json:"out_of_stock_count"`
+	ExpiringSoonCount int                   `json:"expiring_soon_count"`
+	RecentSales       []models.Sale         `json:"recent_sales"`
+	RecentPurchases   []models.Purchase     `json:"recent_purchases"`
+	ExpiringItems     []ExpiringItemSummary `json:"expiring_items"`
+	LowStockItems     []LowStockItemSummary `json:"low_stock_items"`
+	SalesTrend        []SalesTrendPoint     `json:"sales_trend"`
 }
 
 func NewReportService(database *db.DB) *ReportService {
@@ -31,7 +55,13 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 	todayStr := time.Now().Format("2006-01-02")
 	ninetyDaysStr := time.Now().AddDate(0, 0, 90).Format("2006-01-02")
 
-	summary := &DashboardSummary{}
+	summary := &DashboardSummary{
+		RecentSales:     []models.Sale{},
+		RecentPurchases: []models.Purchase{},
+		ExpiringItems:   []ExpiringItemSummary{},
+		LowStockItems:   []LowStockItemSummary{},
+		SalesTrend:      []SalesTrendPoint{},
+	}
 
 	// 1. Sales Today (UGX)
 	salesQuery := `SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date) = date(?)`
@@ -87,6 +117,49 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 			_ = purRows.Scan(&pur.ID, &pur.InvoiceNumber, &pur.SupplierName, &pur.PurchaseDate, &pur.TotalAmount, &pur.Notes)
 			summary.RecentPurchases = append(summary.RecentPurchases, pur)
 		}
+	}
+
+	// 8. Detailed Expiring Items (Top 10)
+	expRows, err := s.db.Query(`
+		SELECT b.id, m.name, b.batch_number, b.expiry_date, b.quantity_remaining,
+		       CAST(julianday(b.expiry_date) - julianday('now', 'start of day') AS INTEGER)
+		FROM batches b
+		JOIN medicines m ON b.medicine_id = m.id
+		WHERE b.quantity_remaining > 0 AND b.expiry_date >= ? AND b.expiry_date <= ?
+		ORDER BY b.expiry_date ASC LIMIT 10`, todayStr, ninetyDaysStr)
+	if err == nil {
+		defer expRows.Close()
+		for expRows.Next() {
+			var item ExpiringItemSummary
+			_ = expRows.Scan(&item.ID, &item.MedicineName, &item.BatchNumber, &item.ExpiryDate, &item.QuantityRemaining, &item.DaysUntilExpiry)
+			summary.ExpiringItems = append(summary.ExpiringItems, item)
+		}
+	}
+
+	// 9. Detailed Low Stock Items (Top 10)
+	lowRows, err := s.db.Query(`
+		SELECT id, name, current_stock, reorder_level
+		FROM medicines
+		WHERE is_archived = 0 AND current_stock > 0 AND current_stock <= reorder_level
+		ORDER BY current_stock ASC LIMIT 10`)
+	if err == nil {
+		defer lowRows.Close()
+		for lowRows.Next() {
+			var item LowStockItemSummary
+			_ = lowRows.Scan(&item.ID, &item.MedicineName, &item.CurrentStock, &item.ReorderLevel)
+			summary.LowStockItems = append(summary.LowStockItems, item)
+		}
+	}
+
+	// 10. 7-Day Sales Trend
+	for i := 6; i >= 0; i-- {
+		dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		var amt float64
+		_ = s.db.QueryRow(`SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date) = date(?)`, dStr).Scan(&amt)
+		summary.SalesTrend = append(summary.SalesTrend, SalesTrendPoint{
+			Date:   dStr,
+			Amount: amt,
+		})
 	}
 
 	return summary, nil

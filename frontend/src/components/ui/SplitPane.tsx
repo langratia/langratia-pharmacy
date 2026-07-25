@@ -25,7 +25,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
     <div
       style={{
         display: 'flex',
-        gap: '16px',
+        gap: '8px',
         width: '100%',
         height: '100%',
         flex: 1,
@@ -53,7 +53,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
                   padding: 0,
                   border: 'none',
                   backgroundColor: 'transparent',
-                  color: '#64748B',
+                  color: 'var(--color-text-muted)',
                   cursor: 'pointer'
                 }}
               >
@@ -80,13 +80,13 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
           style={{
             width: '18px',
             height: '100%',
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #CBD5E1',
+            backgroundColor: 'var(--color-bg-panel)',
+            border: '1px solid var(--color-border-default)',
             borderRadius: '0px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#64748B',
+            color: 'var(--color-text-muted)',
             cursor: 'pointer'
           }}
         >

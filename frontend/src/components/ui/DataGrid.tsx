@@ -44,8 +44,8 @@ export function DataGrid<T>({
       style={{
         width: '100%',
         border: 'none',
-        borderRadius: '16px',
-        backgroundColor: '#FFFFFF',
+        borderRadius: '0px',
+        backgroundColor: 'var(--color-bg-panel)',
         overflow: 'hidden',
         boxShadow: 'none',
         display: 'flex',
@@ -65,16 +65,16 @@ export function DataGrid<T>({
             width: '100%',
             borderCollapse: 'collapse',
             textAlign: 'left',
-            fontSize: '14px',
-            color: '#0F172A'
+            fontSize: '13px',
+            color: 'var(--color-text-primary)'
           }}
         >
           {/* Sticky Workstation Table Header */}
           <thead>
             <tr
               style={{
-                backgroundColor: '#F8FAFC',
-                borderBottom: '1px solid #CBD5E1',
+                backgroundColor: 'var(--color-bg-base)',
+                borderBottom: '1px solid var(--color-border-default)',
                 position: 'sticky',
                 top: 0,
                 zIndex: 10
@@ -84,16 +84,16 @@ export function DataGrid<T>({
                 <th
                   key={col.key}
                   style={{
-                    padding: '16px 20px',
+                    padding: '8px 12px',
                     fontWeight: 700,
-                    color: '#64748B',
-                    fontSize: '12px',
+                    color: 'var(--color-text-muted)',
+                    fontSize: '11px',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
+                    letterSpacing: '0.05em',
                     width: col.width || 'auto',
                     textAlign: col.align || 'left',
                     whiteSpace: 'nowrap',
-                    borderBottom: '2px solid #F1F5F9',
+                    borderBottom: '1px solid var(--color-border-default)',
                     borderRight: 'none'
                   }}
                 >
@@ -112,12 +112,12 @@ export function DataGrid<T>({
                   style={{
                     padding: '24px 12px',
                     textAlign: 'center',
-                    color: '#64748B',
+                    color: 'var(--color-text-muted)',
                     fontSize: '12px'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                    <Loader size={16} className="animate-spin" style={{ color: 'var(--color-accent)' }} />
+                    <Loader size={16} className="animate-spin" style={{ color: 'var(--color-accent-base)' }} />
                     <span>Fetching workspace data...</span>
                   </div>
                 </td>
@@ -129,7 +129,7 @@ export function DataGrid<T>({
                   style={{
                     padding: '28px 12px',
                     textAlign: 'center',
-                    color: '#94A3B8',
+                    color: 'var(--color-text-muted)',
                     fontSize: '12px'
                   }}
                 >
@@ -143,10 +143,10 @@ export function DataGrid<T>({
                 const isEven = index % 2 === 0;
 
                 const bg = isSelected
-                  ? '#E0F2FE'
+                  ? 'var(--color-selection)'
                   : zebraStriping && !isEven
-                  ? '#F8FAFC'
-                  : '#FFFFFF';
+                    ? 'var(--color-bg-base)'
+                    : 'var(--color-bg-panel)';
 
                 return (
                   <tr
@@ -155,8 +155,8 @@ export function DataGrid<T>({
                     className={`datagrid-row ${isSelected ? 'selected' : ''}`}
                     style={{
                       backgroundColor: bg,
-                      height: '56px',
-                      borderBottom: '1px solid #F1F5F9',
+                      height: '40px',
+                      borderBottom: '1px solid var(--color-border-subtle)',
                       cursor: onRowClick ? 'pointer' : 'default'
                     }}
                   >
@@ -164,14 +164,14 @@ export function DataGrid<T>({
                       <td
                         key={col.key}
                         style={{
-                          padding: '12px 20px',
+                          padding: '6px 12px',
                           textAlign: col.align || 'left',
                           whiteSpace: 'nowrap',
                           verticalAlign: 'middle',
-                          color: isSelected ? '#0369A1' : '#0F172A',
+                          color: isSelected ? 'var(--color-text-accent)' : 'var(--color-text-primary)',
                           borderRight: 'none',
-                          fontWeight: isSelected ? 600 : 500,
-                          fontSize: '14px'
+                          fontWeight: isSelected ? 600 : 400,
+                          fontSize: '13px'
                         }}
                       >
                         {col.accessor ? col.accessor(row) : (row as any)[col.key]}

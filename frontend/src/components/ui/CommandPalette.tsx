@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Pill, 
-  Truck, 
-  Users, 
-  BarChart3, 
-  Settings, 
+import {
+  Search,
+  LayoutDashboard,
+  ShoppingCart,
+  Pill,
+  Truck,
+  Users,
+  BarChart3,
+  Settings,
   FileText,
-  ChevronRight,
-  Command
+  ChevronRight
 } from 'lucide-react';
 import { NavItemKey } from '../layout/Sidebar';
 import { GlobalSearch } from '../../../wailsjs/go/main/App';
@@ -140,10 +139,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         style={{
           width: '100%',
           maxWidth: '560px',
-          backgroundColor: '#FFFFFF',
-          borderRadius: '10px',
-          border: '1px solid #E5E7EB',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          backgroundColor: 'var(--color-bg-elevated)',
+          borderRadius: '0px',
+          border: '1px solid var(--color-border-default)',
+          boxShadow: 'var(--shadow-dropdown)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -154,12 +153,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '12px 16px',
-            borderBottom: '1px solid #E5E7EB',
-            gap: '10px'
+            padding: '10px 14px',
+            borderBottom: '1px solid var(--color-border-default)',
+            gap: '8px'
           }}
         >
-          <Search size={18} style={{ color: '#0F8A6A' }} />
+          <Search size={16} style={{ color: 'var(--color-accent-base)' }} />
           <input
             ref={inputRef}
             type="text"
@@ -170,20 +169,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             style={{
               border: 'none',
               outline: 'none',
-              fontSize: '14px',
+              fontSize: '13px',
               width: '100%',
-              color: '#111827',
+              color: 'var(--color-text-primary)',
               backgroundColor: 'transparent'
             }}
           />
           <kbd
             style={{
-              fontSize: '11px',
-              color: '#6B7280',
-              backgroundColor: '#F3F4F6',
-              border: '1px solid #E5E7EB',
-              borderRadius: '4px',
-              padding: '2px 6px',
+              fontSize: '10px',
+              color: 'var(--color-text-muted)',
+              backgroundColor: 'var(--color-bg-hover)',
+              border: '1px solid var(--color-border-default)',
+              borderRadius: '0px',
+              padding: '2px 5px',
               lineHeight: 1
             }}
           >
@@ -192,13 +191,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Results List */}
-        <div style={{ maxHeight: '340px', overflowY: 'auto', padding: '6px 0' }}>
+        <div style={{ maxHeight: '320px', overflowY: 'auto', padding: '4px 0' }}>
           {isSearching ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
+            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
               Searching database records...
             </div>
           ) : allItems.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: '#9CA3AF', fontSize: '13px' }}>
+            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
               No commands or database records found for "{query}"
             </div>
           ) : (
@@ -212,29 +211,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                   onClick={() => handleSelectItem(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   style={{
-                    padding: '8px 16px',
+                    padding: '8px 14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: isSelected ? '#ECFDF5' : 'transparent',
+                    backgroundColor: isSelected ? 'var(--color-bg-hover)' : 'transparent',
                     cursor: 'pointer',
                     transition: 'background-color 100ms'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Icon size={16} style={{ color: isSelected ? '#0F8A6A' : '#6B7280' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon size={15} style={{ color: isSelected ? 'var(--color-accent-base)' : 'var(--color-text-muted)' }} />
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#065F46' : '#111827' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: isSelected ? 'var(--color-text-accent)' : 'var(--color-text-primary)' }}>
                         {item.title}
                       </div>
                       {item.subtitle && (
-                        <div style={{ fontSize: '11px', color: '#6B7280' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                           {item.subtitle}
                         </div>
                       )}
                     </div>
                   </div>
-                  <ChevronRight size={14} style={{ color: isSelected ? '#0F8A6A' : '#9CA3AF' }} />
+                  <ChevronRight size={14} style={{ color: isSelected ? 'var(--color-accent-base)' : 'var(--color-text-muted)' }} />
                 </div>
               );
             })

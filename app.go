@@ -95,6 +95,20 @@ func (a *App) ListUsers() ([]models.User, error) {
 	return a.authService.ListUsers()
 }
 
+func (a *App) UpdateUser(id int64, role, fullName string) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.authService.UpdateUser(id, role, fullName)
+}
+
+func (a *App) DeactivateUser(id int64) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.authService.DeactivateUser(id)
+}
+
 // Medicine API Bindings
 func (a *App) AddMedicine(med models.Medicine, userID int64, username string) (*models.Medicine, error) {
 	if a.medicineService == nil {

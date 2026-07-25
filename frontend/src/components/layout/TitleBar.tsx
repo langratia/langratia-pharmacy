@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cross, Minus, Square, X } from 'lucide-react';
+import { Minus, Square, X } from 'lucide-react';
 import { WindowMinimise, WindowToggleMaximise, Quit } from '../../../wailsjs/runtime/runtime';
 
 export const TitleBar: React.FC = () => {
@@ -8,8 +8,8 @@ export const TitleBar: React.FC = () => {
       height: '24px',
       maxHeight: '24px',
       flexShrink: 0,
-      backgroundColor: '#0F172A',
-      color: '#94A3B8',
+      backgroundColor: 'var(--color-slate-10)',
+      color: 'var(--color-slate-4)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'flex-end',
@@ -32,22 +32,22 @@ export const TitleBar: React.FC = () => {
             borderRadius: '0px',
             border: 'none',
             backgroundColor: 'transparent',
-            color: '#94A3B8',
+            color: 'var(--color-slate-4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-            e.currentTarget.style.color = '#FFFFFF';
+            e.currentTarget.style.backgroundColor = 'var(--color-slate-8)';
+            e.currentTarget.style.color = 'var(--color-slate-0)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94A3B8';
+            e.currentTarget.style.color = 'var(--color-slate-4)';
           }}
         >
-          <Minus size={13} />
+          <Minus size={12} />
         </button>
 
         <button
@@ -59,19 +59,19 @@ export const TitleBar: React.FC = () => {
             borderRadius: '0px',
             border: 'none',
             backgroundColor: 'transparent',
-            color: '#94A3B8',
+            color: 'var(--color-slate-4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-            e.currentTarget.style.color = '#FFFFFF';
+            e.currentTarget.style.backgroundColor = 'var(--color-slate-8)';
+            e.currentTarget.style.color = 'var(--color-slate-0)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94A3B8';
+            e.currentTarget.style.color = 'var(--color-slate-4)';
           }}
         >
           <Square size={10} />
@@ -86,22 +86,22 @@ export const TitleBar: React.FC = () => {
             borderRadius: '0px',
             border: 'none',
             backgroundColor: 'transparent',
-            color: '#94A3B8',
+            color: 'var(--color-slate-4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#EF4444';
-            e.currentTarget.style.color = '#FFFFFF';
+            e.currentTarget.style.backgroundColor = 'var(--color-danger-bg)';
+            e.currentTarget.style.color = 'var(--color-danger-text)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#94A3B8';
+            e.currentTarget.style.color = 'var(--color-slate-4)';
           }}
         >
-          <X size={13} />
+          <X size={12} />
         </button>
       </div>
     </div>

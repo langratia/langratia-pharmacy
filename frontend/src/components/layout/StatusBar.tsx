@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, UserCheck, Keyboard, Command } from 'lucide-react';
+import { Database, UserCheck, Keyboard } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const StatusBar: React.FC = () => {
@@ -19,30 +19,30 @@ export const StatusBar: React.FC = () => {
   return (
     <footer
       style={{
-        height: '28px',
-        maxHeight: '28px',
-        backgroundColor: '#0F172A',
-        color: '#94A3B8',
-        borderTop: '1px solid #1E293B',
+        height: '24px',
+        maxHeight: '24px',
+        backgroundColor: 'var(--color-slate-10)',
+        color: 'var(--color-slate-4)',
+        borderTop: '1px solid var(--color-slate-8)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 12px',
-        fontSize: '12px',
+        padding: '0 10px',
+        fontSize: '11px',
         fontWeight: 500,
         userSelect: 'none',
         zIndex: 100
       }}
     >
       {/* Left Status: DB Connection & Active User */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#10B981' }}>
-          <Database size={13} />
-          <span style={{ fontSize: '12px', fontWeight: 600 }}>Wails SQLite DB Connected</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-success-text)' }}>
+          <Database size={12} />
+          <span style={{ fontSize: '11px', fontWeight: 600 }}>Wails SQLite DB Connected</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#CBD5E1' }}>
-          <UserCheck size={13} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--color-slate-3)' }}>
+          <UserCheck size={12} />
           <span>
             Operator: <strong>{user?.full_name || user?.username || 'Pharmacist'}</strong> ({user?.role || 'user'})
           </span>
@@ -50,16 +50,16 @@ export const StatusBar: React.FC = () => {
       </div>
 
       {/* Center Status: Keyboard Shortcuts Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#64748B' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-          <Keyboard size={13} /> <strong>Ctrl+K</strong> Palette
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--color-slate-5)' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <Keyboard size={12} /> <strong>Ctrl+K</strong> Palette
         </span>
         <span>•</span>
         <span>Workstation v1.0.4</span>
       </div>
 
       {/* Right Status: Realtime System Clock */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#E2E8F0', fontFamily: 'monospace' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-slate-2)', fontFamily: 'monospace' }}>
         <span>{timeStr}</span>
       </div>
     </footer>

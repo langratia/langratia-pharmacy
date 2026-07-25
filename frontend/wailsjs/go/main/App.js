@@ -34,6 +34,10 @@ export function CreateUser(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateUser'](arg1, arg2, arg3, arg4);
 }
 
+export function DeactivateUser(arg1) {
+  return window['go']['main']['App']['DeactivateUser'](arg1);
+}
+
 export function ExportDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportDatabase'](arg1, arg2, arg3);
 }
@@ -132,4 +136,8 @@ export function UpdatePrescriptionStatus(arg1, arg2, arg3, arg4) {
 
 export function UpdateSupplier(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdateSupplier'](arg1, arg2, arg3);
+}
+
+export function UpdateUser(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdateUser'](arg1, arg2, arg3);
 }

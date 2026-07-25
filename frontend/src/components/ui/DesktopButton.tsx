@@ -20,38 +20,34 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: '#0F8A6A',
-          color: '#FFFFFF',
-          border: '1px solid transparent',
-          boxShadow: '0 1px 2px rgba(15, 138, 106, 0.2)'
+          backgroundColor: 'var(--color-accent-solid)',
+          color: 'var(--color-text-inverse)',
+          border: '1px solid var(--color-accent-solid-hover)',
         };
       case 'danger':
         return {
-          backgroundColor: '#EF4444',
-          color: '#FFFFFF',
-          border: '1px solid transparent',
-          boxShadow: '0 1px 2px rgba(239, 68, 68, 0.2)'
+          backgroundColor: 'var(--color-danger-text)',
+          color: 'var(--color-text-inverse)',
+          border: '1px solid var(--color-danger-border)',
         };
       case 'outline':
         return {
-          backgroundColor: '#FFFFFF',
-          color: '#374151',
-          border: '1px solid #D1D5DB',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)'
+          backgroundColor: 'var(--color-bg-panel)',
+          color: 'var(--color-text-primary)',
+          border: '1px solid var(--color-border-strong)',
         };
       case 'ghost':
         return {
           backgroundColor: 'transparent',
-          color: '#4B5563',
-          border: '1px solid transparent'
+          color: 'var(--color-text-secondary)',
+          border: '1px solid transparent',
         };
       case 'secondary':
       default:
         return {
-          backgroundColor: '#F3F4F6',
-          color: '#1F2937',
-          border: '1px solid #E5E7EB',
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
+          backgroundColor: 'var(--color-bg-hover)',
+          color: 'var(--color-text-primary)',
+          border: '1px solid var(--color-border-default)',
         };
     }
   };
@@ -68,6 +64,17 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
     }
   };
 
+  const getHoverBg = () => {
+    switch (variant) {
+      case 'primary': return 'var(--color-accent-solid-hover)';
+      case 'danger': return 'var(--color-danger-bg)';
+      case 'secondary': return 'var(--color-bg-active)';
+      case 'outline': return 'var(--color-bg-hover)';
+      case 'ghost': return 'var(--color-bg-hover)';
+      default: return 'var(--color-bg-active)';
+    }
+  };
+
   return (
     <button
       disabled={disabled}
@@ -77,7 +84,7 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
         justifyContent: 'center',
         gap: '6px',
         fontWeight: 500,
-        borderRadius: '6px',
+        borderRadius: '2px',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.6 : 1,
         transition: 'all 150ms ease-out',
@@ -87,11 +94,7 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
       }}
       onMouseEnter={(e) => {
         if (disabled) return;
-        if (variant === 'primary') e.currentTarget.style.backgroundColor = '#0B6B52';
-        if (variant === 'danger') e.currentTarget.style.backgroundColor = '#DC2626';
-        if (variant === 'secondary') e.currentTarget.style.backgroundColor = '#E5E7EB';
-        if (variant === 'outline') e.currentTarget.style.backgroundColor = '#F9FAFB';
-        if (variant === 'ghost') e.currentTarget.style.backgroundColor = '#F3F4F6';
+        e.currentTarget.style.backgroundColor = getHoverBg();
       }}
       onMouseLeave={(e) => {
         if (disabled) return;
