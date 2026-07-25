@@ -50,11 +50,14 @@ export const SettingsPage: React.FC = () => {
   };
 
   const fetchAuditLogs = async () => {
+    setIsLoading(true);
     try {
       const data = await ListAuditLogs(100);
       setAuditLogs(data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load audit logs');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -123,9 +126,11 @@ export const SettingsPage: React.FC = () => {
     try {
       setIsLoading(true);
       const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp?.DeactivateUser) {
-        await wailsApp.DeactivateUser(uId);
+      if (!wailsApp?.DeactivateUser) {
+        toast.error('Deactivation is unavailable in this build.');
+        return;
       }
+      await wailsApp.DeactivateUser(uId);
       toast.success(`Operator ${username} deactivated`);
       fetchUsers();
     } catch (err: any) {
@@ -139,11 +144,13 @@ export const SettingsPage: React.FC = () => {
     setIsLoading(true);
     try {
       const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp?.GetCashierPerformance) {
-        const perf = await wailsApp.GetCashierPerformance(uId);
-        setSelectedUserPerf(perf);
-        setSelectedUserName(username);
+      if (!wailsApp?.GetCashierPerformance) {
+        toast.error('Performance view is unavailable in this build.');
+        return;
       }
+      const perf = await wailsApp.GetCashierPerformance(uId);
+      setSelectedUserPerf(perf);
+      setSelectedUserName(username);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load performance');
     } finally {
@@ -156,10 +163,12 @@ export const SettingsPage: React.FC = () => {
     const loadingToast = toast.loading('Scanning local network for Main Server...');
     try {
       const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp?.AutoDiscoverServer) {
-        const path = await wailsApp.AutoDiscoverServer();
-        toast.success(`Server found at ${path}! Please restart the application.`, { id: loadingToast, duration: 6000 });
+      if (!wailsApp?.AutoDiscoverServer) {
+        toast.error('Auto-discovery is unavailable in this build.', { id: loadingToast, duration: 4000 });
+        return;
       }
+      const path = await wailsApp.AutoDiscoverServer();
+      toast.success(`Server found at ${path}! Please restart the application.`, { id: loadingToast, duration: 6000 });
     } catch (err: any) {
       toast.error(err.message || 'No server found on the network. Is the Main Server running?', { id: loadingToast, duration: 6000 });
     } finally {
@@ -172,10 +181,12 @@ export const SettingsPage: React.FC = () => {
     const loadingToast = toast.loading('Configuring Windows for Main Server mode...');
     try {
       const wailsApp = (window as any)?.go?.main?.App;
-      if (wailsApp?.EnableMainServerMode) {
-        await wailsApp.EnableMainServerMode();
-        toast.success('Main Server mode enabled! This PC is now visible to other Cashier PCs.', { id: loadingToast, duration: 6000 });
+      if (!wailsApp?.EnableMainServerMode) {
+        toast.error('Server mode is unavailable on this platform.', { id: loadingToast, duration: 4000 });
+        return;
       }
+      await wailsApp.EnableMainServerMode();
+      toast.success('Main Server mode enabled! This PC is now visible to other Cashier PCs.', { id: loadingToast, duration: 6000 });
     } catch (err: any) {
       toast.error(err.message || 'Failed to enable Main Server mode.', { id: loadingToast });
     } finally {
@@ -209,10 +220,6 @@ export const SettingsPage: React.FC = () => {
           bg = 'var(--color-accent-subtle)';
           border = 'var(--color-accent-base)';
           color = 'var(--color-accent-base)';
-        } else if (u.role === 'pharmacist') {
-          bg = 'rgba(2, 136, 209, 0.12)';
-          border = '#0288d1';
-          color = '#0288d1';
         }
 
         return (
@@ -542,8 +549,8 @@ export const SettingsPage: React.FC = () => {
                 <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', borderRadius: '0px', backgroundColor: 'var(--color-bg-base)' }}>
                   <strong>Export Database Snapshot:</strong> Creates a full standalone SQLite backup of sales, inventory, and users.
                   <div style={{ marginTop: '8px' }}>
-                    <button onClick={handleExportDB} className="desktop-btn-primary" style={{ height: '28px', gap: '6px', borderRadius: '0px' }}>
-                      <Download size={14} /> Export SQLite Backup (.db)
+                    <button onClick={handleExportDB} disabled={isLoading} className="desktop-btn-primary" style={{ height: '28px', gap: '6px', borderRadius: '0px', opacity: isLoading ? 0.6 : 1 }}>
+                      <Download size={14} /> {isLoading ? 'Exporting...' : 'Export SQLite Backup (.db)'}
                     </button>
                   </div>
                 </div>
@@ -607,7 +614,6 @@ export const SettingsPage: React.FC = () => {
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Role Privilege</label>
             <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}>
               <option value="cashier">Cashier</option>
-              <option value="pharmacist">Pharmacist</option>
               <option value="admin">Administrator</option>
             </select>
           </div>

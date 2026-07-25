@@ -27,6 +27,11 @@ func (s *BackupService) ExportDatabase(destPath string, userID int64, username s
 		return errors.New("destination path is required")
 	}
 
+	// Resolve relative paths to the database directory
+	if !filepath.IsAbs(destPath) {
+		destPath = filepath.Join(filepath.Dir(s.dbPath), destPath)
+	}
+
 	// 1. Flush WAL logs into main database file
 	if _, err := s.db.Exec("PRAGMA wal_checkpoint(FULL);"); err != nil {
 		return fmt.Errorf("failed to checkpoint WAL: %w", err)
