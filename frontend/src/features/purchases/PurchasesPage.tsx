@@ -112,14 +112,14 @@ export const PurchasesPage: React.FC = () => {
       const totalAmount = items.reduce((acc, i) => acc + (i.buying_price * i.quantity), 0);
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
-        await wailsApp.AddStockPurchase(
-          supplierId,
+        const supId = supplierId === '' ? null : Number(supplierId);
+        await wailsApp.RecordPurchase(
           invoiceNumber,
-          totalAmount,
+          supId,
+          items,
           notes,
           user?.id || 1,
-          user?.username || 'admin',
-          items
+          user?.username || 'admin'
         );
         toast.success('Procurement Purchase Order Created!');
         setIsCreatingPO(false);
