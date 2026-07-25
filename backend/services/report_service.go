@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"app/backend/db"
@@ -99,7 +100,10 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		defer salesRows.Close()
 		for salesRows.Next() {
 			var sl models.Sale
-			_ = salesRows.Scan(&sl.ID, &sl.InvoiceNumber, &sl.Username, &sl.SaleDate, &sl.TotalAmount, &sl.PaymentMethod)
+			if err := salesRows.Scan(&sl.ID, &sl.InvoiceNumber, &sl.Username, &sl.SaleDate, &sl.TotalAmount, &sl.PaymentMethod); err != nil {
+				log.Printf("dashboard: failed to scan recent sale row: %v", err)
+				continue
+			}
 			summary.RecentSales = append(summary.RecentSales, sl)
 		}
 	}
@@ -114,7 +118,10 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		defer purRows.Close()
 		for purRows.Next() {
 			var pur models.Purchase
-			_ = purRows.Scan(&pur.ID, &pur.InvoiceNumber, &pur.SupplierName, &pur.PurchaseDate, &pur.TotalAmount, &pur.Notes)
+			if err := purRows.Scan(&pur.ID, &pur.InvoiceNumber, &pur.SupplierName, &pur.PurchaseDate, &pur.TotalAmount, &pur.Notes); err != nil {
+				log.Printf("dashboard: failed to scan recent purchase row: %v", err)
+				continue
+			}
 			summary.RecentPurchases = append(summary.RecentPurchases, pur)
 		}
 	}
@@ -131,7 +138,10 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		defer expRows.Close()
 		for expRows.Next() {
 			var item ExpiringItemSummary
-			_ = expRows.Scan(&item.ID, &item.MedicineName, &item.BatchNumber, &item.ExpiryDate, &item.QuantityRemaining, &item.DaysUntilExpiry)
+			if err := expRows.Scan(&item.ID, &item.MedicineName, &item.BatchNumber, &item.ExpiryDate, &item.QuantityRemaining, &item.DaysUntilExpiry); err != nil {
+				log.Printf("dashboard: failed to scan expiring item row: %v", err)
+				continue
+			}
 			summary.ExpiringItems = append(summary.ExpiringItems, item)
 		}
 	}
@@ -146,7 +156,10 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		defer lowRows.Close()
 		for lowRows.Next() {
 			var item LowStockItemSummary
-			_ = lowRows.Scan(&item.ID, &item.MedicineName, &item.CurrentStock, &item.ReorderLevel)
+			if err := lowRows.Scan(&item.ID, &item.MedicineName, &item.CurrentStock, &item.ReorderLevel); err != nil {
+				log.Printf("dashboard: failed to scan low stock item row: %v", err)
+				continue
+			}
 			summary.LowStockItems = append(summary.LowStockItems, item)
 		}
 	}
@@ -155,7 +168,9 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 	for i := 6; i >= 0; i-- {
 		dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
 		var amt float64
-		_ = s.db.QueryRow(`SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date) = date(?)`, dStr).Scan(&amt)
+		if err := s.db.QueryRow(`SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date) = date(?)`, dStr).Scan(&amt); err != nil {
+			log.Printf("dashboard: failed to scan sales trend for %s: %v", dStr, err)
+		}
 		summary.SalesTrend = append(summary.SalesTrend, SalesTrendPoint{
 			Date:   dStr,
 			Amount: amt,
