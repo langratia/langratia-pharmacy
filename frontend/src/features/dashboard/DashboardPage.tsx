@@ -323,7 +323,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           fontWeight: 600,
           color: item.days_until_expiry <= 30 ? 'var(--color-danger-text)' : 'var(--color-warning-text)'
         }}>
-          {item.days_until_expiry <= 0 ? 'EXPIRED' : `${item.days_until_expiry} days left`}
+          {item.days_until_expiry < 0 ? 'EXPIRED' : item.days_until_expiry === 0 ? 'Expiring today' : `${item.days_until_expiry} days left`}
         </span>
       )
     }
