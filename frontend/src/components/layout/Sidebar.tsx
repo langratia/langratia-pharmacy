@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../context/PermissionContext';
 
 export type NavItemKey = 'dashboard' | 'pos' | 'prescriptions' | 'inventory' | 'purchases' | 'suppliers' | 'reports' | 'settings';
 
@@ -28,7 +29,7 @@ interface NavItem {
   key: NavItemKey;
   label: string;
   icon: React.ComponentType<{ size?: number; color?: string; className?: string }>;
-  adminOnly?: boolean;
+  permission?: string;
 }
 
 interface NavGroup {
@@ -40,40 +41,41 @@ const navGroups: NavGroup[] = [
   {
     title: 'MAIN',
     items: [
-      { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
+      { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' }
     ]
   },
   {
     title: 'SALES',
     items: [
-      { key: 'pos', label: 'Point of Sale', icon: ShoppingCart },
-      { key: 'prescriptions', label: 'Prescriptions', icon: FileText }
+      { key: 'pos', label: 'Point of Sale', icon: ShoppingCart, permission: 'create_sale' },
+      { key: 'prescriptions', label: 'Prescriptions', icon: FileText, permission: 'manage_prescriptions' }
     ]
   },
   {
     title: 'INVENTORY',
     items: [
-      { key: 'inventory', label: 'Medicines', icon: Pill },
-      { key: 'suppliers', label: 'Suppliers', icon: Users, adminOnly: true }
+      { key: 'inventory', label: 'Medicines', icon: Pill, permission: 'view_inventory' },
+      { key: 'suppliers', label: 'Suppliers', icon: Users, permission: 'manage_suppliers' }
     ]
   },
   {
     title: 'OPERATIONS',
     items: [
-      { key: 'purchases', label: 'Purchases', icon: Truck, adminOnly: true },
-      { key: 'reports', label: 'Reports', icon: BarChart3, adminOnly: true }
+      { key: 'purchases', label: 'Purchases', icon: Truck, permission: 'stock_receiving' },
+      { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'view_reports' }
     ]
   },
   {
     title: 'ADMINISTRATION',
     items: [
-      { key: 'settings', label: 'Settings', icon: Settings, adminOnly: true }
+      { key: 'settings', label: 'Settings', icon: Settings, permission: 'access_settings' }
     ]
   }
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCollapsed, onToggleCollapse }) => {
   const { user, logout } = useAuth();
+  const { can } = usePermissions();
 
   // Sidebar uses its own deep navy surface, independent of the light/dark panel tokens
   // so that it always reads as a distinct navigation layer.
@@ -184,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
       >
         {navGroups.map((group) => {
           const visibleItems = group.items.filter(
-            (item) => !item.adminOnly || user?.role === 'admin'
+            (item) => !item.permission || can(item.permission)
           );
 
           if (visibleItems.length === 0) return null;

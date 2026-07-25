@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions, SetRolePermissions, GetAllPermissionDefs } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { formatCurrency } from '../../utils/formatters';
 import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
@@ -13,6 +14,7 @@ import lanGuide from '../../assets/lan_setup_guide.png';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
+  const { can } = usePermissions();
   const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit' | 'network' | 'permissions'>('users');
   
   // Users state
@@ -569,40 +571,44 @@ export const SettingsPage: React.FC = () => {
             >
               <Users size={14} /> User Accounts
             </button>
-            <button
-              onClick={() => setActiveTab('backups')}
-              style={{
-                height: '36px',
-                fontSize: '12px',
-                fontWeight: 600,
-                justifyContent: 'flex-start',
-                gap: '8px',
-                padding: '0 12px',
-                borderRadius: '0px',
-                backgroundColor: activeTab === 'backups' ? 'var(--color-accent-subtle)' : 'transparent',
-                border: activeTab === 'backups' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
-                color: activeTab === 'backups' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
-              }}
-            >
-              <Database size={14} /> DB & Maintenance
-            </button>
-            <button
-              onClick={() => setActiveTab('audit')}
-              style={{
-                height: '36px',
-                fontSize: '12px',
-                fontWeight: 600,
-                justifyContent: 'flex-start',
-                gap: '8px',
-                padding: '0 12px',
-                borderRadius: '0px',
-                backgroundColor: activeTab === 'audit' ? 'var(--color-accent-subtle)' : 'transparent',
-                border: activeTab === 'audit' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
-                color: activeTab === 'audit' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
-              }}
-            >
-              <Shield size={14} /> Audit Trail Logs
-            </button>
+            {can('export_data') && (
+              <button
+                onClick={() => setActiveTab('backups')}
+                style={{
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  justifyContent: 'flex-start',
+                  gap: '8px',
+                  padding: '0 12px',
+                  borderRadius: '0px',
+                  backgroundColor: activeTab === 'backups' ? 'var(--color-accent-subtle)' : 'transparent',
+                  border: activeTab === 'backups' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                  color: activeTab === 'backups' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+                }}
+              >
+                <Database size={14} /> DB & Maintenance
+              </button>
+            )}
+            {can('view_audit_logs') && (
+              <button
+                onClick={() => setActiveTab('audit')}
+                style={{
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  justifyContent: 'flex-start',
+                  gap: '8px',
+                  padding: '0 12px',
+                  borderRadius: '0px',
+                  backgroundColor: activeTab === 'audit' ? 'var(--color-accent-subtle)' : 'transparent',
+                  border: activeTab === 'audit' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                  color: activeTab === 'audit' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+                }}
+              >
+                <Shield size={14} /> Audit Trail Logs
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('network')}
               style={{
@@ -620,23 +626,25 @@ export const SettingsPage: React.FC = () => {
             >
               <Network size={14} /> Network Setup
             </button>
-            <button
-              onClick={() => setActiveTab('permissions')}
-              style={{
-                height: '36px',
-                fontSize: '12px',
-                fontWeight: 600,
-                justifyContent: 'flex-start',
-                gap: '8px',
-                padding: '0 12px',
-                borderRadius: '0px',
-                backgroundColor: activeTab === 'permissions' ? 'var(--color-accent-subtle)' : 'transparent',
-                border: activeTab === 'permissions' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
-                color: activeTab === 'permissions' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
-              }}
-            >
-              <CheckSquare size={14} /> Permissions
-            </button>
+            {can('manage_users') && (
+              <button
+                onClick={() => setActiveTab('permissions')}
+                style={{
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  justifyContent: 'flex-start',
+                  gap: '8px',
+                  padding: '0 12px',
+                  borderRadius: '0px',
+                  backgroundColor: activeTab === 'permissions' ? 'var(--color-accent-subtle)' : 'transparent',
+                  border: activeTab === 'permissions' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                  color: activeTab === 'permissions' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+                }}
+              >
+                <CheckSquare size={14} /> Permissions
+              </button>
+            )}
           </div>
         </Panel>
 
