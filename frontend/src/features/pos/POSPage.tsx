@@ -25,6 +25,8 @@ import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 
+const PAYMENT_LABELS: Record<string, string> = { cash: 'Cash', card: 'Card', momo: 'Mobile Money' };
+
 interface CartItem {
   medicine: Medicine;
   quantity: number;
@@ -140,35 +142,36 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       unit_price: item.medicine.selling_price
     }));
 
-    try {
-      let sale: any = null;
+      const PM = PAYMENT_LABELS[paymentMethod];
       try {
-        sale = await ProcessSale(
-          user?.id || 1,
-          user?.username || 'cashier',
-          cartInput as any,
-          'Cash'
-        );
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp && typeof wailsApp.ProcessSale === 'function') {
-          sale = await wailsApp.ProcessSale(
+        let sale: any = null;
+        try {
+          sale = await ProcessSale(
             user?.id || 1,
             user?.username || 'cashier',
-            cartInput,
-            'Cash'
+            cartInput as any,
+            PM
           );
+        } catch {
+          const wailsApp = (window as any)?.go?.main?.App;
+          if (wailsApp && typeof wailsApp.ProcessSale === 'function') {
+            sale = await wailsApp.ProcessSale(
+              user?.id || 1,
+              user?.username || 'cashier',
+              cartInput,
+              PM
+            );
+          }
         }
-      }
 
-      if (!sale) {
-        sale = {
-          invoice_number: `INV-POS-${Date.now()}`,
-          sale_date: new Date().toISOString(),
-          username: user?.username || 'cashier',
-          total_amount: cartTotal,
-          payment_method: 'Cash',
-          items: cart.map(c => ({
+        if (!sale) {
+          sale = {
+            invoice_number: `INV-POS-${Date.now()}`,
+            sale_date: new Date().toISOString(),
+            username: user?.username || 'cashier',
+            total_amount: cartTotal,
+            payment_method: PM,
+            items: cart.map(c => ({
             medicine_name: c.medicine.name,
             batch_number: 'BATCH-FEFO-01',
             quantity: c.quantity,
@@ -440,6 +443,31 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-accent)' }}>
             UGX {formatCurrency(cartTotal)}
           </span>
+        </div>
+
+        {/* Payment Method Selector */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {(Object.keys(PAYMENT_LABELS) as Array<keyof typeof PAYMENT_LABELS>).map(key => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setPaymentMethod(key)}
+              style={{
+                flex: 1,
+                height: '28px',
+                fontSize: '11px',
+                fontWeight: paymentMethod === key ? 700 : 500,
+                backgroundColor: paymentMethod === key ? 'var(--color-accent-solid)' : 'var(--color-bg-panel)',
+                color: paymentMethod === key ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
+                border: paymentMethod === key ? '1px solid var(--color-accent-solid-hover)' : '1px solid var(--color-border-default)',
+                borderRadius: '0px',
+                cursor: 'pointer',
+                transition: 'var(--transition-fast)'
+              }}
+            >
+              {PAYMENT_LABELS[key]}
+            </button>
+          ))}
         </div>
 
         {/* Approve & Complete Sale Button */}
