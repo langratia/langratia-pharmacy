@@ -54,18 +54,32 @@ export const ReportsPage: React.FC = () => {
     setFetchError(null);
     abortRef.current = false;
     try {
-      const [mRes, eRes] = await Promise.all([
-        ListMedicines('', '', false),
-        GetExpiringBatches(90)
-      ]);
+      let meds: Medicine[] = [];
+      let exp: Batch[] = [];
+
+      try {
+        const [mRes, eRes] = await Promise.all([
+          ListMedicines('', '', false),
+          GetExpiringBatches(90)
+        ]);
+        meds = mRes || [];
+        exp = eRes || [];
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp) {
+          meds = (await wailsApp.ListMedicines?.('', '', false)) || [];
+          exp = (await wailsApp.GetExpiringBatches?.(90)) || [];
+        }
+      }
+
       if (abortRef.current) return;
-      setMedicines(mRes || []);
-      setExpiringBatches(eRes || []);
+      setMedicines(meds);
+      setExpiringBatches(exp);
     } catch (err: unknown) {
       if (abortRef.current) return;
-      const msg = err instanceof Error ? err.message : 'Failed to fetch reports data';
+      const msg = err instanceof Error ? err.message : 'Failed to load reports data';
       setFetchError(msg);
-      console.error('Failed to fetch reports data:', err);
+      console.error('Failed to load reports data:', err);
     } finally {
       if (!abortRef.current) setIsLoading(false);
     }
