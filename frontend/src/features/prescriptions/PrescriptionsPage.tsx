@@ -165,14 +165,14 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       }));
 
       await CreatePrescription(
-        0,
+        user?.id || 0,
+        user?.username || 'admin',
         patientName,
-        patientPhone,
         patientAge,
+        patientPhone,
         doctorName,
         doctorContact,
         notes,
-        user?.username || 'admin',
         itemsPayload as any
       );
       toast.success('Prescription recorded!');
