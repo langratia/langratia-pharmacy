@@ -82,6 +82,10 @@ export function GetPrescriptionDetails(arg1) {
   return window['go']['main']['App']['GetPrescriptionDetails'](arg1);
 }
 
+export function GetSalesSummary() {
+  return window['go']['main']['App']['GetSalesSummary']();
+}
+
 export function GetUserTodaySalesTotal(arg1) {
   return window['go']['main']['App']['GetUserTodaySalesTotal'](arg1);
 }

@@ -44,6 +44,8 @@ export function GetNotificationsSummary():Promise<models.NotificationSummary>;
 
 export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>;
 
+export function GetSalesSummary():Promise<services.SalesSummary>;
+
 export function GetUserTodaySalesTotal(arg1:number):Promise<number>;
 
 export function GlobalSearch(arg1:string,arg2:string):Promise<Array<models.SearchResultItem>>;

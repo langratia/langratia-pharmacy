@@ -34,6 +34,28 @@ type SalesTrendPoint struct {
 	Amount float64 `json:"amount"`
 }
 
+type PaymentMethodSummary struct {
+	Method string  `json:"method"`
+	Count  int     `json:"count"`
+	Total  float64 `json:"total"`
+}
+
+type SalesSummary struct {
+	TodayTotal      float64               `json:"today_total"`
+	WeekTotal       float64               `json:"week_total"`
+	MonthTotal      float64               `json:"month_total"`
+	TotalSales      int                   `json:"total_sales"`
+	ByMethod        []PaymentMethodSummary `json:"by_method"`
+	TopProducts     []TopProductSummary   `json:"top_products"`
+}
+
+type TopProductSummary struct {
+	MedicineID   int64  `json:"medicine_id"`
+	MedicineName string `json:"medicine_name"`
+	QuantitySold int    `json:"quantity_sold"`
+	Revenue      float64 `json:"revenue"`
+}
+
 type DashboardSummary struct {
 	SalesToday        float64               `json:"sales_today"`
 	TotalMedicines    int                   `json:"total_medicines"`
@@ -178,4 +200,60 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 	}
 
 	return summary, nil
+}
+
+// GetSalesSummary returns aggregated sales data for reports.
+func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
+	todayStr := time.Now().Format("2006-01-02")
+	weekAgoStr := time.Now().AddDate(0, 0, -6).Format("2006-01-02")
+	monthStart := time.Now().AddDate(0, 0, -(time.Now().Day()-1)).Format("2006-01-02")
+
+	ss := &SalesSummary{
+		ByMethod:    []PaymentMethodSummary{},
+		TopProducts: []TopProductSummary{},
+	}
+
+	// Today total
+	s.db.QueryRow(`SELECT COALESCE(SUM(total_amount),0.0) FROM sales WHERE date(sale_date)=date(?)`, todayStr).Scan(&ss.TodayTotal)
+
+	// Week total
+	s.db.QueryRow(`SELECT COALESCE(SUM(total_amount),0.0) FROM sales WHERE date(sale_date)>=date(?)`, weekAgoStr).Scan(&ss.WeekTotal)
+
+	// Month total
+	s.db.QueryRow(`SELECT COALESCE(SUM(total_amount),0.0) FROM sales WHERE date(sale_date)>=date(?)`, monthStart).Scan(&ss.MonthTotal)
+
+	// Total sales count
+	s.db.QueryRow(`SELECT COUNT(*) FROM sales`).Scan(&ss.TotalSales)
+
+	// By payment method
+	rows, err := s.db.Query(`SELECT COALESCE(payment_method,'Cash'), COUNT(*), COALESCE(SUM(total_amount),0.0) FROM sales GROUP BY payment_method ORDER BY SUM(total_amount) DESC`)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var p PaymentMethodSummary
+			if rows.Scan(&p.Method, &p.Count, &p.Total) == nil {
+				ss.ByMethod = append(ss.ByMethod, p)
+			}
+		}
+	}
+
+	// Top 10 products by quantity sold
+	prodRows, err := s.db.Query(`
+		SELECT si.medicine_id, COALESCE(m.name,'Unknown'), SUM(si.quantity), COALESCE(SUM(si.subtotal),0.0)
+		FROM sale_items si
+		JOIN medicines m ON si.medicine_id = m.id
+		GROUP BY si.medicine_id
+		ORDER BY SUM(si.quantity) DESC
+		LIMIT 10`)
+	if err == nil {
+		defer prodRows.Close()
+		for prodRows.Next() {
+			var tp TopProductSummary
+			if prodRows.Scan(&tp.MedicineID, &tp.MedicineName, &tp.QuantitySold, &tp.Revenue) == nil {
+				ss.TopProducts = append(ss.TopProducts, tp)
+			}
+		}
+	}
+
+	return ss, nil
 }

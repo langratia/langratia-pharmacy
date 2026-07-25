@@ -286,6 +286,13 @@ func (a *App) GetDashboardSummary() (*services.DashboardSummary, error) {
 	return a.reportService.GetDashboardSummary()
 }
 
+func (a *App) GetSalesSummary() (*services.SalesSummary, error) {
+	if a.reportService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.reportService.GetSalesSummary()
+}
+
 // Backup & Audit Log API Bindings
 func (a *App) ExportDatabase(destPath string, userID int64, username string) error {
 	if a.backupService == nil {
