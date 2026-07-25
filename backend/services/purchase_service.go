@@ -98,7 +98,7 @@ func (s *PurchaseService) RecordPurchase(invoiceNumber string, supplierID *int64
 		if err != nil {
 			return nil, err
 		}
-		_, err = tx.Exec(`UPDATE medicines SET current_stock = ?, buying_price = ? WHERE id = ?`, totalStock, item.BuyingPrice, item.MedicineID)
+		_, err = tx.Exec(`UPDATE medicines SET current_stock = ? WHERE id = ?`, totalStock, item.MedicineID)
 		if err != nil {
 			return nil, err
 		}
