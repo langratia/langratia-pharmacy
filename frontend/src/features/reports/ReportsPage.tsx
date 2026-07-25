@@ -238,38 +238,49 @@ export const ReportsPage: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', padding: '0', backgroundColor: 'var(--color-bg-base)' }}>
       <Panel noPadding style={{ padding: '0 16px', height: '44px', minHeight: '44px', justifyContent: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-              Reports
-            </div>
-            <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-              {tabMeta.map(t => (
-                <button key={t.key} onClick={() => setActiveTab(t.key)}
-                  style={{
-                    height: '28px', padding: '0 10px', borderRadius: '0px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
-                    backgroundColor: activeTab === t.key ? 'var(--color-accent-subtle)' : 'var(--color-bg-panel)',
-                    borderColor: activeTab === t.key ? 'var(--color-accent-base)' : 'var(--color-border-default)',
-                    color: activeTab === t.key ? 'var(--color-accent-base)' : 'var(--color-text-primary)',
-                  }}
-                >{t.icon} {t.label}{t.count !== undefined ? ` (${t.count})` : ''}</button>
-              ))}
-            </div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Reports & Analytics
           </div>
+        </div>
+      </Panel>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {activeTab !== 'sales' && activeTab !== 'performance' && (
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder={`Search ${activeTab}...`}
-                  style={{ height: '28px', width: '180px', padding: '0 8px 0 28px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', outline: 'none', fontSize: '12px' }} />
-              </div>
-            )}
-            {activeTab !== 'sales' && (
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
-                {activeTab === 'inventory' && <>Stock Value: <span style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(totalValuation)}</span></>}
-              </div>
-            )}
+      <div style={{ display: 'flex', gap: '12px', flex: 1, overflow: 'hidden' }}>
+        {/* Left Navigation */}
+        <Panel noPadding style={{ width: '220px', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px' }}>
+            {tabMeta.map(t => (
+              <button key={t.key} onClick={() => setActiveTab(t.key)}
+                style={{
+                  height: '36px', fontSize: '12px', fontWeight: 600, justifyContent: 'flex-start', gap: '8px',
+                  padding: '0 12px', borderRadius: '0px',
+                  backgroundColor: activeTab === t.key ? 'var(--color-accent-subtle)' : 'transparent',
+                  border: activeTab === t.key ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                  color: activeTab === t.key ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+                }}
+              >{t.icon} {t.label}{t.count !== undefined ? ` (${t.count})` : ''}</button>
+            ))}
+          </div>
+        </Panel>
+
+        {/* Content */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          {/* Toolbar inside content area */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '0 16px 12px', minHeight: '40px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+              {activeTab !== 'sales' && activeTab !== 'performance' && (
+                <div style={{ position: 'relative', flex: 1, maxWidth: '280px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
+                  <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder={`Search ${activeTab}...`}
+                    style={{ width: '100%', height: '28px', padding: '0 8px 0 28px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', outline: 'none', fontSize: '12px' }} />
+                </div>
+              )}
+              {activeTab === 'inventory' && (
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>
+                  Stock Value: <span style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(totalValuation)}</span>
+                </div>
+              )}
+            </div>
             {activeTab !== 'sales' && (
               <button onClick={handleExportCSV} disabled={isLoading} className="desktop-btn-primary"
                 style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px', opacity: isLoading ? 0.6 : 1 }}>
@@ -277,112 +288,114 @@ export const ReportsPage: React.FC = () => {
               </button>
             )}
           </div>
-        </div>
-      </Panel>
 
-      {fetchError && (
-        <div style={{ margin: '0 16px', padding: '8px 12px', fontSize: '12px', color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>{fetchError}</span>
-          <button onClick={() => loadTabData(activeTab)} style={{ fontSize: '11px', cursor: 'pointer', background: 'none', border: '1px solid var(--color-danger-border)', padding: '2px 8px', borderRadius: '0px', color: 'var(--color-danger-text)' }}>Retry</button>
-        </div>
-      )}
-
-      {activeTab === 'inventory' && (
-        <DataGrid columns={inventoryColumns} data={filteredMedicines} keyExtractor={(m) => m.id}
-          isLoading={isLoading} emptyMessage={debouncedSearch ? 'No medicines match search.' : 'No inventory records.'}
-          compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 130px)" style={{ flex: 1 }} />
-      )}
-
-      {activeTab === 'expiry' && (
-        <DataGrid columns={expiryColumns} data={filteredBatches} keyExtractor={(b) => b.id}
-          isLoading={isLoading} emptyMessage={debouncedSearch ? 'No batches match search.' : 'No batches expiring within 90 days.'}
-          compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 130px)" style={{ flex: 1 }} />
-      )}
-
-      {activeTab === 'performance' && (
-        <DataGrid columns={performanceColumns} data={allUsers} keyExtractor={(u) => u.id}
-          isLoading={isLoading} emptyMessage="No users found."
-          compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 130px)" style={{ flex: 1 }} />
-      )}
-
-      {activeTab === 'audit' && (
-        <DataGrid columns={auditColumns} data={filteredLogs} keyExtractor={(log) => log.id}
-          isLoading={isLoading} emptyMessage={debouncedSearch ? 'No audit logs match search.' : 'No audit logs found.'}
-          compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 130px)" style={{ flex: 1 }} />
-      )}
-
-      {activeTab === 'sales' && salesSummary && (
-        <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-            <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Today</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(salesSummary.today_total)}</div>
+          {fetchError && (
+            <div style={{ margin: '0 16px 12px', padding: '8px 12px', fontSize: '12px', color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{fetchError}</span>
+              <button onClick={() => loadTabData(activeTab)} style={{ fontSize: '11px', cursor: 'pointer', background: 'none', border: '1px solid var(--color-danger-border)', padding: '2px 8px', borderRadius: '0px', color: 'var(--color-danger-text)' }}>Retry</button>
             </div>
-            <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>This Week</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(salesSummary.week_total)}</div>
-            </div>
-            <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>This Month</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(salesSummary.month_total)}</div>
-            </div>
-            <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Transactions</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{salesSummary.total_sales}</div>
-            </div>
+          )}
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {activeTab === 'inventory' && (
+              <DataGrid columns={inventoryColumns} data={filteredMedicines} keyExtractor={(m) => m.id}
+                isLoading={isLoading} emptyMessage={debouncedSearch ? 'No medicines match search.' : 'No inventory records.'}
+                compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 205px)" style={{ flex: 1 }} />
+            )}
+
+            {activeTab === 'expiry' && (
+              <DataGrid columns={expiryColumns} data={filteredBatches} keyExtractor={(b) => b.id}
+                isLoading={isLoading} emptyMessage={debouncedSearch ? 'No batches match search.' : 'No batches expiring within 90 days.'}
+                compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 205px)" style={{ flex: 1 }} />
+            )}
+
+            {activeTab === 'performance' && (
+              <DataGrid columns={performanceColumns} data={allUsers} keyExtractor={(u) => u.id}
+                isLoading={isLoading} emptyMessage="No users found."
+                compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 205px)" style={{ flex: 1 }} />
+            )}
+
+            {activeTab === 'audit' && (
+              <DataGrid columns={auditColumns} data={filteredLogs} keyExtractor={(log) => log.id}
+                isLoading={isLoading} emptyMessage={debouncedSearch ? 'No audit logs match search.' : 'No audit logs found.'}
+                compactRows={true} zebraStriping={true} maxHeight="calc(100vh - 205px)" style={{ flex: 1 }} />
+            )}
+
+            {activeTab === 'sales' && salesSummary && (
+              <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Today</div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(salesSummary.today_total)}</div>
+                  </div>
+                  <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>This Week</div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(salesSummary.week_total)}</div>
+                  </div>
+                  <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>This Month</div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(salesSummary.month_total)}</div>
+                  </div>
+                  <div style={{ padding: '16px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Transactions</div>
+                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{salesSummary.total_sales}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div style={{ border: '1px solid var(--color-border-default)' }}>
+                    <div style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>Revenue by Payment Method</div>
+                    {salesSummary.by_method.length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)' }}>No sales data yet.</div>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead><tr style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
+                          <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Method</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Count</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Total (UGX)</th>
+                        </tr></thead>
+                        <tbody>
+                          {salesSummary.by_method.map(m => (
+                            <tr key={m.method} style={{ borderTop: '1px solid var(--color-border-default)' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'capitalize' }}>{m.method}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--color-text-secondary)' }}>{m.count}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-accent)' }}>{formatCurrency(m.total)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+
+                  <div style={{ border: '1px solid var(--color-border-default)' }}>
+                    <div style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>Top Selling Products</div>
+                    {salesSummary.top_products.length === 0 ? (
+                      <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)' }}>No sales data yet.</div>
+                    ) : (
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead><tr style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
+                          <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Product</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Qty Sold</th>
+                          <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Revenue (UGX)</th>
+                        </tr></thead>
+                        <tbody>
+                          {salesSummary.top_products.map(p => (
+                            <tr key={p.medicine_id} style={{ borderTop: '1px solid var(--color-border-default)' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{p.medicine_name}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--color-text-secondary)' }}>{p.quantity_sold}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-accent)' }}>{formatCurrency(p.revenue)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div style={{ border: '1px solid var(--color-border-default)' }}>
-              <div style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>Revenue by Payment Method</div>
-              {salesSummary.by_method.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)' }}>No sales data yet.</div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                  <thead><tr style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Method</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Count</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Total (UGX)</th>
-                  </tr></thead>
-                  <tbody>
-                    {salesSummary.by_method.map(m => (
-                      <tr key={m.method} style={{ borderTop: '1px solid var(--color-border-default)' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-text-primary)', textTransform: 'capitalize' }}>{m.method}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--color-text-secondary)' }}>{m.count}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-accent)' }}>{formatCurrency(m.total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            <div style={{ border: '1px solid var(--color-border-default)' }}>
-              <div style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, borderBottom: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)' }}>Top Selling Products</div>
-              {salesSummary.top_products.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', fontSize: '12px', color: 'var(--color-text-muted)' }}>No sales data yet.</div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                  <thead><tr style={{ backgroundColor: 'var(--color-bg-subtle)' }}>
-                    <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Product</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Qty Sold</th>
-                    <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Revenue (UGX)</th>
-                  </tr></thead>
-                  <tbody>
-                    {salesSummary.top_products.map(p => (
-                      <tr key={p.medicine_id} style={{ borderTop: '1px solid var(--color-border-default)' }}>
-                        <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{p.medicine_name}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--color-text-secondary)' }}>{p.quantity_sold}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--color-text-accent)' }}>{formatCurrency(p.revenue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
