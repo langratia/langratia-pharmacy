@@ -126,15 +126,15 @@ export const SuppliersPage: React.FC = () => {
 
   // Primary Workspace Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Supplier Registry
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact..." width="280px" showShortcut={false} />
             {isAdmin && (
               <button onClick={handleOpenAdd} className="desktop-btn-primary" style={{ height: '24px', fontSize: '11px', gap: '4px' }}>
@@ -164,7 +164,7 @@ export const SuppliersPage: React.FC = () => {
 
   // Inspector Docked Pane
   const inspectorContent = (
-    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
       {error && <div style={{ color: '#EF4444', fontSize: '10px' }}>{error}</div>}
 
       {(!selectedSupplier && !isNewSupplier) ? (
@@ -173,7 +173,7 @@ export const SuppliersPage: React.FC = () => {
           Select a supplier to view details and edit contact directory.
         </div>
       ) : (
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
             {isNewSupplier ? 'NEW SUPPLIER ENTRY' : selectedSupplier?.name}
           </div>
@@ -188,7 +188,7 @@ export const SuppliersPage: React.FC = () => {
             <input type="text" disabled={!isAdmin} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%' }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>Telephone</label>
               <input type="text" disabled={!isAdmin} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%' }} />

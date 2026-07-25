@@ -62,7 +62,7 @@ export const LoginPage: React.FC = () => {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '4px',
             backgroundColor: '#FEF2F2',
             border: '1px solid #FCA5A5',
             color: '#991B1B',

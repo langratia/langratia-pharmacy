@@ -5,16 +5,16 @@ import { WindowMinimise, WindowToggleMaximise, Quit } from '../../../wailsjs/run
 export const TitleBar: React.FC = () => {
   return (
     <div style={{
-      height: '30px',
-      maxHeight: '30px',
+      height: '24px',
+      maxHeight: '24px',
       flexShrink: 0,
       backgroundColor: '#0F172A',
       color: '#94A3B8',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 8px 0 12px',
-      fontSize: '12px',
+      padding: '0 4px 0 8px',
+      fontSize: '11px',
       fontWeight: 500,
       userSelect: 'none',
       borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
@@ -23,20 +23,20 @@ export const TitleBar: React.FC = () => {
     } as any}>
       
       {/* Left App Branding */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <div style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '2px',
+          width: '14px',
+          height: '14px',
+          borderRadius: '0px',
           backgroundColor: '#0F8A6A',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: '#FFFFFF'
         }}>
-          <Cross size={10} />
+          <Cross size={9} />
         </div>
-        <span style={{ fontSize: '11px', fontWeight: 600, color: '#E2E8F0', letterSpacing: '-0.01em' }}>
+        <span style={{ fontSize: '10px', fontWeight: 600, color: '#E2E8F0', letterSpacing: '-0.01em' }}>
           Langratia POS Workstation
         </span>
       </div>
@@ -47,9 +47,9 @@ export const TitleBar: React.FC = () => {
           onClick={() => WindowMinimise()}
           title="Minimize Window"
           style={{
-            width: '26px',
-            height: '22px',
-            borderRadius: '2px',
+            width: '24px',
+            height: '24px',
+            borderRadius: '0px',
             border: 'none',
             backgroundColor: 'transparent',
             color: '#94A3B8',
@@ -74,9 +74,9 @@ export const TitleBar: React.FC = () => {
           onClick={() => WindowToggleMaximise()}
           title="Maximize / Restore"
           style={{
-            width: '26px',
-            height: '22px',
-            borderRadius: '2px',
+            width: '24px',
+            height: '24px',
+            borderRadius: '0px',
             border: 'none',
             backgroundColor: 'transparent',
             color: '#94A3B8',
@@ -101,9 +101,9 @@ export const TitleBar: React.FC = () => {
           onClick={() => Quit()}
           title="Close Application"
           style={{
-            width: '26px',
-            height: '22px',
-            borderRadius: '2px',
+            width: '24px',
+            height: '24px',
+            borderRadius: '0px',
             border: 'none',
             backgroundColor: 'transparent',
             color: '#94A3B8',

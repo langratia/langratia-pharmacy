@@ -333,7 +333,7 @@ export const InventoryPage: React.FC = () => {
 
   // Master Primary Pane Content
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       <input
         type="file"
         ref={fileInputRef}
@@ -344,12 +344,12 @@ export const InventoryPage: React.FC = () => {
 
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Inventory Management
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, justifyContent: 'flex-end' }}>
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -445,7 +445,7 @@ export const InventoryPage: React.FC = () => {
 
   // Inspector Docked Panel Content
   const inspectorContent = (
-    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
       {inspectorError && (
         <div style={{ padding: '6px 8px', borderRadius: '2px', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: '11px' }}>
           {inspectorError}
@@ -458,7 +458,7 @@ export const InventoryPage: React.FC = () => {
           Select a medicine from the data grid to inspect details and edit stock records.
         </div>
       ) : (
-        <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #CBD5E1', paddingBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A' }}>
               {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
@@ -483,7 +483,7 @@ export const InventoryPage: React.FC = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
                 Generic Composition
@@ -512,7 +512,7 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
                 Category
@@ -545,7 +545,7 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
                 Dosage / Strength
@@ -574,7 +574,7 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
                 Buy Price (UGX)
@@ -603,7 +603,7 @@ export const InventoryPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '2px', textTransform: 'uppercase' }}>
                 Current Stock Qty

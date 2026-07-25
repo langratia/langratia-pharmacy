@@ -189,15 +189,15 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   // Primary Pane Content - Strict 4-Column Desktop Workstation Tiles Grid
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Checkout Workstation
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <SearchBar
               value={search}
               onChange={setSearch}
@@ -228,7 +228,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           overflowY: 'auto',
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '6px',
+          gap: '2px',
           padding: '2px',
           alignContent: 'start'
         }}
@@ -341,7 +341,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   // Inspector Docked Cart Content (Streamlined, No Payment Method Buttons)
   const cartContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '8px', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '4px', boxSizing: 'border-box' }}>
       {/* Cart Items List */}
       <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: '2px', backgroundColor: 'var(--color-panel-bg)', padding: '4px' }}>
         {cart.length === 0 ? (
@@ -402,7 +402,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       </div>
 
       {/* Total Calculation & Approve Sale */}
-      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {/* Total Summary Box */}
         <div
           style={{
@@ -430,7 +430,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             height: '32px',
             fontSize: '12px',
             width: '100%',
-            gap: '6px',
+            gap: '2px',
             opacity: cart.length === 0 || isProcessing ? 0.6 : 1
           }}
         >
@@ -489,7 +489,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', gap: '2px', marginTop: '8px' }}>
               <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '4px' }}>
                 <Printer size={13} /> Print Receipt
               </button>

@@ -176,15 +176,15 @@ export const PurchasesPage: React.FC = () => {
 
   // Primary Workspace Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', height: '100%' }}>
       {/* 1-Line Compact Application Command Toolbar */}
       <Panel noPadding style={{ padding: '4px 8px', height: '34px', minHeight: '34px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', height: '100%' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
             Procurement & Purchase Orders
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button
               onClick={() => {
                 setIsCreatingPO(true);
@@ -223,15 +223,15 @@ export const PurchasesPage: React.FC = () => {
 
   // Inspector Pane Content
   const inspectorContent = (
-    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '4px', display: 'flex', flexDirection: 'column', gap: '4px', height: '100%', boxSizing: 'border-box' }}>
       {isCreatingPO ? (
-        <form onSubmit={handleSavePurchase} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <form onSubmit={handleSavePurchase} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
             NEW PURCHASE ORDER ENTRY
           </div>
           {error && <div style={{ color: '#EF4444', fontSize: '10px' }}>{error}</div>}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
             <input placeholder="Invoice Number *" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} required />
             <select value={supplierId} onChange={e => setSupplierId(Number(e.target.value))} required>
               <option value="">Select Supplier...</option>
@@ -262,7 +262,7 @@ export const PurchasesPage: React.FC = () => {
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '2px', marginTop: 'auto' }}>
             <button type="button" onClick={() => setIsCreatingPO(false)} className="desktop-btn-secondary">Cancel</button>
             <button type="submit" className="desktop-btn-primary">Save Order</button>
           </div>
@@ -273,7 +273,7 @@ export const PurchasesPage: React.FC = () => {
           Select a purchase order to inspect invoice breakdown.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ fontSize: '12px', fontWeight: 700, color: '#0F172A', borderBottom: '1px solid #CBD5E1', paddingBottom: '4px' }}>
             INVOICE #{selectedPurchase.invoice_number}
           </div>

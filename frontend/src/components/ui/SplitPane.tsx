@@ -25,7 +25,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
     <div
       style={{
         display: 'flex',
-        gap: '8px',
+        gap: '4px',
         width: '100%',
         height: '100%',
         flex: 1,
@@ -78,11 +78,11 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
           onClick={onToggleInspector}
           title="Open Inspector Panel"
           style={{
-            width: '24px',
+            width: '18px',
             height: '100%',
             backgroundColor: '#FFFFFF',
             border: '1px solid #CBD5E1',
-            borderRadius: '2px',
+            borderRadius: '0px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

@@ -160,15 +160,15 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
   return (
     <header
       style={{
-        height: '38px',
-        maxHeight: '38px',
+        height: '32px',
+        maxHeight: '32px',
         flexShrink: 0,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #CBD5E1',
+        backgroundColor: 'var(--color-panel-bg)',
+        borderBottom: '1px solid var(--color-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 12px',
+        padding: '0 8px',
         position: 'relative',
         zIndex: 90,
         boxShadow: 'none'
@@ -179,9 +179,9 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
         <button
           onClick={() => onSelectView('pos')}
           className="desktop-btn-primary"
-          style={{ height: '26px', fontSize: '11px', gap: '5px' }}
+          style={{ height: '22px', fontSize: '11px', gap: '4px', padding: '0 8px', borderRadius: '0' }}
         >
-          <Plus size={13} />
+          <Plus size={12} />
           <span>New Sale (F1)</span>
         </button>
       </div>
@@ -276,10 +276,10 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Switch to Light Teal Workstation' : 'Switch to Dark Workstation Mode'}
           style={{
-            width: '26px',
-            height: '26px',
+            width: '22px',
+            height: '22px',
             padding: 0,
-            borderRadius: '2px',
+            borderRadius: '0px',
             border: '1px solid var(--color-border)',
             backgroundColor: 'var(--color-panel-bg)',
             color: 'var(--color-text-primary)'
@@ -291,16 +291,17 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
         {/* Today's Sales Counter */}
         <div
           style={{
-            backgroundColor: '#ECFDF5',
-            color: '#065F46',
-            border: '1px solid #A7F3D0',
-            padding: '2px 8px',
-            borderRadius: '2px',
+            backgroundColor: 'var(--color-accent-light)',
+            color: 'var(--color-accent-hover)',
+            border: '1px solid var(--color-accent)',
+            padding: '1px 6px',
+            borderRadius: '0px',
             fontWeight: 600,
-            fontSize: '11px',
+            fontSize: '10px',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px'
+            gap: '4px',
+            height: '22px'
           }}
         >
           <span style={{ color: '#059669', fontSize: '10px' }}>UGX</span>
@@ -313,13 +314,13 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
             onClick={() => setShowNotifications(!showNotifications)}
             title="Notifications"
             style={{
-              width: '26px',
-              height: '26px',
+              width: '22px',
+              height: '22px',
               padding: 0,
-              borderRadius: '2px',
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
+              borderRadius: '0px',
+              border: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-panel-bg)',
+              color: 'var(--color-text-primary)',
               position: 'relative'
             }}
           >
@@ -427,20 +428,20 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '2px 6px',
-            border: '1px solid #CBD5E1',
-            borderRadius: '2px',
-            backgroundColor: '#F8FAFC',
+            gap: '4px',
+            padding: '0 4px',
+            border: '1px solid var(--color-border)',
+            borderRadius: '0px',
+            backgroundColor: 'var(--color-panel-bg)',
             cursor: 'pointer',
-            height: '26px'
+            height: '22px'
           }}
         >
           <div
             style={{
-              width: '20px',
-              height: '20px',
-              borderRadius: '2px',
+              width: '16px',
+              height: '16px',
+              borderRadius: '0px',
               overflow: 'hidden',
               backgroundColor: '#0F172A',
               flexShrink: 0
