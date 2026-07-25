@@ -507,10 +507,19 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
       {/* Completed Sale Receipt Modal (Portaled for true center) */}
       {isCheckoutOpen && completedSale && createPortal(
-        <div className="modal-overlay" onClick={() => setIsCheckoutOpen(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setIsCheckoutOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setIsCheckoutOpen(false);
+          }}
+        >
           <div
             className="animate-popup"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
             style={{
               backgroundColor: 'var(--color-bg-elevated)',
               border: '1px solid var(--color-border-default)',
@@ -533,7 +542,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   Amount Paid: <strong style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(completedSale.total_amount)}</strong>
                 </p>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '16px', width: '100%' }}>
-                  <button onClick={() => setShowSuccessAnim(false)} className="desktop-btn-secondary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
+                  <button autoFocus onClick={() => setShowSuccessAnim(false)} className="desktop-btn-secondary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
                     View Receipt
                   </button>
                   <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
@@ -568,7 +577,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                  <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '0px' }}>
+                  <button autoFocus onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '0px' }}>
                     <Printer size={16} /> Print Receipt
                   </button>
                   <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '0px' }}>
