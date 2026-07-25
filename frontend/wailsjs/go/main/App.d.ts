@@ -12,6 +12,8 @@ export function AddSupplier(arg1:models.Supplier,arg2:number,arg3:string):Promis
 
 export function AdjustStock(arg1:number,arg2:any,arg3:number,arg4:string,arg5:number,arg6:string,arg7:string):Promise<void>;
 
+export function AdminResetPassword(arg1:number,arg2:number,arg3:string):Promise<void>;
+
 export function ArchiveMedicine(arg1:number,arg2:boolean,arg3:number,arg4:string):Promise<void>;
 
 export function ArchiveSupplier(arg1:number,arg2:boolean,arg3:number,arg4:string):Promise<void>;
@@ -22,21 +24,17 @@ export function BulkImportMedicines(arg1:Array<models.Medicine>,arg2:number,arg3
 
 export function ChangePassword(arg1:number,arg2:string,arg3:string):Promise<void>;
 
-export function AdminResetPassword(arg1:number,arg2:number,arg3:string):Promise<void>;
-
-export function UnlockUser(arg1:number,arg2:number):Promise<void>;
-
-export function VerifyPassword(arg1:number,arg2:string):Promise<boolean>;
-
 export function CreatePrescription(arg1:number,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:string,arg9:Array<services.PrescriptionItemInput>):Promise<models.Prescription>;
 
-export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number):Promise<models.User>;
+export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string,arg8:number):Promise<models.User>;
 
 export function DeactivateUser(arg1:number,arg2:number):Promise<void>;
 
 export function EnableMainServerMode(arg1:number):Promise<void>;
 
 export function ExportDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
+
+export function ForceLogout(arg1:number,arg2:number):Promise<void>;
 
 export function GetBatchesByMedicine(arg1:number):Promise<Array<models.Batch>>;
 
@@ -46,6 +44,8 @@ export function GetDashboardSummary():Promise<services.DashboardSummary>;
 
 export function GetExpiringBatches(arg1:number):Promise<Array<models.Batch>>;
 
+export function GetLoginHistory(arg1:number,arg2:number):Promise<Array<models.LoginHistory>>;
+
 export function GetNetworkStatus():Promise<main.NetworkStatus>;
 
 export function GetNotificationsSummary():Promise<models.NotificationSummary>;
@@ -53,6 +53,10 @@ export function GetNotificationsSummary():Promise<models.NotificationSummary>;
 export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>;
 
 export function GetSalesSummary():Promise<services.SalesSummary>;
+
+export function GetUser(arg1:number,arg2:number):Promise<models.User>;
+
+export function GetUserActivity(arg1:number,arg2:number,arg3:number):Promise<Array<models.AuditLog>>;
 
 export function GetUserTodaySalesTotal(arg1:number):Promise<number>;
 
@@ -78,17 +82,23 @@ export function ListSuppliers(arg1:boolean):Promise<Array<models.Supplier>>;
 
 export function ListUsers(arg1:number):Promise<Array<models.User>>;
 
+export function LockUser(arg1:number,arg2:number):Promise<void>;
+
 export function Login(arg1:string,arg2:string,arg3:string):Promise<models.User>;
 
 export function Logout(arg1:number):Promise<void>;
 
 export function ProcessSale(arg1:number,arg2:string,arg3:Array<services.CartItemInput>,arg4:string):Promise<models.Sale>;
 
+export function ReactivateUser(arg1:number,arg2:number):Promise<void>;
+
 export function RecordPurchase(arg1:string,arg2:any,arg3:Array<services.IncomingStockItem>,arg4:string,arg5:number,arg6:string):Promise<models.Purchase>;
 
 export function ResetAndSeedDatabase(arg1:number):Promise<void>;
 
 export function RestoreDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
+
+export function UnlockUser(arg1:number,arg2:number):Promise<void>;
 
 export function UpdateDatabaseConfig(arg1:string):Promise<void>;
 
@@ -98,4 +108,6 @@ export function UpdatePrescriptionStatus(arg1:number,arg2:string,arg3:number,arg
 
 export function UpdateSupplier(arg1:models.Supplier,arg2:number,arg3:string):Promise<void>;
 
-export function UpdateUser(arg1:number,arg2:string,arg3:string,arg4:number):Promise<void>;
+export function UpdateUserInfo(arg1:number,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:number):Promise<void>;
+
+export function VerifyPassword(arg1:number,arg2:string):Promise<boolean>;

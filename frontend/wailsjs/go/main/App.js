@@ -18,6 +18,10 @@ export function AdjustStock(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
   return window['go']['main']['App']['AdjustStock'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
+export function AdminResetPassword(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AdminResetPassword'](arg1, arg2, arg3);
+}
+
 export function ArchiveMedicine(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchiveMedicine'](arg1, arg2, arg3, arg4);
 }
@@ -38,24 +42,12 @@ export function ChangePassword(arg1, arg2, arg3) {
   return window['go']['main']['App']['ChangePassword'](arg1, arg2, arg3);
 }
 
-export function AdminResetPassword(arg1, arg2, arg3) {
-  return window['go']['main']['App']['AdminResetPassword'](arg1, arg2, arg3);
-}
-
-export function UnlockUser(arg1, arg2) {
-  return window['go']['main']['App']['UnlockUser'](arg1, arg2);
-}
-
-export function VerifyPassword(arg1, arg2) {
-  return window['go']['main']['App']['VerifyPassword'](arg1, arg2);
-}
-
 export function CreatePrescription(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9) {
   return window['go']['main']['App']['CreatePrescription'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
 }
 
-export function CreateUser(arg1, arg2, arg3, arg4, arg5) {
-  return window['go']['main']['App']['CreateUser'](arg1, arg2, arg3, arg4, arg5);
+export function CreateUser(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['CreateUser'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
 export function DeactivateUser(arg1, arg2) {
@@ -68,6 +60,10 @@ export function EnableMainServerMode(arg1) {
 
 export function ExportDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportDatabase'](arg1, arg2, arg3);
+}
+
+export function ForceLogout(arg1, arg2) {
+  return window['go']['main']['App']['ForceLogout'](arg1, arg2);
 }
 
 export function GetBatchesByMedicine(arg1) {
@@ -86,6 +82,10 @@ export function GetExpiringBatches(arg1) {
   return window['go']['main']['App']['GetExpiringBatches'](arg1);
 }
 
+export function GetLoginHistory(arg1, arg2) {
+  return window['go']['main']['App']['GetLoginHistory'](arg1, arg2);
+}
+
 export function GetNetworkStatus() {
   return window['go']['main']['App']['GetNetworkStatus']();
 }
@@ -100,6 +100,14 @@ export function GetPrescriptionDetails(arg1) {
 
 export function GetSalesSummary() {
   return window['go']['main']['App']['GetSalesSummary']();
+}
+
+export function GetUser(arg1, arg2) {
+  return window['go']['main']['App']['GetUser'](arg1, arg2);
+}
+
+export function GetUserActivity(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetUserActivity'](arg1, arg2, arg3);
 }
 
 export function GetUserTodaySalesTotal(arg1) {
@@ -150,6 +158,10 @@ export function ListUsers(arg1) {
   return window['go']['main']['App']['ListUsers'](arg1);
 }
 
+export function LockUser(arg1, arg2) {
+  return window['go']['main']['App']['LockUser'](arg1, arg2);
+}
+
 export function Login(arg1, arg2, arg3) {
   return window['go']['main']['App']['Login'](arg1, arg2, arg3);
 }
@@ -162,6 +174,10 @@ export function ProcessSale(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ProcessSale'](arg1, arg2, arg3, arg4);
 }
 
+export function ReactivateUser(arg1, arg2) {
+  return window['go']['main']['App']['ReactivateUser'](arg1, arg2);
+}
+
 export function RecordPurchase(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['RecordPurchase'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
@@ -172,6 +188,10 @@ export function ResetAndSeedDatabase(arg1) {
 
 export function RestoreDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['RestoreDatabase'](arg1, arg2, arg3);
+}
+
+export function UnlockUser(arg1, arg2) {
+  return window['go']['main']['App']['UnlockUser'](arg1, arg2);
 }
 
 export function UpdateDatabaseConfig(arg1) {
@@ -190,6 +210,10 @@ export function UpdateSupplier(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdateSupplier'](arg1, arg2, arg3);
 }
 
-export function UpdateUser(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['UpdateUser'](arg1, arg2, arg3, arg4);
+export function UpdateUserInfo(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['UpdateUserInfo'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+export function VerifyPassword(arg1, arg2) {
+  return window['go']['main']['App']['VerifyPassword'](arg1, arg2);
 }

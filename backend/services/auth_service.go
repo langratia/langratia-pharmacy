@@ -19,7 +19,6 @@ func NewAuthService(database *db.DB) *AuthService {
 	return &AuthService{db: database}
 }
 
-// getConfig retrieves a system_config value with a fallback default.
 func (s *AuthService) getConfig(key, fallback string) string {
 	var val string
 	err := s.db.QueryRow("SELECT value FROM system_config WHERE key = ?", key).Scan(&val)
@@ -29,16 +28,62 @@ func (s *AuthService) getConfig(key, fallback string) string {
 	return val
 }
 
+func (s *AuthService) logAction(userID int64, username, action, details string) {
+	_, _ = s.db.Exec(
+		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
+		userID, username, action, details,
+	)
+}
+
+func (s *AuthService) recordLoginHistory(userID int64, username, action, workstation string) {
+	_, _ = s.db.Exec(
+		`INSERT INTO login_history (user_id, username, action, workstation) VALUES (?, ?, ?, ?)`,
+		userID, username, action, workstation,
+	)
+}
+
+// GetUser returns a single user with all fields (no password hash).
+func (s *AuthService) GetUser(id int64) (*models.User, error) {
+	var u models.User
+	var phone, email, branch sql.NullString
+	err := s.db.QueryRow(`
+		SELECT id, username, role, full_name, COALESCE(phone, ''), COALESCE(email, ''),
+		       COALESCE(branch, ''), active, last_login_at, last_logout_at,
+		       COALESCE(last_workstation, ''), COALESCE(failed_login_attempts, 0),
+		       locked_until, password_changed_at, created_at
+		FROM users WHERE id = ?`, id).Scan(
+		&u.ID, &u.Username, &u.Role, &u.FullName,
+		&phone, &email, &branch,
+		&u.Active, &u.LastLoginAt, &u.LastLogoutAt,
+		&u.LastWorkstation, &u.FailedLoginAttempts,
+		&u.LockedUntil, &u.PasswordChangedAt, &u.CreatedAt,
+	)
+	if err != nil {
+		return nil, errors.New("user not found")
+	}
+	u.Phone = phone.String
+	u.Email = email.String
+	u.Branch = branch.String
+	return &u, nil
+}
+
 // Login authenticates user credentials and returns user details.
 func (s *AuthService) Login(username, password, workstation string) (*models.User, error) {
 	var user models.User
 	var passwordHash string
 	var failedAttempts int
 	var lockedUntil sql.NullTime
+	var phone, email, branch sql.NullString
 
-	query := `SELECT id, username, password_hash, role, full_name, active, last_login_at, last_logout_at, COALESCE(last_workstation, ''), COALESCE(failed_login_attempts, 0), locked_until, password_changed_at, created_at FROM users WHERE username = ?`
+	query := `SELECT id, username, password_hash, role, full_name,
+		COALESCE(phone, ''), COALESCE(email, ''), COALESCE(branch, ''),
+		active, last_login_at, last_logout_at,
+		COALESCE(last_workstation, ''), COALESCE(failed_login_attempts, 0),
+		locked_until, password_changed_at, created_at FROM users WHERE username = ?`
 	err := s.db.QueryRow(query, username).Scan(
-		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName, &user.Active,
+		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName,
+		&phone, &email, &branch,
+		&user.Active,
 		&user.LastLoginAt, &user.LastLogoutAt, &user.LastWorkstation,
 		&failedAttempts, &lockedUntil, &user.PasswordChangedAt, &user.CreatedAt,
 	)
@@ -46,17 +91,19 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 		return nil, errors.New("invalid username or password")
 	}
 
+	user.Phone = phone.String
+	user.Email = email.String
+	user.Branch = branch.String
+
 	if !user.Active {
 		return nil, errors.New("account is disabled")
 	}
 
-	// Check if account is temporarily locked
 	if lockedUntil.Valid && time.Now().Before(lockedUntil.Time) {
 		return nil, fmt.Errorf("account is locked until %s", lockedUntil.Time.Format("2006-01-02 15:04"))
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
-		// Increment failed attempts and check lockout threshold
 		s.db.Exec("UPDATE users SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1 WHERE id = ?", user.ID)
 
 		var attemptCount int
@@ -86,34 +133,47 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 	}
 
 	now := time.Now()
-
-	// On success: reset failed attempts, update login timestamp, record workstation
 	s.db.Exec("UPDATE users SET failed_login_attempts = 0, last_login_at = ?, last_workstation = ? WHERE id = ?", now, workstation, user.ID)
 
 	user.FailedLoginAttempts = 0
 	user.LastLoginAt = &now
 	user.LastWorkstation = workstation
 
-	// Record Audit Log
 	s.logAction(user.ID, user.Username, "USER_LOGIN", fmt.Sprintf("User %s logged in from %s", username, workstation))
+	s.recordLoginHistory(user.ID, user.Username, "login", workstation)
 
 	return &user, nil
 }
 
-// Logout records the logout timestamp for a user.
+// Logout records the logout timestamp and login_history entry.
 func (s *AuthService) Logout(userID int64) error {
 	now := time.Now()
 	_, err := s.db.Exec("UPDATE users SET last_logout_at = ? WHERE id = ?", now, userID)
 	if err != nil {
 		return err
 	}
+
+	var username string
+	s.db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	s.recordLoginHistory(userID, username, "logout", "")
 	return nil
 }
 
-// CreateUser registers a new user (Admin only operation).
-func (s *AuthService) CreateUser(username, password, role, fullName string) (*models.User, error) {
+// ForceLogout records a force_logout event in login_history (admin action).
+func (s *AuthService) ForceLogout(userID int64, adminID int64) error {
+	var username, adminUser string
+	s.db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
+	s.db.QueryRow("SELECT username FROM users WHERE id = ?", adminID).Scan(&adminUser)
+
+	s.recordLoginHistory(userID, username, "force_logout", "")
+	s.logAction(adminID, adminUser, "FORCE_LOGOUT", fmt.Sprintf("Admin force-logged out user %s", username))
+	return nil
+}
+
+// CreateUser registers a new user.
+func (s *AuthService) CreateUser(username, password, role, fullName, phone, email, branch string) (*models.User, error) {
 	if username == "" || password == "" || role == "" || fullName == "" {
-		return nil, errors.New("all user fields are required")
+		return nil, errors.New("all required user fields must be filled")
 	}
 
 	if role != "admin" && role != "cashier" {
@@ -125,8 +185,8 @@ func (s *AuthService) CreateUser(username, password, role, fullName string) (*mo
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	query := `INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)`
-	res, err := s.db.Exec(query, username, string(hashedPassword), role, fullName)
+	query := `INSERT INTO users (username, password_hash, role, full_name, phone, email, branch) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	res, err := s.db.Exec(query, username, string(hashedPassword), role, fullName, phone, email, branch)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -136,20 +196,25 @@ func (s *AuthService) CreateUser(username, password, role, fullName string) (*mo
 		return nil, err
 	}
 
-	user := &models.User{
+	return &models.User{
 		ID:       id,
 		Username: username,
 		Role:     role,
 		FullName: fullName,
-	}
-
-	return user, nil
+		Phone:    phone,
+		Email:    email,
+		Branch:   branch,
+	}, nil
 }
 
-// ListUsers retrieves all registered users.
+// ListUsers retrieves all users including inactive (for management UI).
 func (s *AuthService) ListUsers() ([]models.User, error) {
-	query := `SELECT id, username, role, full_name, created_at FROM users WHERE active = 1 ORDER BY created_at DESC`
-	rows, err := s.db.Query(query)
+	rows, err := s.db.Query(`
+		SELECT id, username, role, full_name, COALESCE(phone, ''), COALESCE(email, ''),
+		       COALESCE(branch, ''), active, last_login_at, last_logout_at,
+		       COALESCE(last_workstation, ''), COALESCE(failed_login_attempts, 0),
+		       locked_until, password_changed_at, created_at
+		FROM users ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -158,8 +223,22 @@ func (s *AuthService) ListUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Role, &u.FullName, &u.CreatedAt); err != nil {
+		var phone, email, branch sql.NullString
+		var lockedUntil sql.NullTime
+		if err := rows.Scan(
+			&u.ID, &u.Username, &u.Role, &u.FullName,
+			&phone, &email, &branch,
+			&u.Active, &u.LastLoginAt, &u.LastLogoutAt,
+			&u.LastWorkstation, &u.FailedLoginAttempts,
+			&lockedUntil, &u.PasswordChangedAt, &u.CreatedAt,
+		); err != nil {
 			return nil, err
+		}
+		u.Phone = phone.String
+		u.Email = email.String
+		u.Branch = branch.String
+		if lockedUntil.Valid {
+			u.LockedUntil = &lockedUntil.Time
 		}
 		users = append(users, u)
 	}
@@ -167,19 +246,38 @@ func (s *AuthService) ListUsers() ([]models.User, error) {
 	return users, nil
 }
 
-// UpdateUser updates user details.
-func (s *AuthService) UpdateUser(id int64, role, fullName string) error {
+// UpdateUserInfo updates user details (full_name, phone, email, branch, role).
+func (s *AuthService) UpdateUserInfo(id int64, role, fullName, phone, email, branch string) error {
 	if id <= 0 || role == "" || fullName == "" {
 		return errors.New("invalid parameters for user update")
 	}
-	query := `UPDATE users SET role = ?, full_name = ? WHERE id = ? AND active = 1`
-	res, err := s.db.Exec(query, role, fullName, id)
+	if role != "admin" && role != "cashier" {
+		return errors.New("role must be admin or cashier")
+	}
+	query := `UPDATE users SET role = ?, full_name = ?, phone = ?, email = ?, branch = ? WHERE id = ?`
+	res, err := s.db.Exec(query, role, fullName, phone, email, branch, id)
 	if err != nil {
 		return err
 	}
 	rows, _ := res.RowsAffected()
 	if rows == 0 {
-		return errors.New("user not found or inactive")
+		return errors.New("user not found")
+	}
+	return nil
+}
+
+// ReactivateUser sets active = 1 for a deactivated user.
+func (s *AuthService) ReactivateUser(id int64) error {
+	if id <= 0 {
+		return errors.New("invalid user ID")
+	}
+	res, err := s.db.Exec("UPDATE users SET active = 1 WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("user not found")
 	}
 	return nil
 }
@@ -189,12 +287,35 @@ func (s *AuthService) DeactivateUser(id int64) error {
 	if id <= 0 {
 		return errors.New("invalid user ID")
 	}
-	query := `UPDATE users SET active = 0 WHERE id = ?`
-	_, err := s.db.Exec(query, id)
-	return err
+	res, err := s.db.Exec("UPDATE users SET active = 0 WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("user not found")
+	}
+	return nil
 }
 
-// UnlockUser clears the lockout and failed attempts for a user (admin only).
+// LockUser manually locks a user account (sets locked_until far in future).
+func (s *AuthService) LockUser(id int64) error {
+	if id <= 0 {
+		return errors.New("invalid user ID")
+	}
+	lockedUntil := time.Now().Add(100 * 365 * 24 * time.Hour)
+	res, err := s.db.Exec("UPDATE users SET locked_until = ?, failed_login_attempts = COALESCE(failed_login_attempts, 0) WHERE id = ?", lockedUntil, id)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("user not found")
+	}
+	return nil
+}
+
+// UnlockUser clears lockout and failed attempts.
 func (s *AuthService) UnlockUser(targetUserID int64) error {
 	res, err := s.db.Exec("UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?", targetUserID)
 	if err != nil {
@@ -207,7 +328,7 @@ func (s *AuthService) UnlockUser(targetUserID int64) error {
 	return nil
 }
 
-// VerifyPassword checks if the given password matches the user's current password (for re-authentication).
+// VerifyPassword checks if the given password matches the user's current password.
 func (s *AuthService) VerifyPassword(userID int64, password string) bool {
 	var currentHash string
 	err := s.db.QueryRow("SELECT password_hash FROM users WHERE id = ? AND active = 1", userID).Scan(&currentHash)
@@ -247,7 +368,6 @@ func (s *AuthService) ChangePassword(userID int64, oldPassword, newPassword stri
 		return err
 	}
 
-	// Record username for audit
 	var username string
 	s.db.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 	s.logAction(userID, username, "CHANGE_PASSWORD", "User changed their own password")
@@ -278,7 +398,6 @@ func (s *AuthService) AdminResetPassword(adminID int64, targetUserID int64, newP
 		return errors.New("user not found")
 	}
 
-	// Record audit with admin and target usernames
 	var adminUser, targetUser string
 	s.db.QueryRow("SELECT username FROM users WHERE id = ?", adminID).Scan(&adminUser)
 	s.db.QueryRow("SELECT username FROM users WHERE id = ?", targetUserID).Scan(&targetUser)
@@ -286,10 +405,47 @@ func (s *AuthService) AdminResetPassword(adminID int64, targetUserID int64, newP
 	return nil
 }
 
-func (s *AuthService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+// GetLoginHistory returns login/logout events for a specific user.
+func (s *AuthService) GetLoginHistory(userID int64) ([]models.LoginHistory, error) {
+	rows, err := s.db.Query(`
+		SELECT id, user_id, username, action, COALESCE(workstation, ''), created_at
+		FROM login_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 100`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []models.LoginHistory
+	for rows.Next() {
+		var h models.LoginHistory
+		if err := rows.Scan(&h.ID, &h.UserID, &h.Username, &h.Action, &h.Workstation, &h.CreatedAt); err != nil {
+			return nil, err
+		}
+		history = append(history, h)
+	}
+	return history, nil
 }
 
+// GetUserActivity returns audit log entries for a specific user.
+func (s *AuthService) GetUserActivity(userID int64, limit int) ([]models.AuditLog, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	rows, err := s.db.Query(`
+		SELECT id, user_id, username, action, COALESCE(details, ''), timestamp
+		FROM audit_logs WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?`, userID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []models.AuditLog
+	for rows.Next() {
+		var l models.AuditLog
+		if err := rows.Scan(&l.ID, &l.UserID, &l.Username, &l.Action, &l.Details, &l.Timestamp); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, nil
+}

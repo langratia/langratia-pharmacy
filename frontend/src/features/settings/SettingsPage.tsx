@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Shield, Users, Database, UserPlus, Network, Key } from 'lucide-react';
+import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword } from '../../../wailsjs/go/main/App';
+import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/formatters';
@@ -17,7 +17,7 @@ export const SettingsPage: React.FC = () => {
   
   // Users state
   const [users, setUsers] = useState<models.User[]>([]);
-  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'cashier', full_name: '' });
+  const [newUser, setNewUser] = useState({ username: '', password: '', role: 'cashier', full_name: '', phone: '', email: '', branch: '' });
   
   // Audit logs state
   const [auditLogs, setAuditLogs] = useState<models.AuditLog[]>([]);
@@ -50,6 +50,17 @@ export const SettingsPage: React.FC = () => {
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [showResetPwInput, setShowResetPwInput] = useState(false);
   const [isResettingPw, setIsResettingPw] = useState(false);
+
+  // Edit user state
+  const [editTarget, setEditTarget] = useState<models.User | null>(null);
+  const [editForm, setEditForm] = useState({ role: 'cashier', full_name: '', phone: '', email: '', branch: '' });
+  const [isEditing, setIsEditing] = useState(false);
+
+  // User detail viewer state
+  const [detailUser, setDetailUser] = useState<models.User | null>(null);
+  const [loginHistory, setLoginHistory] = useState<models.LoginHistory[]>([]);
+  const [userActivity, setUserActivity] = useState<models.AuditLog[]>([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -89,9 +100,9 @@ export const SettingsPage: React.FC = () => {
     
     try {
       setIsLoading(true);
-      await CreateUser(newUser.username, newUser.password, newUser.role, newUser.full_name, user!.id);
+      await CreateUser(newUser.username, newUser.password, newUser.role, newUser.full_name, newUser.phone, newUser.email, newUser.branch, user!.id);
       toast.success('User created successfully');
-      setNewUser({ username: '', password: '', role: 'cashier', full_name: '' });
+      setNewUser({ username: '', password: '', role: 'cashier', full_name: '', phone: '', email: '', branch: '' });
       fetchUsers();
     } catch (err: any) {
       toast.error(err.message || 'Failed to create user');
@@ -260,115 +271,188 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleEditUser = (u: models.User) => {
+    setEditTarget(u);
+    setEditForm({ role: u.role, full_name: u.full_name, phone: u.phone || '', email: u.email || '', branch: u.branch || '' });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget || !user) return;
+    setIsEditing(true);
+    try {
+      await UpdateUserInfo(editTarget.id, editForm.role, editForm.full_name, editForm.phone, editForm.email, editForm.branch, user.id);
+      toast.success(`User ${editTarget.username} updated`);
+      setEditTarget(null);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update user');
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const handleReactivateUser = async (uId: number, username: string) => {
+    if (!user) return;
+    if (!window.confirm(`Reactivate user "${username}"?`)) return;
+    try {
+      await ReactivateUser(uId, user.id);
+      toast.success(`User ${username} reactivated`);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reactivate user');
+    }
+  };
+
+  const handleLockUser = async (uId: number, username: string) => {
+    if (!user) return;
+    if (!window.confirm(`Lock user account "${username}"?`)) return;
+    try {
+      await LockUser(uId, user.id);
+      toast.success(`User ${username} locked`);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to lock user');
+    }
+  };
+
+  const handleUnlockUser = async (uId: number, username: string) => {
+    if (!user) return;
+    try {
+      await UnlockUser(user.id, uId);
+      toast.success(`User ${username} unlocked`);
+      fetchUsers();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to unlock user');
+    }
+  };
+
+  const handleForceLogout = async (uId: number, username: string) => {
+    if (!user) return;
+    if (!window.confirm(`Force logout user "${username}"?`)) return;
+    try {
+      await ForceLogout(uId, user.id);
+      toast.success(`User ${username} force-logged out`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to force logout');
+    }
+  };
+
+  const handleViewUserDetail = async (uId: number) => {
+    if (!user) return;
+    setIsLoadingDetail(true);
+    try {
+      const [u, history, activity] = await Promise.all([
+        GetUser(uId, user.id),
+        GetLoginHistory(uId, user.id),
+        GetUserActivity(uId, 50, user.id),
+      ]);
+      setDetailUser(u);
+      setLoginHistory(history || []);
+      setUserActivity(activity || []);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to load user details');
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
   const userColumns: Column<models.User>[] = [
+    {
+      key: 'id',
+      header: 'ID',
+      width: '5%',
+      accessor: (u) => <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{u.id}</span>
+    },
     {
       key: 'username',
       header: 'Username',
-      width: '25%',
+      width: '12%',
       accessor: (u) => <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{u.username}</span>
     },
     {
       key: 'full_name',
-      header: 'Full Name',
-      width: '30%',
+      header: 'Name',
+      width: '14%',
       accessor: (u) => <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{u.full_name || '-'}</span>
     },
     {
       key: 'role',
-      header: 'Role Privilege',
-      width: '25%',
+      header: 'Role',
+      width: '7%',
       accessor: (u) => {
         let bg = 'var(--color-bg-panel)';
         let border = 'var(--color-border-default)';
         let color = 'var(--color-text-secondary)';
-
-        if (u.role === 'admin') {
-          bg = 'var(--color-accent-subtle)';
-          border = 'var(--color-accent-base)';
-          color = 'var(--color-accent-base)';
-        }
-
-        return (
-          <span style={{
-            fontSize: '10px',
-            padding: '2px 8px',
-            backgroundColor: bg,
-            border: `1px solid ${border}`,
-            borderRadius: '0px',
-            fontWeight: 700,
-            color: color,
-            textTransform: 'uppercase',
-            letterSpacing: '0.04em'
-          }}>
-            {u.role}
-          </span>
-        );
+        if (u.role === 'admin') { bg = 'var(--color-accent-subtle)'; border = 'var(--color-accent-base)'; color = 'var(--color-accent-base)'; }
+        return <span style={{ fontSize: '10px', padding: '2px 6px', backgroundColor: bg, border: `1px solid ${border}`, fontWeight: 700, color: color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{u.role}</span>;
       }
     },
     {
+      key: 'branch',
+      header: 'Branch',
+      width: '8%',
+      accessor: (u) => <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{u.branch || '-'}</span>
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '8%',
+      accessor: (u) => {
+        const isLocked = u.locked_until && new Date(u.locked_until) > new Date();
+        const color = !u.active ? 'var(--color-danger-text)' : isLocked ? 'var(--color-warning-text)' : 'var(--color-success-text)';
+        const label = !u.active ? 'Inactive' : isLocked ? 'Locked' : 'Active';
+        return <span style={{ fontSize: '10px', color, fontWeight: 700 }}>{label}</span>;
+      }
+    },
+    {
+      key: 'last_login',
+      header: 'Last Login',
+      width: '12%',
+      accessor: (u) => <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : '-'}</span>
+    },
+    {
       key: 'actions',
-      header: 'Row Actions',
-      width: '20%',
+      header: 'Actions',
+      width: '34%',
       align: 'right' as const,
       accessor: (u) => (
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={() => handleViewPerformance(u.id, u.username)}
-            style={{
-              fontSize: '11px',
-              padding: '2px 8px',
-              backgroundColor: 'var(--color-bg-panel)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--color-text-primary)',
-              borderRadius: '0px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Performance
+        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <button type="button" onClick={() => handleEditUser(u)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-bg-panel)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', cursor: 'pointer', fontWeight: 600 }}>
+            <Edit3 size={11} />
           </button>
-          <button
-            type="button"
-            onClick={() => requireReauth(
-              () => {
-                setResetTargetUserId(u.id);
-                setResetTargetUsername(u.username);
-                setShowResetPwInput(true);
-              },
-              'Confirm identity to reset password'
-            )}
-            style={{
-              fontSize: '11px',
-              padding: '2px 8px',
-              backgroundColor: 'var(--color-bg-panel)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--color-text-primary)',
-              borderRadius: '0px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Reset PW
+          <button type="button" onClick={() => handleViewUserDetail(u.id)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-bg-panel)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', cursor: 'pointer', fontWeight: 600 }}>
+            <Activity size={11} />
           </button>
-          <button
-            type="button"
-            onClick={() => handleDeactivateUser(u.id, u.username)}
-            style={{
-              fontSize: '11px',
-              padding: '2px 8px',
-              backgroundColor: 'var(--color-danger-bg)',
-              border: '1px solid var(--color-danger-border)',
-              color: 'var(--color-danger-text)',
-              borderRadius: '0px',
-              fontWeight: 600,
-              cursor: u.username === user?.username ? 'not-allowed' : 'pointer',
-              opacity: u.username === user?.username ? 0.5 : 1
-            }}
-            disabled={u.username === user?.username}
-          >
-            Deactivate
+          <button type="button" onClick={() => handleViewPerformance(u.id, u.username)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-bg-panel)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', cursor: 'pointer', fontWeight: 600 }}>
+            Sales
           </button>
+          <button type="button" onClick={() => requireReauth(() => { setResetTargetUserId(u.id); setResetTargetUsername(u.username); setShowResetPwInput(true); }, 'Confirm identity to reset password')} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-bg-panel)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', cursor: 'pointer', fontWeight: 600 }}>
+            <Key size={11} />
+          </button>
+          {!u.active ? (
+            <button type="button" onClick={() => handleReactivateUser(u.id, u.username)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', color: 'var(--color-success-text)', cursor: 'pointer', fontWeight: 600 }}>
+              <RefreshCw size={11} />
+            </button>
+          ) : (
+            <button type="button" onClick={() => handleDeactivateUser(u.id, u.username)} disabled={u.username === user?.username} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', color: 'var(--color-danger-text)', cursor: u.username === user?.username ? 'not-allowed' : 'pointer', opacity: u.username === user?.username ? 0.5 : 1, fontWeight: 600 }}>
+              Deac
+            </button>
+          )}
+          {u.active && u.locked_until && new Date(u.locked_until) > new Date() ? (
+            <button type="button" onClick={() => handleUnlockUser(u.id, u.username)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', color: 'var(--color-warning-text)', cursor: 'pointer', fontWeight: 600 }}>
+              <Unlock size={11} />
+            </button>
+          ) : u.active ? (
+            <button type="button" onClick={() => handleLockUser(u.id, u.username)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-bg-panel)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', cursor: 'pointer', fontWeight: 600 }}>
+              <Lock size={11} />
+            </button>
+          ) : null}
+          {u.active && u.username !== user?.username && (
+            <button type="button" onClick={() => handleForceLogout(u.id, u.username)} style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-bg-panel)', border: '1px solid var(--color-border-default)', color: 'var(--color-text-primary)', cursor: 'pointer', fontWeight: 600 }}>
+              <LogOut size={11} />
+            </button>
+          )}
         </div>
       )
     }
@@ -527,15 +611,16 @@ export const SettingsPage: React.FC = () => {
                   style={{ flex: 1 }}
                 />
               }
-              isInspectorOpen={!!selectedUserPerf}
-              inspectorTitle={`Performance: ${selectedUserName}`}
-              onToggleInspector={() => setSelectedUserPerf(null)}
+              isInspectorOpen={!!selectedUserPerf || !!detailUser}
+              inspectorTitle={
+                selectedUserPerf ? `Performance: ${selectedUserName}` :
+                detailUser ? `Detail: ${detailUser.username}` : ''
+              }
+              onToggleInspector={() => { setSelectedUserPerf(null); setDetailUser(null); }}
               inspectorWidth="380px"
               inspectorPane={
                 selectedUserPerf ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}>
-                    
-                    {/* Today */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
                     <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
                       <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>Today's Sales</h4>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
@@ -551,8 +636,6 @@ export const SettingsPage: React.FC = () => {
                         <span style={{ fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(selectedUserPerf.today.total_revenue)}</span>
                       </div>
                     </div>
-
-                    {/* This Week */}
                     <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
                       <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>Last 7 Days</h4>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
@@ -565,13 +648,11 @@ export const SettingsPage: React.FC = () => {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                         <span style={{ color: 'var(--color-text-secondary)' }}>Revenue</span>
-                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>UGX {formatCurrency(selectedUserPerf.this_week.total_revenue)}</span>
+                        <span style={{ fontWeight: 700 }}>UGX {formatCurrency(selectedUserPerf.this_week.total_revenue)}</span>
                       </div>
                     </div>
-
-                    {/* This Month */}
                     <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
-                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>This Calendar Month</h4>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>This Month</h4>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
                         <span style={{ color: 'var(--color-text-secondary)' }}>Transactions</span>
                         <span style={{ fontWeight: 600 }}>{selectedUserPerf.this_month.total_sales}</span>
@@ -582,10 +663,56 @@ export const SettingsPage: React.FC = () => {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
                         <span style={{ color: 'var(--color-text-secondary)' }}>Revenue</span>
-                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>UGX {formatCurrency(selectedUserPerf.this_month.total_revenue)}</span>
+                        <span style={{ fontWeight: 700 }}>UGX {formatCurrency(selectedUserPerf.this_month.total_revenue)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : detailUser ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px', height: '100%', overflow: 'auto' }}>
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>Account Info</h4>
+                      <div style={{ fontSize: '11px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>ID:</span> <span style={{ fontWeight: 600, marginLeft: '8px' }}>{detailUser.id}</span></div>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Username:</span> <span style={{ fontWeight: 600, marginLeft: '8px' }}>{detailUser.username}</span></div>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Role:</span> <span style={{ fontWeight: 600, marginLeft: '8px' }}>{detailUser.role}</span></div>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Status:</span> <span style={{ fontWeight: 600, marginLeft: '8px', color: detailUser.active ? 'var(--color-success-text)' : 'var(--color-danger-text)' }}>{detailUser.active ? 'Active' : 'Inactive'}</span></div>
+                        {detailUser.locked_until && new Date(detailUser.locked_until) > new Date() && <div><span style={{ color: 'var(--color-text-muted)' }}>Locked until:</span> <span style={{ fontWeight: 600, marginLeft: '8px', color: 'var(--color-warning-text)' }}>{new Date(detailUser.locked_until).toLocaleString()}</span></div>}
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Created:</span> <span style={{ marginLeft: '8px' }}>{new Date(detailUser.created_at).toLocaleDateString()}</span></div>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Last Login:</span> <span style={{ marginLeft: '8px' }}>{detailUser.last_login_at ? new Date(detailUser.last_login_at).toLocaleString() : 'Never'}</span></div>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Last Workstation:</span> <span style={{ marginLeft: '8px' }}>{detailUser.last_workstation || '-'}</span></div>
+                        <div><span style={{ color: 'var(--color-text-muted)' }}>Branch:</span> <span style={{ marginLeft: '8px' }}>{detailUser.branch || '-'}</span></div>
                       </div>
                     </div>
 
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>Login History</h4>
+                      {loginHistory.length === 0 ? <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>No login history</div> : (
+                        <div style={{ fontSize: '10px', maxHeight: '180px', overflow: 'auto' }}>
+                          {loginHistory.map(h => (
+                            <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', borderBottom: '1px solid var(--color-border-default)' }}>
+                              <span>
+                                {h.action === 'login' ? '🔓' : h.action === 'logout' ? '🔒' : '⚠️'} {h.action}
+                              </span>
+                              <span style={{ color: 'var(--color-text-muted)' }}>{new Date(h.created_at).toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>User Activity</h4>
+                      {userActivity.length === 0 ? <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>No activity recorded</div> : (
+                        <div style={{ fontSize: '10px', maxHeight: '200px', overflow: 'auto' }}>
+                          {userActivity.map(a => (
+                            <div key={a.id} style={{ padding: '3px 0', borderBottom: '1px solid var(--color-border-default)' }}>
+                              <div><span style={{ fontWeight: 600 }}>{a.action}</span></div>
+                              <div style={{ color: 'var(--color-text-muted)' }}>{a.details} — {new Date(a.timestamp).toLocaleString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div />
@@ -725,6 +852,18 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Phone</label>
+            <input type="text" value={newUser.phone} onChange={e => setNewUser({ ...newUser, phone: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Email</label>
+            <input type="email" value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Branch</label>
+            <input type="text" value={newUser.branch} onChange={e => setNewUser({ ...newUser, branch: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+          </div>
+          <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Role Privilege</label>
             <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}>
               <option value="cashier">Cashier</option>
@@ -737,6 +876,44 @@ export const SettingsPage: React.FC = () => {
             <span>Create User Account</span>
           </button>
         </form>
+
+        {editTarget && (
+          <>
+            <div style={{ borderTop: '1px solid var(--color-border-default)', margin: '16px 0' }} />
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Edit3 size={16} style={{ color: 'var(--color-accent-base)' }} /> EDIT USER: {editTarget.username}
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Full Name *</label>
+                <input type="text" required value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Phone</label>
+                <input type="text" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Email</label>
+                <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Branch</label>
+                <input type="text" value={editForm.branch} onChange={e => setEditForm({ ...editForm, branch: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Role</label>
+                <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}>
+                  <option value="cashier">Cashier</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="submit" disabled={isEditing} className="desktop-btn-primary" style={{ height: '32px', fontSize: '12px', flex: 1 }}>{isEditing ? 'Saving...' : 'Save Changes'}</button>
+                <button type="button" onClick={() => setEditTarget(null)} className="desktop-btn" style={{ height: '32px', fontSize: '12px' }}>Cancel</button>
+              </div>
+            </form>
+          </>
+        )}
 
         <div style={{ borderTop: '1px solid var(--color-border-default)', margin: '16px 0' }} />
 

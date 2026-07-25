@@ -113,6 +113,47 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class LoginHistory {
+	    id: number;
+	    user_id: number;
+	    username: string;
+	    action: string;
+	    workstation: string;
+	    // Go type: time
+	    created_at: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new LoginHistory(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.user_id = source["user_id"];
+	        this.username = source["username"];
+	        this.action = source["action"];
+	        this.workstation = source["workstation"];
+	        this.created_at = this.convertValues(source["created_at"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class Medicine {
 	    id: number;
 	    name: string;
@@ -609,30 +650,36 @@ export namespace models {
 	    username: string;
 	    role: string;
 	    full_name: string;
+	    phone: string;
+	    email: string;
+	    branch: string;
 	    active: boolean;
-	    // Go type: *time
-	    last_login_at: any;
-	    // Go type: *time
-	    last_logout_at: any;
-	    last_workstation: string;
-	    failed_login_attempts: number;
-	    // Go type: *time
-	    locked_until: any;
-	    // Go type: *time
-	    password_changed_at: any;
+	    // Go type: time
+	    last_login_at?: any;
+	    // Go type: time
+	    last_logout_at?: any;
+	    last_workstation?: string;
+	    failed_login_attempts?: number;
+	    // Go type: time
+	    locked_until?: any;
+	    // Go type: time
+	    password_changed_at?: any;
 	    // Go type: time
 	    created_at: any;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new User(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.username = source["username"];
 	        this.role = source["role"];
 	        this.full_name = source["full_name"];
+	        this.phone = source["phone"];
+	        this.email = source["email"];
+	        this.branch = source["branch"];
 	        this.active = source["active"];
 	        this.last_login_at = this.convertValues(source["last_login_at"], null);
 	        this.last_logout_at = this.convertValues(source["last_logout_at"], null);
@@ -955,40 +1002,7 @@ export namespace services {
 		    return a;
 		}
 	}
-
-	export class SystemConfig {
-	    key: string;
-	    value: string;
-
-	    static createFrom(source: any = {}) {
-	        return new SystemConfig(source);
-	    }
-
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.key = source["key"];
-	        this.value = source["value"];
-	    }
-	}
-
-	export class AuthConfig {
-	    max_failed_attempts: number;
-	    lockout_duration_minutes: number;
-	    session_idle_timeout_minutes: number;
-	    require_reauth_for_sensitive: boolean;
-
-	    static createFrom(source: any = {}) {
-	        return new AuthConfig(source);
-	    }
-
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.max_failed_attempts = source["max_failed_attempts"];
-	        this.lockout_duration_minutes = source["lockout_duration_minutes"];
-	        this.session_idle_timeout_minutes = source["session_idle_timeout_minutes"];
-	        this.require_reauth_for_sensitive = source["require_reauth_for_sensitive"];
-	    }
-	}
+	
 
 }
 

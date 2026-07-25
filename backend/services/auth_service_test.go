@@ -43,7 +43,7 @@ func TestAuthService(t *testing.T) {
 	}
 
 	// Test creating a new cashier user
-	cashierUser, err := authService.CreateUser("cashier1", "cashier123", "cashier", "John Doe")
+	cashierUser, err := authService.CreateUser("cashier1", "cashier123", "cashier", "John Doe", "", "", "")
 	if err != nil {
 		t.Fatalf("failed to create cashier user: %v", err)
 	}

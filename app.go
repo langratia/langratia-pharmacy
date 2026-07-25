@@ -136,14 +136,14 @@ func (a *App) Logout(userID int64) error {
 	return a.authService.Logout(userID)
 }
 
-func (a *App) CreateUser(username, password, role, fullName string, userID int64) (*models.User, error) {
+func (a *App) CreateUser(username, password, role, fullName, phone, email, branch string, userID int64) (*models.User, error) {
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
 	if err := a.requireAdmin(userID); err != nil {
 		return nil, err
 	}
-	return a.authService.CreateUser(username, password, role, fullName)
+	return a.authService.CreateUser(username, password, role, fullName, phone, email, branch)
 }
 
 func (a *App) ListUsers(userID int64) ([]models.User, error) {
@@ -156,14 +156,54 @@ func (a *App) ListUsers(userID int64) ([]models.User, error) {
 	return a.authService.ListUsers()
 }
 
-func (a *App) UpdateUser(id int64, role, fullName string, userID int64) error {
+func (a *App) GetUser(targetID int64, userID int64) (*models.User, error) {
+	if a.authService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
+	}
+	return a.authService.GetUser(targetID)
+}
+
+func (a *App) UpdateUserInfo(id int64, role, fullName, phone, email, branch string, userID int64) error {
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
 	if err := a.requireAdmin(userID); err != nil {
 		return err
 	}
-	return a.authService.UpdateUser(id, role, fullName)
+	return a.authService.UpdateUserInfo(id, role, fullName, phone, email, branch)
+}
+
+func (a *App) ReactivateUser(id int64, userID int64) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
+	return a.authService.ReactivateUser(id)
+}
+
+func (a *App) DeactivateUser(id int64, userID int64) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
+	return a.authService.DeactivateUser(id)
+}
+
+func (a *App) LockUser(targetID int64, userID int64) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
+	return a.authService.LockUser(targetID)
 }
 
 func (a *App) UnlockUser(adminID int64, targetUserID int64) error {
@@ -174,6 +214,16 @@ func (a *App) UnlockUser(adminID int64, targetUserID int64) error {
 		return err
 	}
 	return a.authService.UnlockUser(targetUserID)
+}
+
+func (a *App) ForceLogout(targetID int64, userID int64) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
+	return a.authService.ForceLogout(targetID, userID)
 }
 
 func (a *App) VerifyPassword(userID int64, password string) bool {
@@ -200,14 +250,24 @@ func (a *App) AdminResetPassword(adminID int64, targetUserID int64, newPassword 
 	return a.authService.AdminResetPassword(adminID, targetUserID, newPassword)
 }
 
-func (a *App) DeactivateUser(id int64, userID int64) error {
+func (a *App) GetLoginHistory(targetID int64, userID int64) ([]models.LoginHistory, error) {
 	if a.authService == nil {
-		return fmt.Errorf("service not initialized")
+		return nil, fmt.Errorf("service not initialized")
 	}
 	if err := a.requireAdmin(userID); err != nil {
-		return err
+		return nil, err
 	}
-	return a.authService.DeactivateUser(id)
+	return a.authService.GetLoginHistory(targetID)
+}
+
+func (a *App) GetUserActivity(targetID int64, limit int, userID int64) ([]models.AuditLog, error) {
+	if a.authService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
+	}
+	return a.authService.GetUserActivity(targetID, limit)
 }
 
 // Medicine API Bindings

@@ -199,5 +199,24 @@ var Migrations = []Migration{
 			INSERT OR IGNORE INTO system_config (key, value) VALUES ('require_reauth_for_sensitive', 'false');
 		`,
 	},
+	{
+		Version:     4,
+		Description: "Add phone/email/branch to users + login_history table",
+		Script: `
+			ALTER TABLE users ADD COLUMN phone TEXT DEFAULT '';
+			ALTER TABLE users ADD COLUMN email TEXT DEFAULT '';
+			ALTER TABLE users ADD COLUMN branch TEXT DEFAULT '';
+
+			CREATE TABLE IF NOT EXISTS login_history (
+			    id INTEGER PRIMARY KEY AUTOINCREMENT,
+			    user_id INTEGER NOT NULL,
+			    username TEXT NOT NULL,
+			    action TEXT NOT NULL,
+			    workstation TEXT DEFAULT '',
+			    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+			);
+		`,
+	},
 }
 

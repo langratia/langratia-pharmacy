@@ -8,6 +8,9 @@ type User struct {
 	PasswordHash       string     `json:"-"`
 	Role               string     `json:"role"` // "admin" or "cashier"
 	FullName           string     `json:"full_name"`
+	Phone              string     `json:"phone"`
+	Email              string     `json:"email"`
+	Branch             string     `json:"branch"`
 	Active             bool       `json:"active"`
 	LastLoginAt        *time.Time `json:"last_login_at,omitempty"`
 	LastLogoutAt       *time.Time `json:"last_logout_at,omitempty"`
@@ -202,6 +205,15 @@ type SearchResultItem struct {
 type SystemConfig struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+type LoginHistory struct {
+	ID          int64     `json:"id"`
+	UserID      int64     `json:"user_id"`
+	Username    string    `json:"username"`
+	Action      string    `json:"action"` // "login", "logout", "force_logout"
+	Workstation string    `json:"workstation"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type AuthConfig struct {
