@@ -32,6 +32,9 @@ func (s *BackupService) ExportDatabase(destPath string, userID int64, username s
 		destPath = filepath.Join(filepath.Dir(s.dbPath), destPath)
 	}
 
+	s.db.Lock()
+	defer s.db.Unlock()
+
 	// 1. Flush WAL logs into main database file
 	if _, err := s.db.Exec("PRAGMA wal_checkpoint(FULL);"); err != nil {
 		return fmt.Errorf("failed to checkpoint WAL: %w", err)
@@ -74,24 +77,30 @@ func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, u
 	}
 	defer srcFile.Close()
 
+	s.db.Lock()
+
 	// 1. Flush WAL logs
 	if _, err := s.db.Exec("PRAGMA wal_checkpoint(FULL);"); err != nil {
-		// Ignore error if checkpoint fails, attempt close anyway
+		s.db.Unlock()
+		return fmt.Errorf("failed to checkpoint WAL: %w", err)
 	}
 
 	// 2. Close active connection pool to release OS file locks
 	if err := s.db.Close(); err != nil {
+		s.db.Unlock()
 		return fmt.Errorf("failed to close active database connection: %w", err)
 	}
 
 	// 3. Overwrite database file
 	destFile, err := os.Create(s.dbPath)
 	if err != nil {
+		s.db.Unlock()
 		return fmt.Errorf("failed to open target db for overwrite: %w", err)
 	}
 
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		destFile.Close()
+		s.db.Unlock()
 		return fmt.Errorf("failed to write restored database: %w", err)
 	}
 	destFile.Close()
@@ -99,19 +108,24 @@ func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, u
 	// 4. Re-open SQLite connection pool
 	newSqlDB, err := sql.Open("sqlite", s.dbPath)
 	if err != nil {
+		s.db.Unlock()
 		return fmt.Errorf("failed to re-open restored database: %w", err)
 	}
 
 	// Re-enable WAL & Foreign Keys
 	if _, err := newSqlDB.Exec("PRAGMA journal_mode = WAL;"); err != nil {
+		s.db.Unlock()
 		return fmt.Errorf("failed to set WAL mode on restored db: %w", err)
 	}
 	if _, err := newSqlDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		s.db.Unlock()
 		return fmt.Errorf("failed to enable foreign keys on restored db: %w", err)
 	}
 
-	// Mutate underlying *sql.DB in the shared *db.DB reference
+	// Replace underlying *sql.DB in the shared *db.DB reference under mutex
 	s.db.DB = newSqlDB
+
+	s.db.Unlock()
 
 	s.logAction(userID, username, "DATABASE_RESTORE", fmt.Sprintf("Restored database from %s", sourceBackupPath))
 	return nil

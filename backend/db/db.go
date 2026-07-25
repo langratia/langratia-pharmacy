@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	_ "modernc.org/sqlite"
 	"golang.org/x/crypto/bcrypt"
@@ -12,7 +13,11 @@ import (
 
 type DB struct {
 	*sql.DB
+	mu sync.Mutex
 }
+
+func (db *DB) Lock()   { db.mu.Lock() }
+func (db *DB) Unlock() { db.mu.Unlock() }
 
 // InitDB initializes the SQLite database at the specified path and runs migrations.
 func InitDB(dbPath string) (*DB, error) {
@@ -38,7 +43,7 @@ func InitDB(dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("failed to set busy timeout: %w", err)
 	}
 
-	db := &DB{sqlDB}
+	db := &DB{DB: sqlDB}
 
 	// Run Schema Migrations
 	if err := db.Migrate(); err != nil {
