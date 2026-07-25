@@ -14,6 +14,8 @@ export function AdjustStock(arg1:number,arg2:any,arg3:number,arg4:string,arg5:nu
 
 export function ArchiveMedicine(arg1:number,arg2:boolean,arg3:number,arg4:string):Promise<void>;
 
+export function ArchiveSupplier(arg1:number,arg2:boolean,arg3:number,arg4:string):Promise<void>;
+
 export function AutoDiscoverServer():Promise<string>;
 
 export function BulkImportMedicines(arg1:Array<models.Medicine>,arg2:number,arg3:string):Promise<number>;
@@ -60,7 +62,7 @@ export function ListPurchasesPaginated(arg1:number,arg2:number):Promise<models.P
 
 export function ListRecentSales(arg1:number):Promise<Array<models.Sale>>;
 
-export function ListSuppliers():Promise<Array<models.Supplier>>;
+export function ListSuppliers(arg1:boolean):Promise<Array<models.Supplier>>;
 
 export function ListUsers():Promise<Array<models.User>>;
 

@@ -227,11 +227,18 @@ func (a *App) UpdateSupplier(sup models.Supplier, userID int64, username string)
 	return a.supplierService.UpdateSupplier(sup, userID, username)
 }
 
-func (a *App) ListSuppliers() ([]models.Supplier, error) {
+func (a *App) ListSuppliers(includeArchived bool) ([]models.Supplier, error) {
 	if a.supplierService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
-	return a.supplierService.ListSuppliers()
+	return a.supplierService.ListSuppliers(includeArchived)
+}
+
+func (a *App) ArchiveSupplier(id int64, archive bool, userID int64, username string) error {
+	if a.supplierService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.supplierService.ArchiveSupplier(id, archive, userID, username)
 }
 
 // Purchase / Stock Receiving API Bindings

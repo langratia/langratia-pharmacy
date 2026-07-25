@@ -15,6 +15,7 @@ export interface Supplier {
   phone: string;
   email: string;
   address: string;
+  is_archived: boolean;
   created_at: string;
 }
 

@@ -45,7 +45,7 @@ func TestAddAndListSuppliers(t *testing.T) {
 		t.Errorf("Expected supplier ID > 0, got %d", sup.ID)
 	}
 
-	list, err := supplierSvc.ListSuppliers()
+	list, err := supplierSvc.ListSuppliers(false)
 	if err != nil {
 		t.Fatalf("ListSuppliers failed: %v", err)
 	}
@@ -56,6 +56,74 @@ func TestAddAndListSuppliers(t *testing.T) {
 
 	if list[0].Name != "Abacus Pharma" {
 		t.Errorf("Expected supplier name Abacus Pharma, got %s", list[0].Name)
+	}
+}
+
+func TestSupplierArchive(t *testing.T) {
+	supplierSvc, cleanup := setupTestSupplierService(t)
+	defer cleanup()
+
+	sup, err := supplierSvc.AddSupplier(models.Supplier{
+		Name:          "Test Supplier",
+		ContactPerson: "Alice",
+		Phone:         "123",
+		Email:         "a@test.com",
+		Address:       "Addr",
+	}, 1, "admin")
+	if err != nil {
+		t.Fatalf("AddSupplier failed: %v", err)
+	}
+
+	err = supplierSvc.ArchiveSupplier(sup.ID, true, 1, "admin")
+	if err != nil {
+		t.Fatalf("ArchiveSupplier failed: %v", err)
+	}
+
+	// Should not appear in non-archived list
+	list, err := supplierSvc.ListSuppliers(false)
+	if err != nil {
+		t.Fatalf("ListSuppliers failed: %v", err)
+	}
+	if len(list) != 0 {
+		t.Errorf("Expected 0 suppliers, got %d", len(list))
+	}
+
+	// Should appear in archived list
+	archived, err := supplierSvc.ListSuppliers(true)
+	if err != nil {
+		t.Fatalf("ListSuppliers failed: %v", err)
+	}
+	if len(archived) != 1 {
+		t.Errorf("Expected 1 archived supplier, got %d", len(archived))
+	}
+
+	// Restore
+	err = supplierSvc.ArchiveSupplier(sup.ID, false, 1, "admin")
+	if err != nil {
+		t.Fatalf("ArchiveSupplier (restore) failed: %v", err)
+	}
+
+	list, err = supplierSvc.ListSuppliers(false)
+	if err != nil {
+		t.Fatalf("ListSuppliers failed: %v", err)
+	}
+	if len(list) != 1 {
+		t.Errorf("Expected 1 supplier after restore, got %d", len(list))
+	}
+}
+
+func TestSupplierDuplicateName(t *testing.T) {
+	supplierSvc, cleanup := setupTestSupplierService(t)
+	defer cleanup()
+
+	_, err := supplierSvc.AddSupplier(models.Supplier{Name: "Dup"}, 1, "admin")
+	if err != nil {
+		t.Fatalf("AddSupplier failed: %v", err)
+	}
+
+	_, err = supplierSvc.AddSupplier(models.Supplier{Name: "Dup"}, 1, "admin")
+	if err == nil {
+		t.Fatal("Expected error for duplicate name, got nil")
 	}
 }
 
@@ -83,12 +151,12 @@ func TestUpdateSupplier(t *testing.T) {
 		t.Fatalf("UpdateSupplier failed: %v", err)
 	}
 
-	list, err := supplierSvc.ListSuppliers()
+	res, err := supplierSvc.ListSuppliers(false)
 	if err != nil {
 		t.Fatalf("ListSuppliers failed: %v", err)
 	}
 
-	if list[0].Name != "Updated Supplier Name" || list[0].Phone != "999" {
-		t.Errorf("Update missing or unexpected data: %+v", list[0])
+	if res[0].Name != "Updated Supplier Name" || res[0].Phone != "999" {
+		t.Errorf("Update missing or unexpected data: %+v", res[0])
 	}
 }

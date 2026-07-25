@@ -22,6 +22,10 @@ export function ArchiveMedicine(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchiveMedicine'](arg1, arg2, arg3, arg4);
 }
 
+export function ArchiveSupplier(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ArchiveSupplier'](arg1, arg2, arg3, arg4);
+}
+
 export function AutoDiscoverServer() {
   return window['go']['main']['App']['AutoDiscoverServer']();
 }
@@ -114,8 +118,8 @@ export function ListRecentSales(arg1) {
   return window['go']['main']['App']['ListRecentSales'](arg1);
 }
 
-export function ListSuppliers() {
-  return window['go']['main']['App']['ListSuppliers']();
+export function ListSuppliers(arg1) {
+  return window['go']['main']['App']['ListSuppliers'](arg1);
 }
 
 export function ListUsers() {

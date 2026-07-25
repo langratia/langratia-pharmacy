@@ -172,5 +172,10 @@ var Migrations = []Migration{
 		Description: "Add active column to users for soft-delete",
 		Script:      "ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1;",
 	},
+	{
+		Version:     2,
+		Description: "Add is_archived column to suppliers for soft-delete",
+		Script:      "ALTER TABLE suppliers ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;",
+	},
 }
 

@@ -18,6 +18,7 @@ type Supplier struct {
 	Phone         string    `json:"phone"`
 	Email         string    `json:"email"`
 	Address       string    `json:"address"`
+	IsArchived    bool      `json:"is_archived"`
 	CreatedAt     time.Time `json:"created_at"`
 }
 

@@ -562,6 +562,7 @@ export namespace models {
 	    phone: string;
 	    email: string;
 	    address: string;
+	    is_archived: boolean;
 	    // Go type: time
 	    created_at: any;
 	
@@ -577,6 +578,7 @@ export namespace models {
 	        this.phone = source["phone"];
 	        this.email = source["email"];
 	        this.address = source["address"];
+	        this.is_archived = source["is_archived"];
 	        this.created_at = this.convertValues(source["created_at"], null);
 	    }
 	
