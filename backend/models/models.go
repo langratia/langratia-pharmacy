@@ -3,12 +3,19 @@ package models
 import "time"
 
 type User struct {
-	ID           int64     `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"-"`
-	Role         string    `json:"role"` // "admin" or "cashier"
-	FullName     string    `json:"full_name"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID                 int64      `json:"id"`
+	Username           string     `json:"username"`
+	PasswordHash       string     `json:"-"`
+	Role               string     `json:"role"` // "admin" or "cashier"
+	FullName           string     `json:"full_name"`
+	Active             bool       `json:"active"`
+	LastLoginAt        *time.Time `json:"last_login_at,omitempty"`
+	LastLogoutAt       *time.Time `json:"last_logout_at,omitempty"`
+	LastWorkstation    string     `json:"last_workstation,omitempty"`
+	FailedLoginAttempts int       `json:"failed_login_attempts,omitempty"`
+	LockedUntil        *time.Time `json:"locked_until,omitempty"`
+	PasswordChangedAt  *time.Time `json:"password_changed_at,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
 }
 
 type Supplier struct {
@@ -190,6 +197,18 @@ type SearchResultItem struct {
 	Title      string `json:"title"`
 	Subtitle   string `json:"subtitle"`
 	TargetView string `json:"target_view"`
+}
+
+type SystemConfig struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type AuthConfig struct {
+	MaxFailedAttempts       int  `json:"max_failed_attempts"`
+	LockoutDurationMinutes  int  `json:"lockout_duration_minutes"`
+	SessionIdleTimeoutMinutes int `json:"session_idle_timeout_minutes"`
+	RequireReauthForSensitive bool `json:"require_reauth_for_sensitive"`
 }
 
 

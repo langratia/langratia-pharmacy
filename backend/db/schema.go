@@ -177,5 +177,27 @@ var Migrations = []Migration{
 		Description: "Add is_archived column to suppliers for soft-delete",
 		Script:      "ALTER TABLE suppliers ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0;",
 	},
+	{
+		Version:     3,
+		Description: "Add session tracking, lockout, and system_config",
+		Script: `
+			ALTER TABLE users ADD COLUMN last_login_at DATETIME;
+			ALTER TABLE users ADD COLUMN last_logout_at DATETIME;
+			ALTER TABLE users ADD COLUMN last_workstation TEXT;
+			ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0;
+			ALTER TABLE users ADD COLUMN locked_until DATETIME;
+			ALTER TABLE users ADD COLUMN password_changed_at DATETIME;
+
+			CREATE TABLE IF NOT EXISTS system_config (
+			    key TEXT PRIMARY KEY,
+			    value TEXT NOT NULL
+			);
+
+			INSERT OR IGNORE INTO system_config (key, value) VALUES ('max_failed_attempts', '5');
+			INSERT OR IGNORE INTO system_config (key, value) VALUES ('lockout_duration_minutes', '30');
+			INSERT OR IGNORE INTO system_config (key, value) VALUES ('session_idle_timeout_minutes', '15');
+			INSERT OR IGNORE INTO system_config (key, value) VALUES ('require_reauth_for_sensitive', 'false');
+		`,
+	},
 }
 
