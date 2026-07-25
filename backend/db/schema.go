@@ -218,5 +218,43 @@ var Migrations = []Migration{
 			);
 		`,
 	},
+	{
+		Version:     5,
+		Description: "Add role-based permission system",
+		Script: `
+			CREATE TABLE IF NOT EXISTS role_permissions (
+			    role TEXT NOT NULL,
+			    permission TEXT NOT NULL,
+			    PRIMARY KEY (role, permission)
+			);
+
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'view_dashboard');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'create_sale');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'edit_sale');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'void_sale');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'refund_sale');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'apply_discount');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'view_inventory');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'edit_inventory');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'stock_receiving');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'view_reports');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'export_data');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'print_receipt');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'manage_users');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'manage_suppliers');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'manage_prescriptions');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'dispense_prescription');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'approve_transactions');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'view_audit_logs');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'access_settings');
+
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'view_dashboard');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'create_sale');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'view_inventory');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'print_receipt');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'manage_prescriptions');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'dispense_prescription');
+		`,
+	},
 }
 

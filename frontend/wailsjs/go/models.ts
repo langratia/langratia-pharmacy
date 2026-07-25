@@ -416,6 +416,22 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class PermissionInfo {
+	    key: string;
+	    label: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PermissionInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.key = source["key"];
+	        this.label = source["label"];
+	        this.description = source["description"];
+	    }
+	}
 	export class PrescriptionItem {
 	    id: number;
 	    prescription_id: number;

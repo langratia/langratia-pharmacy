@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PermissionProvider } from './context/PermissionContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { NavItemKey } from './components/layout/Sidebar';
@@ -117,6 +118,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <PermissionProvider>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -144,6 +146,7 @@ function App() {
           }}
         />
         <MainApp />
+        </PermissionProvider>
       </AuthProvider>
     </ThemeProvider>
   );

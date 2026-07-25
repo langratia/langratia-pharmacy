@@ -66,6 +66,10 @@ export function ForceLogout(arg1, arg2) {
   return window['go']['main']['App']['ForceLogout'](arg1, arg2);
 }
 
+export function GetAllPermissionDefs() {
+  return window['go']['main']['App']['GetAllPermissionDefs']();
+}
+
 export function GetBatchesByMedicine(arg1) {
   return window['go']['main']['App']['GetBatchesByMedicine'](arg1);
 }
@@ -98,6 +102,10 @@ export function GetPrescriptionDetails(arg1) {
   return window['go']['main']['App']['GetPrescriptionDetails'](arg1);
 }
 
+export function GetRolePermissions(arg1) {
+  return window['go']['main']['App']['GetRolePermissions'](arg1);
+}
+
 export function GetSalesSummary() {
   return window['go']['main']['App']['GetSalesSummary']();
 }
@@ -116,6 +124,10 @@ export function GetUserTodaySalesTotal(arg1) {
 
 export function GlobalSearch(arg1, arg2) {
   return window['go']['main']['App']['GlobalSearch'](arg1, arg2);
+}
+
+export function HasPermission(arg1, arg2) {
+  return window['go']['main']['App']['HasPermission'](arg1, arg2);
 }
 
 export function ListAuditLogs(arg1, arg2) {
@@ -188,6 +200,10 @@ export function ResetAndSeedDatabase(arg1) {
 
 export function RestoreDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['RestoreDatabase'](arg1, arg2, arg3);
+}
+
+export function SetRolePermissions(arg1, arg2, arg3) {
+  return window['go']['main']['App']['SetRolePermissions'](arg1, arg2, arg3);
 }
 
 export function UnlockUser(arg1, arg2) {

@@ -32,6 +32,7 @@ type App struct {
 	prescriptionService *services.PrescriptionService
 	notificationService *services.NotificationService
 	searchService       *services.SearchService
+	permissionService   *services.PermissionService
 }
 
 // Config represents the local application configuration
@@ -114,6 +115,7 @@ func (a *App) startup(ctx context.Context) {
 	a.prescriptionService = services.NewPrescriptionService(database)
 	a.notificationService = services.NewNotificationService(database)
 	a.searchService = services.NewSearchService(database)
+	a.permissionService = services.NewPermissionService(database)
 
 	// If running in Host mode, start UDP Discovery Listener
 	if customConfig.DBPath == "" {
@@ -268,6 +270,38 @@ func (a *App) GetUserActivity(targetID int64, limit int, userID int64) ([]models
 		return nil, err
 	}
 	return a.authService.GetUserActivity(targetID, limit)
+}
+
+// Permission API Bindings
+func (a *App) HasPermission(userID int64, permission string) (bool, error) {
+	if a.permissionService == nil {
+		return false, fmt.Errorf("service not initialized")
+	}
+	return a.permissionService.HasPermission(userID, permission)
+}
+
+func (a *App) GetRolePermissions(role string) ([]string, error) {
+	if a.permissionService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.permissionService.GetRolePermissions(role)
+}
+
+func (a *App) SetRolePermissions(role string, permissions []string, adminID int64) error {
+	if a.permissionService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(adminID); err != nil {
+		return err
+	}
+	return a.permissionService.SetRolePermissions(role, permissions)
+}
+
+func (a *App) GetAllPermissionDefs() ([]models.PermissionInfo, error) {
+	if a.permissionService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.permissionService.GetAllPermissionDefs(), nil
 }
 
 // Medicine API Bindings

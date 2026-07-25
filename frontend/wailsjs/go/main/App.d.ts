@@ -36,6 +36,8 @@ export function ExportDatabase(arg1:string,arg2:number,arg3:string):Promise<void
 
 export function ForceLogout(arg1:number,arg2:number):Promise<void>;
 
+export function GetAllPermissionDefs():Promise<Array<models.PermissionInfo>>;
+
 export function GetBatchesByMedicine(arg1:number):Promise<Array<models.Batch>>;
 
 export function GetCashierPerformance(arg1:number):Promise<services.CashierPerformance>;
@@ -52,6 +54,8 @@ export function GetNotificationsSummary():Promise<models.NotificationSummary>;
 
 export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>;
 
+export function GetRolePermissions(arg1:string):Promise<Array<string>>;
+
 export function GetSalesSummary():Promise<services.SalesSummary>;
 
 export function GetUser(arg1:number,arg2:number):Promise<models.User>;
@@ -61,6 +65,8 @@ export function GetUserActivity(arg1:number,arg2:number,arg3:number):Promise<Arr
 export function GetUserTodaySalesTotal(arg1:number):Promise<number>;
 
 export function GlobalSearch(arg1:string,arg2:string):Promise<Array<models.SearchResultItem>>;
+
+export function HasPermission(arg1:number,arg2:string):Promise<boolean>;
 
 export function ListAuditLogs(arg1:number,arg2:number):Promise<Array<models.AuditLog>>;
 
@@ -97,6 +103,8 @@ export function RecordPurchase(arg1:string,arg2:any,arg3:Array<services.Incoming
 export function ResetAndSeedDatabase(arg1:number):Promise<void>;
 
 export function RestoreDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
+
+export function SetRolePermissions(arg1:string,arg2:Array<string>,arg3:number):Promise<void>;
 
 export function UnlockUser(arg1:number,arg2:number):Promise<void>;
 

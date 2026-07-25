@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity } from 'lucide-react';
+import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity } from '../../../wailsjs/go/main/App';
+import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions, SetRolePermissions, GetAllPermissionDefs } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/formatters';
@@ -13,7 +13,7 @@ import lanGuide from '../../assets/lan_setup_guide.png';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit' | 'network'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit' | 'network' | 'permissions'>('users');
   
   // Users state
   const [users, setUsers] = useState<models.User[]>([]);
@@ -56,6 +56,12 @@ export const SettingsPage: React.FC = () => {
   const [editForm, setEditForm] = useState({ role: 'cashier', full_name: '', phone: '', email: '', branch: '' });
   const [isEditing, setIsEditing] = useState(false);
 
+  // Permissions state
+  const [permDefs, setPermDefs] = useState<{ key: string; label: string; description: string }[]>([]);
+  const [cashierPerms, setCashierPerms] = useState<Set<string>>(new Set());
+  const [adminPerms, setAdminPerms] = useState<Set<string>>(new Set());
+  const [isSavingPerms, setIsSavingPerms] = useState(false);
+
   // User detail viewer state
   const [detailUser, setDetailUser] = useState<models.User | null>(null);
   const [loginHistory, setLoginHistory] = useState<models.LoginHistory[]>([]);
@@ -67,6 +73,8 @@ export const SettingsPage: React.FC = () => {
       fetchUsers();
     } else if (activeTab === 'audit') {
       fetchAuditLogs();
+    } else if (activeTab === 'permissions') {
+      fetchPermissions();
     }
   }, [activeTab]);
 
@@ -338,6 +346,49 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const fetchPermissions = async () => {
+    try {
+      const defs = await GetAllPermissionDefs();
+      setPermDefs(defs || []);
+      const [cashier, admin] = await Promise.all([
+        GetRolePermissions('cashier'),
+        GetRolePermissions('admin'),
+      ]);
+      setCashierPerms(new Set(cashier || []));
+      setAdminPerms(new Set(admin || []));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to load permissions');
+    }
+  };
+
+  const handleTogglePerm = (role: 'admin' | 'cashier', perm: string) => {
+    if (role === 'admin') {
+      const next = new Set(adminPerms);
+      if (next.has(perm)) next.delete(perm); else next.add(perm);
+      setAdminPerms(next);
+    } else {
+      const next = new Set(cashierPerms);
+      if (next.has(perm)) next.delete(perm); else next.add(perm);
+      setCashierPerms(next);
+    }
+  };
+
+  const handleSavePermissions = async () => {
+    if (!user) return;
+    setIsSavingPerms(true);
+    try {
+      await Promise.all([
+        SetRolePermissions('admin', Array.from(adminPerms), user.id),
+        SetRolePermissions('cashier', Array.from(cashierPerms), user.id),
+      ]);
+      toast.success('Permissions saved');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save permissions');
+    } finally {
+      setIsSavingPerms(false);
+    }
+  };
+
   const handleViewUserDetail = async (uId: number) => {
     if (!user) return;
     setIsLoadingDetail(true);
@@ -569,6 +620,23 @@ export const SettingsPage: React.FC = () => {
             >
               <Network size={14} /> Network Setup
             </button>
+            <button
+              onClick={() => setActiveTab('permissions')}
+              style={{
+                height: '36px',
+                fontSize: '12px',
+                fontWeight: 600,
+                justifyContent: 'flex-start',
+                gap: '8px',
+                padding: '0 12px',
+                borderRadius: '0px',
+                backgroundColor: activeTab === 'permissions' ? 'var(--color-accent-subtle)' : 'transparent',
+                border: activeTab === 'permissions' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                color: activeTab === 'permissions' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+              }}
+            >
+              <CheckSquare size={14} /> Permissions
+            </button>
           </div>
         </Panel>
 
@@ -778,6 +846,47 @@ export const SettingsPage: React.FC = () => {
                       {isScanning ? 'Scanning Network...' : 'Auto-Detect & Connect'}
                     </button>
                   </div>
+                </div>
+              </div>
+            </Panel>
+          )}
+
+          {activeTab === 'permissions' && (
+            <Panel title="ROLE PERMISSIONS" style={{ height: '100%', overflow: 'auto' }}>
+              <div style={{ padding: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--color-text-primary)' }}>
+                  Configure which features each role can access
+                </div>
+                {isSavingPerms && <div style={{ fontSize: '11px', color: 'var(--color-accent-base)', marginBottom: '8px' }}>Saving...</div>}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+                      <th style={{ textAlign: 'left', padding: '8px', fontWeight: 700, color: 'var(--color-text-primary)' }}>Permission</th>
+                      <th style={{ textAlign: 'center', padding: '8px', fontWeight: 700, color: 'var(--color-accent-base)', width: '80px' }}>Admin</th>
+                      <th style={{ textAlign: 'center', padding: '8px', fontWeight: 700, color: 'var(--color-text-secondary)', width: '80px' }}>Cashier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {permDefs.map(pd => (
+                      <tr key={pd.key} style={{ borderBottom: '1px solid var(--color-border-default)' }}>
+                        <td style={{ padding: '6px 8px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{pd.label}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{pd.description}</div>
+                        </td>
+                        <td style={{ textAlign: 'center', padding: '6px' }}>
+                          <input type="checkbox" checked={adminPerms.has(pd.key)} onChange={() => handleTogglePerm('admin', pd.key)} style={{ cursor: 'pointer' }} />
+                        </td>
+                        <td style={{ textAlign: 'center', padding: '6px' }}>
+                          <input type="checkbox" checked={cashierPerms.has(pd.key)} onChange={() => handleTogglePerm('cashier', pd.key)} style={{ cursor: 'pointer' }} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button onClick={handleSavePermissions} disabled={isSavingPerms} className="desktop-btn-primary" style={{ height: '32px', fontSize: '12px' }}>
+                    {isSavingPerms ? 'Saving...' : 'Save Permissions'}
+                  </button>
                 </div>
               </div>
             </Panel>

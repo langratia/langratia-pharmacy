@@ -216,6 +216,40 @@ type LoginHistory struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type RolePermission struct {
+	Role       string `json:"role"`
+	Permission string `json:"permission"`
+}
+
+type PermissionInfo struct {
+	Key         string `json:"key"`
+	Label       string `json:"label"`
+	Description string `json:"description"`
+}
+
+// AllPermissions defines every granular permission in the system.
+var AllPermissions = []PermissionInfo{
+	{Key: "view_dashboard", Label: "View Dashboard", Description: "Access the main dashboard overview"},
+	{Key: "create_sale", Label: "Create Sale", Description: "Process POS transactions"},
+	{Key: "edit_sale", Label: "Edit Sale", Description: "Modify existing sales records"},
+	{Key: "void_sale", Label: "Void Sale", Description: "Cancel and void a sale"},
+	{Key: "refund_sale", Label: "Process Refund", Description: "Issue refunds to customers"},
+	{Key: "apply_discount", Label: "Apply Discount", Description: "Apply discounts to sales"},
+	{Key: "view_inventory", Label: "View Inventory", Description: "Browse medicine stock"},
+	{Key: "edit_inventory", Label: "Edit Inventory", Description: "Change prices and adjust stock"},
+	{Key: "stock_receiving", Label: "Stock Receiving", Description: "Record purchase orders and receive stock"},
+	{Key: "view_reports", Label: "View Reports", Description: "Access sales and performance reports"},
+	{Key: "export_data", Label: "Export Data", Description: "Export database backups"},
+	{Key: "print_receipt", Label: "Print Receipt", Description: "Print sales receipts"},
+	{Key: "manage_users", Label: "Manage Users", Description: "Create, edit, deactivate users"},
+	{Key: "manage_suppliers", Label: "Manage Suppliers", Description: "Add, edit, archive suppliers"},
+	{Key: "manage_prescriptions", Label: "Manage Prescriptions", Description: "Create and manage prescriptions"},
+	{Key: "dispense_prescription", Label: "Dispense Prescription", Description: "Dispense prescribed medicines"},
+	{Key: "approve_transactions", Label: "Approve Transactions", Description: "Approve pending transactions"},
+	{Key: "view_audit_logs", Label: "View Audit Logs", Description: "Access system audit trail"},
+	{Key: "access_settings", Label: "Access Settings", Description: "Access system settings panel"},
+}
+
 type AuthConfig struct {
 	MaxFailedAttempts       int  `json:"max_failed_attempts"`
 	LockoutDurationMinutes  int  `json:"lockout_duration_minutes"`
