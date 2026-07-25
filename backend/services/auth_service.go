@@ -22,7 +22,7 @@ func (s *AuthService) Login(username, password string) (*models.User, error) {
 	var user models.User
 	var passwordHash string
 
-	query := `SELECT id, username, password_hash, role, full_name, created_at FROM users WHERE username = ?`
+	query := `SELECT id, username, password_hash, role, full_name, created_at FROM users WHERE active = 1 AND username = ?`
 	err := s.db.QueryRow(query, username).Scan(
 		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName, &user.CreatedAt,
 	)
@@ -78,7 +78,7 @@ func (s *AuthService) CreateUser(username, password, role, fullName string) (*mo
 
 // ListUsers retrieves all registered users.
 func (s *AuthService) ListUsers() ([]models.User, error) {
-	query := `SELECT id, username, role, full_name, created_at FROM users ORDER BY created_at DESC`
+	query := `SELECT id, username, role, full_name, created_at FROM users WHERE active = 1 ORDER BY created_at DESC`
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -107,12 +107,12 @@ func (s *AuthService) UpdateUser(id int64, role, fullName string) error {
 	return err
 }
 
-// DeactivateUser removes/deactivates a user.
+// DeactivateUser deactivates a user (soft-delete).
 func (s *AuthService) DeactivateUser(id int64) error {
 	if id <= 0 {
 		return errors.New("invalid user ID")
 	}
-	query := `DELETE FROM users WHERE id = ?`
+	query := `UPDATE users SET active = 0 WHERE id = ?`
 	_, err := s.db.Exec(query, id)
 	return err
 }

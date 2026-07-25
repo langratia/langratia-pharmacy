@@ -167,11 +167,10 @@ type Migration struct {
 
 // Migrations contains incremental versioned database upgrades
 var Migrations = []Migration{
-	// Example future migration:
-	// {
-	// 	Version:     1,
-	// 	Description: "Add notes column to suppliers",
-	// 	Script:      "ALTER TABLE suppliers ADD COLUMN notes TEXT;",
-	// },
+	{
+		Version:     1,
+		Description: "Add active column to users for soft-delete",
+		Script:      "ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1;",
+	},
 }
 
