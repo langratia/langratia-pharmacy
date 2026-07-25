@@ -25,7 +25,7 @@ func (n *NotificationService) GetNotificationsSummary() (*models.NotificationSum
 	lowStockQuery := `
 		SELECT id, name, current_stock, reorder_level 
 		FROM medicines 
-		WHERE is_archived = 0 AND current_stock <= reorder_level
+		WHERE is_archived = 0 AND current_stock > 0 AND current_stock <= reorder_level
 		ORDER BY current_stock ASC 
 		LIMIT 10`
 
