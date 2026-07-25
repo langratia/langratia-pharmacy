@@ -102,9 +102,16 @@ func (s *AuthService) UpdateUser(id int64, role, fullName string) error {
 	if id <= 0 || role == "" || fullName == "" {
 		return errors.New("invalid parameters for user update")
 	}
-	query := `UPDATE users SET role = ?, full_name = ? WHERE id = ?`
-	_, err := s.db.Exec(query, role, fullName, id)
-	return err
+	query := `UPDATE users SET role = ?, full_name = ? WHERE id = ? AND active = 1`
+	res, err := s.db.Exec(query, role, fullName, id)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("user not found or inactive")
+	}
+	return nil
 }
 
 // DeactivateUser deactivates a user (soft-delete).
