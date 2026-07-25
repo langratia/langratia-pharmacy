@@ -53,36 +53,33 @@ export const ReportsPage: React.FC = () => {
     setIsLoading(true);
     setFetchError(null);
     abortRef.current = false;
-    try {
-      let meds: Medicine[] = [];
-      let exp: Batch[] = [];
 
-      try {
-        const [mRes, eRes] = await Promise.all([
-          ListMedicines('', '', false),
-          GetExpiringBatches(90)
-        ]);
-        meds = mRes || [];
-        exp = eRes || [];
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp) {
-          meds = (await wailsApp.ListMedicines?.('', '', false)) || [];
-          exp = (await wailsApp.GetExpiringBatches?.(90)) || [];
-        }
+    async function tryLoad<T>(fn: () => Promise<T>, fb: () => Promise<T | undefined>): Promise<T | undefined> {
+      try { return await fn(); } catch (e) {
+        console.warn('Primary call failed, trying fallback...', e);
+        try { return await fb(); } catch (e2) { console.error('Fallback also failed:', e2); }
       }
-
-      if (abortRef.current) return;
-      setMedicines(meds);
-      setExpiringBatches(exp);
-    } catch (err: unknown) {
-      if (abortRef.current) return;
-      const msg = err instanceof Error ? err.message : 'Failed to load reports data';
-      setFetchError(msg);
-      console.error('Failed to load reports data:', err);
-    } finally {
-      if (!abortRef.current) setIsLoading(false);
+      return undefined;
     }
+
+    const [meds, exp] = await Promise.all([
+      tryLoad(
+        () => ListMedicines('', '', false),
+        () => (window as any)?.go?.main?.App?.ListMedicines?.('', '', false)
+      ),
+      tryLoad(
+        () => GetExpiringBatches(90),
+        () => (window as any)?.go?.main?.App?.GetExpiringBatches?.(90)
+      )
+    ]);
+
+    if (abortRef.current) return;
+    setMedicines(meds || []);
+    setExpiringBatches(exp || []);
+    if ((!meds || meds.length === 0) && (!exp || exp.length === 0)) {
+      setFetchError('Failed to load reports data from backend.');
+    }
+    setIsLoading(false);
   };
 
   useEffect(() => {
