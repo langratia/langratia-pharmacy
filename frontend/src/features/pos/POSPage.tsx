@@ -11,7 +11,6 @@ import {
   CheckCircle,
   PackageCheck,
   Loader,
-  Scan,
   PauseCircle,
   Pill
 } from 'lucide-react';
@@ -22,8 +21,8 @@ import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 
-type PaymentMethod = 'cash' | 'card' | 'momo';
-const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', card: 'Card', momo: 'Mobile Money' };
+type PaymentMethod = 'cash' | 'momo';
+const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', momo: 'Mobile Money' };
 
 interface CartItem {
   medicine: Medicine;
@@ -49,6 +48,27 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
   const [completedSale, setCompletedSale] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search input (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // F10 keyboard shortcut for Approve Sale
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'F10') {
+        e.preventDefault();
+        if (!isProcessing && cart.length > 0) {
+          handleApproveSale();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isProcessing, cart.length]);
 
   // Load external cart items from Prescriptions if passed
   useEffect(() => {
@@ -83,7 +103,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   useEffect(() => {
     fetchMedicines();
-  }, [search, category]);
+  }, [debouncedSearch, category]);
 
   const handleAddToCart = (med: Medicine) => {
     if (med.current_stock <= 0) {
@@ -107,18 +127,22 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   };
 
   const handleUpdateQty = (medId: number, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item.medicine.id === medId) {
-        const newQty = item.quantity + delta;
-        if (newQty <= 0) return null as any;
-        if (newQty > item.medicine.current_stock) {
-          toast.error('Stock limit reached');
-          return item;
-        }
-        return { ...item, quantity: newQty };
+    setCart(prev => {
+      const item = prev.find(i => i.medicine.id === medId);
+      if (!item) return prev;
+      const newQty = item.quantity + delta;
+      if (newQty <= 0) {
+        toast.success(`${item.medicine.name} removed from cart`);
+        return prev.filter(i => i.medicine.id !== medId);
       }
-      return item;
-    }).filter(Boolean) as CartItem[]);
+      if (newQty > item.medicine.current_stock) {
+        toast.error('Stock limit reached');
+        return prev;
+      }
+      return prev.map(i =>
+        i.medicine.id === medId ? { ...i, quantity: newQty } : i
+      );
+    });
   };
 
   const handleRemoveFromCart = (medId: number) => {
@@ -163,29 +187,14 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         }
 
         if (!sale) {
-          sale = {
-            invoice_number: `INV-POS-${Date.now()}`,
-            sale_date: new Date().toISOString(),
-            username: user?.username || 'cashier',
-            total_amount: cartTotal,
-            payment_method: PM,
-            items: cart.map(c => ({
-            medicine_name: c.medicine.name,
-            batch_number: 'BATCH-FEFO-01',
-            quantity: c.quantity,
-            unit_price: c.medicine.selling_price,
-            subtotal: c.medicine.selling_price * c.quantity
-          }))
-        };
-      }
+          throw new Error('Sale processing returned no result. Please try again.');
+        }
 
       setCompletedSale(sale);
       setCart([]);
       setIsCheckoutOpen(true);
       setShowSuccessAnim(true);
 
-      // We no longer need the top toast since we have a dedicated success screen
-      // toast.success(`POS Sale Approved! Total: UGX ${cartTotal.toLocaleString()}`);
       fetchMedicines();
     } catch (err: any) {
       toast.error(err?.message || 'Checkout failed.');
@@ -194,8 +203,23 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
   };
 
+  const receiptRef = React.createRef<HTMLDivElement>();
+
   const handlePrintReceipt = () => {
-    window.print();
+    const printContents = receiptRef.current?.innerHTML;
+    if (!printContents) return;
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html><head><title>POS Receipt</title>
+      <style>
+        body { font-family: 'Inter', sans-serif; font-size: 12px; padding: 20px; color: #000; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #ccc; }
+      </style></head><body>${printContents}</body></html>
+    `);
+    win.document.close();
+    win.print();
   };
 
   // Primary Pane Content - Spacious Desktop Workstation Tiles Grid
@@ -207,23 +231,17 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         subtitle="Point of Sale Workstation"
         searchQuery={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Scan barcode or type medicine name/brand..."
+        searchPlaceholder="Type medicine name or brand..."
         categories={categories}
         selectedCategory={category}
         onCategorySelect={setCategory}
         categoryMode="chips"
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        statusBadges={
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--color-success-text)', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', padding: '3px 8px', borderRadius: '0px' }}>
-            <Scan size={13} />
-            <span>SCANNER READY</span>
-          </div>
-        }
         actions={
           <button
             type="button"
-            onClick={() => toast('Held Sales Queue: 0 sales currently held', { icon: 'ℹ️' })}
+            onClick={() => toast('Held Sales Queue: 0 sales currently held')}
             style={{
               height: '28px',
               padding: '0 10px',
@@ -270,12 +288,13 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         ) : (
           medicines.map((med) => {
             const isOutOfStock = med.current_stock <= 0;
+            const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
             const inCart = cart.find(c => c.medicine.id === med.id);
 
             return (
               <div
                 key={med.id}
-                className={`product-card ${inCart ? 'selected' : ''}`}
+                className={`product-card ${inCart ? 'selected' : ''} ${isLowStock ? 'low-stock' : ''}`}
                 onClick={() => !isOutOfStock && handleAddToCart(med)}
                 style={{
                   opacity: isOutOfStock ? 0.6 : 1,
@@ -361,12 +380,12 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       {/* Cart Items List */}
       <div style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', padding: '0 4px 0 0' }}>
         {cart.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', backgroundColor: 'var(--color-panel-solid)', borderRadius: '20px', border: '1px solid var(--color-border-subtle)' }}>
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', border: '1px solid var(--color-border-subtle)' }}>
             <ShoppingCart size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
             Cart is empty. Click workstation product tiles to add to sale.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {cart.map((item) => (
               <div
                 key={item.medicine.id}
@@ -374,15 +393,12 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '16px 20px',
-                  borderRadius: '16px',
-                  backgroundColor: 'var(--color-panel-solid)',
-                  border: '1px solid var(--color-border-subtle)',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+                  padding: '10px 12px',
+                  border: '1px solid var(--color-border-subtle)'
                 }}
               >
                 <div style={{ flex: 1, overflow: 'hidden', paddingRight: '8px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
                     {item.medicine.name}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -390,22 +406,22 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--color-desktop-bg)', borderRadius: '24px', padding: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border-default)' }}>
                     <button
                       onClick={() => handleUpdateQty(item.medicine.id, -1)}
-                      style={{ width: '36px', height: '36px', padding: 0, borderRadius: '50%', backgroundColor: 'var(--color-panel-solid)', border: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      style={{ width: '28px', height: '28px', padding: 0, border: 'none', borderRight: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                     >
-                      <Minus size={14} color="var(--color-text-secondary)" />
+                      <Minus size={12} color="var(--color-text-secondary)" />
                     </button>
-                    <span style={{ fontSize: '13px', fontWeight: 700, width: '32px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, width: '28px', textAlign: 'center' }}>
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => handleUpdateQty(item.medicine.id, 1)}
-                      style={{ width: '36px', height: '36px', padding: 0, borderRadius: '50%', backgroundColor: 'var(--color-panel-solid)', border: '1px solid var(--color-border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      style={{ width: '28px', height: '28px', padding: 0, border: 'none', borderLeft: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
                     >
-                      <Plus size={14} color="var(--color-text-secondary)" />
+                      <Plus size={12} color="var(--color-text-secondary)" />
                     </button>
                   </div>
                   <button
@@ -449,6 +465,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             <button
               key={key}
               type="button"
+              disabled={isProcessing}
               onClick={() => setPaymentMethod(key)}
               style={{
                 flex: 1,
@@ -528,14 +545,14 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '12px' }}>
                   <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
-                  <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'var(--color-desktop-bg)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} style={{ color: 'var(--color-text-muted)' }} /></button>
+                  <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', backgroundColor: 'transparent', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} style={{ color: 'var(--color-text-muted)' }} /></button>
                 </div>
 
-                <div style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                <div ref={receiptRef} style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                   <div style={{ marginBottom: '4px' }}>Operator: <strong>{completedSale.username}</strong></div>
                   <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
 
-                  <div style={{ margin: '16px 0', borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ margin: '16px 0', borderTop: '1px dashed var(--color-border-subtle)', borderBottom: '1px dashed var(--color-border-subtle)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {completedSale.items?.map((it: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
@@ -544,17 +561,17 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     ))}
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent-base)' }}>
                     <span>TOTAL PAID:</span>
                     <span>UGX {formatCurrency(completedSale.total_amount)}</span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                  <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '20px' }}>
+                  <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '0px' }}>
                     <Printer size={16} /> Print Receipt
                   </button>
-                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
+                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '0px' }}>
                     Done
                   </button>
                 </div>

@@ -348,6 +348,14 @@ a {
   transform: translateY(0) scale(0.97);
 }
 
+.product-card.low-stock {
+  border-color: var(--color-warning-border) !important;
+}
+
+.product-card.low-stock:hover {
+  border-color: var(--color-warning-text) !important;
+}
+
 .product-card.selected {
   background-color: var(--color-accent-subtle);
   border-color: var(--color-accent-base);
