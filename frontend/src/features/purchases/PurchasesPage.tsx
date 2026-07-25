@@ -112,7 +112,7 @@ export const PurchasesPage: React.FC = () => {
       const totalAmount = items.reduce((acc, i) => acc + (i.buying_price * i.quantity), 0);
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
-        const supId = supplierId === '' ? null : Number(supplierId);
+        const supId = supplierId ? Number(supplierId) : null;
         await wailsApp.RecordPurchase(
           invoiceNumber,
           supId,
