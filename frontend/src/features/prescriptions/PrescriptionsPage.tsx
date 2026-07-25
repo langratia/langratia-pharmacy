@@ -6,13 +6,11 @@ import {
   FileText,
   User,
   Stethoscope,
-  Filter,
-  CheckCircle2
+  Filter
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { NavItemKey } from '../../components/layout/Sidebar';
-import { SectionHeader } from '../../components/ui/SectionHeader';
 import { Panel } from '../../components/ui/Panel';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';

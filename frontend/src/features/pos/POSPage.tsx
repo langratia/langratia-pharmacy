@@ -8,7 +8,6 @@ import {
   Trash2,
   Printer,
   X,
-  Filter,
   CheckCircle,
   PackageCheck,
   Loader,
@@ -18,8 +17,6 @@ import {
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { Panel } from '../../components/ui/Panel';
-import { SearchBar } from '../../components/ui/SearchBar';
 import { SplitPane } from '../../components/ui/SplitPane';
 import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';

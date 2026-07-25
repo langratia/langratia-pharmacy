@@ -8,9 +8,7 @@ import {
   ShieldAlert,
   RefreshCw,
   ArrowUpRight,
-  ChevronRight,
-  Boxes,
-  Calendar
+  ChevronRight
 } from 'lucide-react';
 import { GetDashboardSummary } from '../../../wailsjs/go/main/App';
 import { Panel } from '../../components/ui/Panel';
