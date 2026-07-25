@@ -459,14 +459,18 @@ func (a *App) GetNetworkStatus() NetworkStatus {
 }
 
 func (a *App) UpdateDatabaseConfig(newPath string) error {
+	if newPath == "" || len(newPath) > 512 {
+		return fmt.Errorf("invalid database path")
+	}
+
 	config := Config{DBPath: newPath}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	// Write to config.json in the executable's directory
-	if err := os.WriteFile("config.json", data, 0644); err != nil {
+	// Write to config.json in the executable's directory with user-only permissions
+	if err := os.WriteFile("config.json", data, 0600); err != nil {
 		return fmt.Errorf("failed to save configuration: %w", err)
 	}
 	return nil
