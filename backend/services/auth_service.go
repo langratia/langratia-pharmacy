@@ -1,8 +1,10 @@
 package services
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"app/backend/db"
 	"app/backend/models"
@@ -17,27 +19,71 @@ func NewAuthService(database *db.DB) *AuthService {
 	return &AuthService{db: database}
 }
 
+// getConfig retrieves a system_config value with a fallback default.
+func (s *AuthService) getConfig(key, fallback string) string {
+	var val string
+	err := s.db.QueryRow("SELECT value FROM system_config WHERE key = ?", key).Scan(&val)
+	if err != nil {
+		return fallback
+	}
+	return val
+}
+
 // Login authenticates user credentials and returns user details.
-func (s *AuthService) Login(username, password string) (*models.User, error) {
+func (s *AuthService) Login(username, password, workstation string) (*models.User, error) {
 	var user models.User
 	var passwordHash string
+	var failedAttempts int
+	var lockedUntil sql.NullTime
 
-	query := `SELECT id, username, password_hash, role, full_name, created_at FROM users WHERE active = 1 AND username = ?`
+	query := `SELECT id, username, password_hash, role, full_name, active, last_login_at, last_logout_at, COALESCE(last_workstation, ''), COALESCE(failed_login_attempts, 0), locked_until, password_changed_at, created_at FROM users WHERE username = ?`
 	err := s.db.QueryRow(query, username).Scan(
-		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName, &user.CreatedAt,
+		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName, &user.Active,
+		&user.LastLoginAt, &user.LastLogoutAt, &user.LastWorkstation,
+		&failedAttempts, &lockedUntil, &user.PasswordChangedAt, &user.CreatedAt,
 	)
 	if err != nil {
 		return nil, errors.New("invalid username or password")
 	}
 
+	if !user.Active {
+		return nil, errors.New("account is disabled")
+	}
+
+	// Check if account is temporarily locked
+	if lockedUntil.Valid && time.Now().Before(lockedUntil.Time) {
+		return nil, fmt.Errorf("account is locked until %s", lockedUntil.Time.Format("2006-01-02 15:04"))
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
+		// Increment failed attempts
+		s.db.Exec("UPDATE users SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1 WHERE id = ?", user.ID)
 		return nil, errors.New("invalid username or password")
 	}
 
+	now := time.Now()
+
+	// On success: reset failed attempts, update login timestamp, record workstation
+	s.db.Exec("UPDATE users SET failed_login_attempts = 0, last_login_at = ?, last_workstation = ? WHERE id = ?", now, workstation, user.ID)
+
+	user.FailedLoginAttempts = 0
+	user.LastLoginAt = &now
+	user.LastWorkstation = workstation
+
 	// Record Audit Log
-	s.logAction(user.ID, user.Username, "USER_LOGIN", fmt.Sprintf("User %s logged in successfully", username))
+	s.logAction(user.ID, user.Username, "USER_LOGIN", fmt.Sprintf("User %s logged in from %s", username, workstation))
 
 	return &user, nil
+}
+
+// Logout records the logout timestamp for a user.
+func (s *AuthService) Logout(userID int64) error {
+	now := time.Now()
+	_, err := s.db.Exec("UPDATE users SET last_logout_at = ? WHERE id = ?", now, userID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CreateUser registers a new user (Admin only operation).

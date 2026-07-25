@@ -70,7 +70,9 @@ export function ListSuppliers(arg1:boolean):Promise<Array<models.Supplier>>;
 
 export function ListUsers(arg1:number):Promise<Array<models.User>>;
 
-export function Login(arg1:string,arg2:string):Promise<models.User>;
+export function Login(arg1:string,arg2:string,arg3:string):Promise<models.User>;
+
+export function Logout(arg1:number):Promise<void>;
 
 export function ProcessSale(arg1:number,arg2:string,arg3:Array<services.CartItemInput>,arg4:string):Promise<models.Sale>;
 

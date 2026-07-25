@@ -134,8 +134,12 @@ export function ListUsers(arg1) {
   return window['go']['main']['App']['ListUsers'](arg1);
 }
 
-export function Login(arg1, arg2) {
-  return window['go']['main']['App']['Login'](arg1, arg2);
+export function Login(arg1, arg2, arg3) {
+  return window['go']['main']['App']['Login'](arg1, arg2, arg3);
+}
+
+export function Logout(arg1) {
+  return window['go']['main']['App']['Logout'](arg1);
 }
 
 export function ProcessSale(arg1, arg2, arg3, arg4) {

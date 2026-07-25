@@ -25,16 +25,19 @@ func TestAuthService(t *testing.T) {
 	authService := NewAuthService(database)
 
 	// Test default admin login
-	adminUser, err := authService.Login("admin", "admin123")
+	adminUser, err := authService.Login("admin", "admin123", "test-workstation")
 	if err != nil {
 		t.Fatalf("expected successful admin login, got error: %v", err)
 	}
 	if adminUser.Role != "admin" {
 		t.Errorf("expected role admin, got %s", adminUser.Role)
 	}
+	if adminUser.LastWorkstation != "test-workstation" {
+		t.Errorf("expected workstation 'test-workstation', got '%s'", adminUser.LastWorkstation)
+	}
 
 	// Test invalid password
-	_, err = authService.Login("admin", "wrongpassword")
+	_, err = authService.Login("admin", "wrongpassword", "test-workstation")
 	if err == nil {
 		t.Error("expected error for wrong password, got nil")
 	}
@@ -50,12 +53,17 @@ func TestAuthService(t *testing.T) {
 	}
 
 	// Test cashier login
-	loggedInCashier, err := authService.Login("cashier1", "cashier123")
+	loggedInCashier, err := authService.Login("cashier1", "cashier123", "test-workstation")
 	if err != nil {
 		t.Fatalf("failed cashier login: %v", err)
 	}
 	if loggedInCashier.FullName != "John Doe" {
 		t.Errorf("expected FullName John Doe, got %s", loggedInCashier.FullName)
+	}
+
+	// Test logout tracking
+	if err := authService.Logout(adminUser.ID); err != nil {
+		t.Fatalf("failed to logout: %v", err)
 	}
 
 	// Test listing users

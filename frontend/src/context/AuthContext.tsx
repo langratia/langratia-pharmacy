@@ -1,10 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 
+function getWorkstation(): string {
+  try {
+    return window.navigator.userAgent || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
   error: string | null;
 }
@@ -30,7 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         return false;
       }
-      const loggedUser: User = await wailsApp.Login(username, password);
+      const workstation = getWorkstation();
+      const loggedUser: User = await wailsApp.Login(username, password, workstation);
       setUser(loggedUser);
       localStorage.setItem('langratia_user', JSON.stringify(loggedUser));
       setIsLoading(false);
@@ -42,7 +51,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const wailsApp = (window as any)?.go?.main?.App;
+    if (wailsApp && user) {
+      try {
+        await wailsApp.Logout(user.id);
+      } catch {
+        // Silently continue even if logout tracking fails
+      }
+    }
     setUser(null);
     localStorage.removeItem('langratia_user');
   };

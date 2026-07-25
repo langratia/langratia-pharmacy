@@ -122,11 +122,18 @@ func (a *App) startup(ctx context.Context) {
 }
 
 // Auth API Bindings
-func (a *App) Login(username, password string) (*models.User, error) {
+func (a *App) Login(username, password, workstation string) (*models.User, error) {
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
-	return a.authService.Login(username, password)
+	return a.authService.Login(username, password, workstation)
+}
+
+func (a *App) Logout(userID int64) error {
+	if a.authService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.authService.Logout(userID)
 }
 
 func (a *App) CreateUser(username, password, role, fullName string, userID int64) (*models.User, error) {
