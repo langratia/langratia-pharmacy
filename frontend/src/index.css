@@ -1,10 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Default: Soft Light-Teal Workstation Color Palette */
+  /* Default: Soft Light-Teal Workstation Palette */
   --color-desktop-bg: #EDF7F5;
-  --color-panel-bg: #FFFFFF;
-  --color-header-bg: #FFFFFF;
+  --color-panel-bg: rgba(255, 255, 255, 0.9);
+  --color-panel-solid: #FFFFFF;
+  --color-header-bg: rgba(255, 255, 255, 0.85);
   --color-sidebar-bg: #0F172A;
   --color-sidebar-hover: #1E293B;
   --color-sidebar-active: #0F8A6A;
@@ -12,11 +13,18 @@
   --color-border-subtle: #E2E8F0;
   --color-statusbar-bg: #0F172A;
 
+  /* Glassmorphism Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(15, 138, 106, 0.18);
+  --glass-blur: blur(12px);
+  --glass-card-bg: rgba(255, 255, 255, 0.75);
+  --glass-modal-bg: rgba(255, 255, 255, 0.95);
+
   /* Accent & Brand Colors */
   --color-accent: #0F8A6A;
   --color-accent-hover: #0B6B52;
-  --color-accent-light: #ECFDF5;
-  --color-accent-subtle: rgba(15, 138, 106, 0.1);
+  --color-accent-light: rgba(15, 138, 106, 0.12);
+  --color-accent-subtle: rgba(15, 138, 106, 0.08);
   --color-selection: #E0F2FE;
   --color-selection-border: #38BDF8;
 
@@ -38,12 +46,11 @@
   --radius-sm: 2px;
   --radius-md: 3px;
   --radius-lg: 4px;
-  --radius-full: 9999px;
 
   /* Elevation */
   --shadow-subtle: none;
-  --shadow-panel: none;
-  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow-glass: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.18);
 
   /* Transitions */
   --transition-fast: all 100ms ease-out;
@@ -52,20 +59,28 @@
 
 /* Dark Mode Theme Tokens */
 [data-theme='dark'] {
-  --color-desktop-bg: #090D16;
-  --color-panel-bg: #151D2A;
-  --color-header-bg: #151D2A;
+  --color-desktop-bg: #090E17;
+  --color-panel-bg: rgba(17, 24, 39, 0.88);
+  --color-panel-solid: #111827;
+  --color-header-bg: rgba(17, 24, 39, 0.85);
   --color-sidebar-bg: #0A0E17;
-  --color-sidebar-hover: #1E293B;
+  --color-sidebar-hover: #1F293D;
   --color-sidebar-active: #0F8A6A;
-  --color-border: #2A364F;
+  --color-border: #1F293D;
   --color-border-subtle: #1E293B;
   --color-statusbar-bg: #0A0E17;
+
+  /* Glassmorphism Dark Tokens */
+  --glass-bg: rgba(17, 24, 39, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-card-bg: rgba(30, 41, 59, 0.65);
+  --glass-modal-bg: rgba(17, 24, 39, 0.95);
 
   --color-text-primary: #F8FAFC;
   --color-text-secondary: #CBD5E1;
   --color-text-muted: #94A3B8;
   --color-selection: #1E3A8A;
+  --color-accent-light: rgba(15, 138, 106, 0.25);
 }
 
 html, body, #root {
@@ -106,10 +121,12 @@ button {
   padding: 4px 10px;
   height: 28px;
   box-sizing: border-box;
+  backdrop-filter: var(--glass-blur);
 }
 
 button:hover {
-  background-color: rgba(15, 138, 106, 0.08);
+  background-color: var(--color-accent-light);
+  border-color: var(--color-accent);
 }
 
 button:focus-visible {
@@ -128,6 +145,7 @@ input, select, textarea {
   height: 28px;
   box-sizing: border-box;
   outline: none;
+  backdrop-filter: var(--glass-blur);
 }
 
 input:focus, select:focus, textarea:focus {
@@ -140,7 +158,13 @@ select {
   appearance: auto;
   cursor: pointer;
   font-weight: 500;
-  background-color: var(--color-panel-bg);
+  background-color: var(--color-panel-solid);
+  color: var(--color-text-primary);
+}
+
+select option {
+  background-color: var(--color-panel-solid);
+  color: var(--color-text-primary);
 }
 
 a {
@@ -164,85 +188,30 @@ a {
   background: var(--color-text-muted);
 }
 
-/* Desktop Workstation Layout Classes */
-.card-container, .desktop-panel {
-  background-color: var(--color-panel-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 10px;
-  box-shadow: none;
+/* Glassmorphism Panel & Card Classes */
+.glass-panel {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-glass);
 }
 
-/* Desktop Typography Helpers */
-.desktop-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: -0.01em;
-  margin: 0;
+.glass-modal {
+  background: var(--glass-modal-bg) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--shadow-dropdown);
 }
 
-.section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.secondary-text {
-  font-size: 11px;
-  color: var(--color-text-muted);
-}
-
-/* Hardware-Accelerated DataGrid */
-* {
-  box-sizing: border-box;
-}
-
-.datagrid-scroll-container {
-  overflow-x: auto;
-  overflow-y: auto;
-  scroll-behavior: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-.datagrid-row {
-  transition: background-color 50ms ease-out;
-}
-.datagrid-row:hover {
-  background-color: rgba(15, 138, 106, 0.08) !important;
-}
-.datagrid-row.selected {
-  background-color: var(--color-selection) !important;
-  color: var(--color-text-primary) !important;
-}
-
-/* Global Utility Classes */
-.desktop-btn-primary {
-  background-color: var(--color-accent);
-  color: #ffffff;
-  border: 1px solid #0B6B52;
-  font-weight: 600;
-}
-.desktop-btn-primary:hover {
-  background-color: var(--color-accent-hover);
-}
-
-.desktop-btn-secondary {
-  background-color: var(--color-panel-bg);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border);
-}
-.desktop-btn-secondary:hover {
-  background-color: rgba(15, 138, 106, 0.08);
-}
-
-/* Workstation Product Card Sizing */
 .product-card {
-  background-color: var(--color-panel-bg);
+  background: var(--glass-card-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  padding: 6px 8px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -254,7 +223,45 @@ a {
   border-color: var(--color-accent);
   background-color: var(--color-accent-light);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 138, 106, 0.15);
 }
-[data-theme='dark'] .product-card:hover {
-  background-color: rgba(15, 138, 106, 0.15);
+
+/* Desktop Utility Buttons */
+.desktop-btn-primary {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: 1px solid #0B6B52;
+  font-weight: 600;
+}
+.desktop-btn-primary:hover {
+  background-color: var(--color-accent-hover);
+  color: #ffffff;
+}
+
+.desktop-btn-secondary {
+  background-color: var(--color-panel-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+.desktop-btn-secondary:hover {
+  background-color: var(--color-accent-light);
+}
+
+/* Hardware-Accelerated DataGrid */
+.datagrid-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  scroll-behavior: auto;
+}
+
+.datagrid-row {
+  transition: background-color 50ms ease-out;
+  color: var(--color-text-primary);
+}
+.datagrid-row:hover {
+  background-color: var(--color-accent-light) !important;
+}
+.datagrid-row.selected {
+  background-color: var(--color-selection) !important;
+  color: var(--color-text-primary) !important;
 }

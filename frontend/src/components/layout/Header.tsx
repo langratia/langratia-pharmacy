@@ -163,15 +163,17 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
         height: '38px',
         maxHeight: '38px',
         flexShrink: 0,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #CBD5E1',
+        backgroundColor: 'var(--color-header-bg)',
+        backdropFilter: 'var(--glass-blur)',
+        WebkitBackdropFilter: 'var(--glass-blur)',
+        borderBottom: '1px solid var(--color-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 12px',
         position: 'relative',
         zIndex: 90,
-        boxShadow: 'none'
+        boxShadow: 'var(--shadow-glass)'
       }}
     >
       {/* Left Quick Desktop Actions */}
@@ -199,15 +201,13 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
         {/* Search Dropdown */}
         {showSearchDropdown && (
           <div
+            className="glass-modal"
             style={{
               position: 'absolute',
               top: 'calc(100% + 4px)',
               left: 0,
               right: 0,
-              backgroundColor: '#FFFFFF',
               borderRadius: '2px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              border: '1px solid #CBD5E1',
               maxHeight: '300px',
               overflowY: 'auto',
               zIndex: 100
@@ -339,32 +339,30 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
             )}
           </button>
 
-          {/* Notifications Solid Dropdown */}
+          {/* Notifications Glass Dropdown */}
           {showNotifications && (
             <div
+              className="glass-modal"
               style={{
                 position: 'absolute',
                 top: 'calc(100% + 4px)',
                 right: 0,
                 width: '300px',
-                backgroundColor: '#FFFFFF',
                 borderRadius: '2px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                border: '1px solid #CBD5E1',
                 zIndex: 100
               }}
             >
               <div
                 style={{
                   padding: '6px 10px',
-                  borderBottom: '1px solid #CBD5E1',
+                  borderBottom: '1px solid var(--color-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  backgroundColor: '#F8FAFC'
+                  backgroundColor: 'var(--color-accent-light)'
                 }}
               >
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#0F172A', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase' }}>
                   System Alerts
                 </span>
                 {notifications && (
