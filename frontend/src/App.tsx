@@ -6,6 +6,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { NavItemKey } from './components/layout/Sidebar';
 import { CommandPalette } from './components/ui/CommandPalette';
+import { IdleTimer } from './components/ui/IdleTimer';
 
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { POSPage } from './features/pos/POSPage';
@@ -16,8 +17,10 @@ import { ReportsPage } from './features/reports/ReportsPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { PrescriptionsPage } from './features/prescriptions/PrescriptionsPage';
 
+const SESSION_IDLE_TIMEOUT_MINUTES = 15;
+
 const MainApp: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [activeView, setActiveView] = useState<NavItemKey>('dashboard');
   const [inventoryFilter, setInventoryFilter] = useState<string>('all');
   const [posCartItems, setPosCartItems] = useState<any[]>([]);
@@ -90,6 +93,11 @@ const MainApp: React.FC = () => {
           </motion.div>
         </AnimatePresence>
       </MainLayout>
+
+      <IdleTimer
+        timeoutMinutes={SESSION_IDLE_TIMEOUT_MINUTES}
+        onTimeout={logout}
+      />
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}

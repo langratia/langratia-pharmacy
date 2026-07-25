@@ -176,6 +176,13 @@ func (a *App) UnlockUser(adminID int64, targetUserID int64) error {
 	return a.authService.UnlockUser(targetUserID)
 }
 
+func (a *App) VerifyPassword(userID int64, password string) bool {
+	if a.authService == nil {
+		return false
+	}
+	return a.authService.VerifyPassword(userID, password)
+}
+
 func (a *App) ChangePassword(userID int64, oldPassword, newPassword string) error {
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")

@@ -207,6 +207,16 @@ func (s *AuthService) UnlockUser(targetUserID int64) error {
 	return nil
 }
 
+// VerifyPassword checks if the given password matches the user's current password (for re-authentication).
+func (s *AuthService) VerifyPassword(userID int64, password string) bool {
+	var currentHash string
+	err := s.db.QueryRow("SELECT password_hash FROM users WHERE id = ? AND active = 1", userID).Scan(&currentHash)
+	if err != nil {
+		return false
+	}
+	return bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(password)) == nil
+}
+
 // ChangePassword allows a user to change their own password after verifying the old one.
 func (s *AuthService) ChangePassword(userID int64, oldPassword, newPassword string) error {
 	if oldPassword == "" || newPassword == "" {
