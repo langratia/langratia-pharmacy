@@ -56,9 +56,33 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
-		// Increment failed attempts
+		// Increment failed attempts and check lockout threshold
 		s.db.Exec("UPDATE users SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1 WHERE id = ?", user.ID)
-		return nil, errors.New("invalid username or password")
+
+		var attemptCount int
+		s.db.QueryRow("SELECT COALESCE(failed_login_attempts, 0) FROM users WHERE id = ?", user.ID).Scan(&attemptCount)
+
+		maxAttemptsStr := s.getConfig("max_failed_attempts", "5")
+		var maxAttempts int
+		fmt.Sscanf(maxAttemptsStr, "%d", &maxAttempts)
+		if maxAttempts <= 0 {
+			maxAttempts = 5
+		}
+
+		if attemptCount >= maxAttempts {
+			durationStr := s.getConfig("lockout_duration_minutes", "30")
+			var durationMinutes int
+			fmt.Sscanf(durationStr, "%d", &durationMinutes)
+			if durationMinutes <= 0 {
+				durationMinutes = 30
+			}
+			lockedUntil := time.Now().Add(time.Duration(durationMinutes) * time.Minute)
+			s.db.Exec("UPDATE users SET locked_until = ? WHERE id = ?", lockedUntil, user.ID)
+			return nil, fmt.Errorf("account locked due to %d failed attempts. Try again after %s", attemptCount, lockedUntil.Format("15:04"))
+		}
+
+		remaining := maxAttempts - attemptCount
+		return nil, fmt.Errorf("invalid username or password (%d attempt(s) remaining)", remaining)
 	}
 
 	now := time.Now()
@@ -168,6 +192,19 @@ func (s *AuthService) DeactivateUser(id int64) error {
 	query := `UPDATE users SET active = 0 WHERE id = ?`
 	_, err := s.db.Exec(query, id)
 	return err
+}
+
+// UnlockUser clears the lockout and failed attempts for a user (admin only).
+func (s *AuthService) UnlockUser(targetUserID int64) error {
+	res, err := s.db.Exec("UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?", targetUserID)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows == 0 {
+		return errors.New("user not found")
+	}
+	return nil
 }
 
 // ChangePassword allows a user to change their own password after verifying the old one.

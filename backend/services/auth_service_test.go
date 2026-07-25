@@ -74,4 +74,91 @@ func TestAuthService(t *testing.T) {
 	if len(users) != 2 {
 		t.Errorf("expected 2 users, got %d", len(users))
 	}
+
+	// Test password change
+	err = authService.ChangePassword(adminUser.ID, "admin123", "newAdmin456")
+	if err != nil {
+		t.Fatalf("failed to change password: %v", err)
+	}
+
+	// Login with new password
+	_, err = authService.Login("admin", "newAdmin456", "test-workstation")
+	if err != nil {
+		t.Fatalf("expected login with new password, got: %v", err)
+	}
+
+	// Old password should no longer work
+	_, err = authService.Login("admin", "admin123", "test-workstation")
+	if err == nil {
+		t.Error("expected error with old password, got nil")
+	}
+
+	// Test admin reset password
+	err = authService.AdminResetPassword(adminUser.ID, cashierUser.ID, "resetPass789")
+	if err != nil {
+		t.Fatalf("admin reset password failed: %v", err)
+	}
+
+	// Cashier logs in with new password
+	_, err = authService.Login("cashier1", "resetPass789", "test-workstation")
+	if err != nil {
+		t.Fatalf("expected login after admin reset, got: %v", err)
+	}
+}
+
+func TestAccountLockout(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "langratia_lockout_test_*")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	dbPath := filepath.Join(tempDir, "pharmacy_lockout.db")
+	database, err := db.InitDB(dbPath)
+	if err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	defer database.Close()
+
+	authService := NewAuthService(database)
+
+	// Set low lockout threshold for testing (2 attempts)
+	database.Exec("UPDATE system_config SET value = '2' WHERE key = 'max_failed_attempts'")
+	database.Exec("UPDATE system_config SET value = '1' WHERE key = 'lockout_duration_minutes'")
+
+	// First login succeeds
+	_, err = authService.Login("admin", "admin123", "test")
+	if err != nil {
+		t.Fatalf("expected successful login, got: %v", err)
+	}
+
+	// First wrong attempt - should show 1 remaining
+	_, err = authService.Login("admin", "wrong1", "test")
+	if err == nil {
+		t.Fatal("expected error for wrong password")
+	}
+
+	// Second wrong attempt - should lock
+	_, err = authService.Login("admin", "wrong2", "test")
+	if err == nil {
+		t.Fatal("expected error for wrong password")
+	}
+
+	// Third wrong attempt - should be locked (hits lock check before password verify)
+	_, err = authService.Login("admin", "wrong3", "test")
+	if err == nil {
+		t.Fatal("expected account locked error")
+	}
+
+	// Test unlock by admin
+	err = authService.UnlockUser(1)
+	if err != nil {
+		t.Fatalf("failed to unlock user: %v", err)
+	}
+
+	// After unlock, login should work
+	_, err = authService.Login("admin", "admin123", "test")
+	if err != nil {
+		t.Fatalf("expected successful login after unlock, got: %v", err)
+	}
 }

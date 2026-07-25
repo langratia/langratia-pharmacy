@@ -24,6 +24,8 @@ export function ChangePassword(arg1:number,arg2:string,arg3:string):Promise<void
 
 export function AdminResetPassword(arg1:number,arg2:number,arg3:string):Promise<void>;
 
+export function UnlockUser(arg1:number,arg2:number):Promise<void>;
+
 export function CreatePrescription(arg1:number,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:string,arg9:Array<services.PrescriptionItemInput>):Promise<models.Prescription>;
 
 export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number):Promise<models.User>;
