@@ -22,6 +22,10 @@ export function ArchiveMedicine(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchiveMedicine'](arg1, arg2, arg3, arg4);
 }
 
+export function AutoDiscoverServer() {
+  return window['go']['main']['App']['AutoDiscoverServer']();
+}
+
 export function BulkImportMedicines(arg1, arg2, arg3) {
   return window['go']['main']['App']['BulkImportMedicines'](arg1, arg2, arg3);
 }
@@ -38,6 +42,10 @@ export function DeactivateUser(arg1) {
   return window['go']['main']['App']['DeactivateUser'](arg1);
 }
 
+export function EnableMainServerMode() {
+  return window['go']['main']['App']['EnableMainServerMode']();
+}
+
 export function ExportDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportDatabase'](arg1, arg2, arg3);
 }
@@ -46,12 +54,20 @@ export function GetBatchesByMedicine(arg1) {
   return window['go']['main']['App']['GetBatchesByMedicine'](arg1);
 }
 
+export function GetCashierPerformance(arg1) {
+  return window['go']['main']['App']['GetCashierPerformance'](arg1);
+}
+
 export function GetDashboardSummary() {
   return window['go']['main']['App']['GetDashboardSummary']();
 }
 
 export function GetExpiringBatches(arg1) {
   return window['go']['main']['App']['GetExpiringBatches'](arg1);
+}
+
+export function GetNetworkStatus() {
+  return window['go']['main']['App']['GetNetworkStatus']();
 }
 
 export function GetNotificationsSummary() {
@@ -124,6 +140,10 @@ export function ResetAndSeedDatabase() {
 
 export function RestoreDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['RestoreDatabase'](arg1, arg2, arg3);
+}
+
+export function UpdateDatabaseConfig(arg1) {
+  return window['go']['main']['App']['UpdateDatabaseConfig'](arg1);
 }
 
 export function UpdateMedicine(arg1, arg2, arg3) {

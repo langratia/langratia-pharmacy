@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Shield, Users, Database, UserPlus } from 'lucide-react';
+import { Download, Shield, Users, Database, UserPlus, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase } from '../../../wailsjs/go/main/App';
-import { models } from '../../../wailsjs/go/models';
+import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode } from '../../../wailsjs/go/main/App';
+import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/formatters';
 import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
+import lanGuide from '../../assets/lan_setup_guide.png';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit' | 'network'>('users');
   
   // Users state
   const [users, setUsers] = useState<models.User[]>([]);
@@ -21,6 +23,14 @@ export const SettingsPage: React.FC = () => {
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
+
+  // Network State
+  const [isScanning, setIsScanning] = useState(false);
+  const [isEnablingHost, setIsEnablingHost] = useState(false);
+
+  // Performance View State
+  const [selectedUserPerf, setSelectedUserPerf] = useState<services.CashierPerformance | null>(null);
+  const [selectedUserName, setSelectedUserName] = useState<string>('');
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -125,6 +135,54 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleViewPerformance = async (uId: number, username: string) => {
+    setIsLoading(true);
+    try {
+      const wailsApp = (window as any)?.go?.main?.App;
+      if (wailsApp?.GetCashierPerformance) {
+        const perf = await wailsApp.GetCashierPerformance(uId);
+        setSelectedUserPerf(perf);
+        setSelectedUserName(username);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to load performance');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAutoDetect = async () => {
+    setIsScanning(true);
+    const loadingToast = toast.loading('Scanning local network for Main Server...');
+    try {
+      const wailsApp = (window as any)?.go?.main?.App;
+      if (wailsApp?.AutoDiscoverServer) {
+        const path = await wailsApp.AutoDiscoverServer();
+        toast.success(`Server found at ${path}! Please restart the application.`, { id: loadingToast, duration: 6000 });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'No server found on the network. Is the Main Server running?', { id: loadingToast, duration: 6000 });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleEnableHost = async () => {
+    setIsEnablingHost(true);
+    const loadingToast = toast.loading('Configuring Windows for Main Server mode...');
+    try {
+      const wailsApp = (window as any)?.go?.main?.App;
+      if (wailsApp?.EnableMainServerMode) {
+        await wailsApp.EnableMainServerMode();
+        toast.success('Main Server mode enabled! This PC is now visible to other Cashier PCs.', { id: loadingToast, duration: 6000 });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to enable Main Server mode.', { id: loadingToast });
+    } finally {
+      setIsEnablingHost(false);
+    }
+  };
+
   const userColumns: Column<models.User>[] = [
     {
       key: 'username',
@@ -180,24 +238,42 @@ export const SettingsPage: React.FC = () => {
       width: '20%',
       align: 'right' as const,
       accessor: (u) => (
-        <button
-          type="button"
-          onClick={() => handleDeactivateUser(u.id, u.username)}
-          style={{
-            fontSize: '11px',
-            padding: '2px 8px',
-            backgroundColor: 'var(--color-danger-bg)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger-text)',
-            borderRadius: '0px',
-            fontWeight: 600,
-            cursor: u.username === user?.username ? 'not-allowed' : 'pointer',
-            opacity: u.username === user?.username ? 0.5 : 1
-          }}
-          disabled={u.username === user?.username}
-        >
-          Deactivate
-        </button>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => handleViewPerformance(u.id, u.username)}
+            style={{
+              fontSize: '11px',
+              padding: '2px 8px',
+              backgroundColor: 'var(--color-bg-panel)',
+              border: '1px solid var(--color-border-default)',
+              color: 'var(--color-text-primary)',
+              borderRadius: '0px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            Performance
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDeactivateUser(u.id, u.username)}
+            style={{
+              fontSize: '11px',
+              padding: '2px 8px',
+              backgroundColor: 'var(--color-danger-bg)',
+              border: '1px solid var(--color-danger-border)',
+              color: 'var(--color-danger-text)',
+              borderRadius: '0px',
+              fontWeight: 600,
+              cursor: u.username === user?.username ? 'not-allowed' : 'pointer',
+              opacity: u.username === user?.username ? 0.5 : 1
+            }}
+            disabled={u.username === user?.username}
+          >
+            Deactivate
+          </button>
+        </div>
       )
     }
   ];
@@ -296,21 +372,106 @@ export const SettingsPage: React.FC = () => {
             >
               <Shield size={14} /> Audit Trail Logs
             </button>
+            <button
+              onClick={() => setActiveTab('network')}
+              style={{
+                height: '36px',
+                fontSize: '12px',
+                fontWeight: 600,
+                justifyContent: 'flex-start',
+                gap: '8px',
+                padding: '0 12px',
+                borderRadius: '0px',
+                backgroundColor: activeTab === 'network' ? 'var(--color-accent-subtle)' : 'transparent',
+                border: activeTab === 'network' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                color: activeTab === 'network' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+              }}
+            >
+              <Network size={14} /> Network Setup
+            </button>
           </div>
         </Panel>
 
         {/* Content Pane View */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
           {activeTab === 'users' && (
-            <DataGrid
-              columns={userColumns}
-              data={users}
-              keyExtractor={(u) => u.id}
-              isLoading={isLoading}
-              compactRows={true}
-              zebraStriping={true}
-              maxHeight="calc(100vh - 130px)"
-              style={{ flex: 1 }}
+            <SplitPane
+              primaryPane={
+                <DataGrid
+                  columns={userColumns}
+                  data={users}
+                  keyExtractor={(u) => u.id}
+                  isLoading={isLoading}
+                  compactRows={true}
+                  zebraStriping={true}
+                  maxHeight="calc(100vh - 130px)"
+                  style={{ flex: 1 }}
+                />
+              }
+              isInspectorOpen={!!selectedUserPerf}
+              inspectorTitle={`Performance: ${selectedUserName}`}
+              onToggleInspector={() => setSelectedUserPerf(null)}
+              inspectorWidth="380px"
+              inspectorPane={
+                selectedUserPerf ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}>
+                    
+                    {/* Today */}
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>Today's Sales</h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Transactions</span>
+                        <span style={{ fontWeight: 600 }}>{selectedUserPerf.today.total_sales}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Items Sold</span>
+                        <span style={{ fontWeight: 600 }}>{selectedUserPerf.today.items_sold}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Revenue</span>
+                        <span style={{ fontWeight: 700, color: 'var(--color-accent-base)' }}>UGX {formatCurrency(selectedUserPerf.today.total_revenue)}</span>
+                      </div>
+                    </div>
+
+                    {/* This Week */}
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>Last 7 Days</h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Transactions</span>
+                        <span style={{ fontWeight: 600 }}>{selectedUserPerf.this_week.total_sales}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Items Sold</span>
+                        <span style={{ fontWeight: 600 }}>{selectedUserPerf.this_week.items_sold}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Revenue</span>
+                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>UGX {formatCurrency(selectedUserPerf.this_week.total_revenue)}</span>
+                      </div>
+                    </div>
+
+                    {/* This Month */}
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-base)' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--color-text-primary)' }}>This Calendar Month</h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Transactions</span>
+                        <span style={{ fontWeight: 600 }}>{selectedUserPerf.this_month.total_sales}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Items Sold</span>
+                        <span style={{ fontWeight: 600 }}>{selectedUserPerf.this_month.items_sold}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px' }}>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>Revenue</span>
+                        <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>UGX {formatCurrency(selectedUserPerf.this_month.total_revenue)}</span>
+                      </div>
+                    </div>
+
+                  </div>
+                ) : (
+                  <div />
+                )
+              }
             />
           )}
 
@@ -325,6 +486,54 @@ export const SettingsPage: React.FC = () => {
               maxHeight="calc(100vh - 130px)"
               style={{ flex: 1 }}
             />
+          )}
+
+          {activeTab === 'network' && (
+            <Panel title="LAN NETWORK SETUP" style={{ height: '100%', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center', padding: '24px' }}>
+                <div style={{ maxWidth: '600px', width: '100%' }}>
+                  <img src={lanGuide} alt="LAN Setup Guide" style={{ width: '100%', borderRadius: '4px', border: '1px solid var(--color-border-default)' }} />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '20px', width: '100%', maxWidth: '600px', flexDirection: 'row' }}>
+                  {/* Host Panel */}
+                  <div style={{ flex: 1, padding: '20px', border: '1px solid var(--color-border-default)', borderRadius: '0px', backgroundColor: 'var(--color-bg-base)', display: 'flex', flexDirection: 'column' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Database size={16} style={{ color: 'var(--color-accent-base)' }} /> Is this the Main Server?
+                    </h3>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--color-text-secondary)', flex: 1 }}>
+                      If this is the main computer that holds all the data, click below to make it visible to other Cashier PCs on your network.
+                    </p>
+                    <button 
+                      onClick={handleEnableHost} 
+                      disabled={isEnablingHost}
+                      className="desktop-btn-primary" 
+                      style={{ height: '36px', borderRadius: '0px', backgroundColor: 'var(--color-bg-panel)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border-default)' }}
+                    >
+                      {isEnablingHost ? 'Configuring...' : 'Enable Main Server Mode'}
+                    </button>
+                  </div>
+
+                  {/* Client Panel */}
+                  <div style={{ flex: 1, padding: '20px', border: '1px solid var(--color-border-default)', borderRadius: '0px', backgroundColor: 'var(--color-bg-base)', display: 'flex', flexDirection: 'column' }}>
+                    <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Users size={16} style={{ color: 'var(--color-warning-text)' }} /> Is this a Cashier PC?
+                    </h3>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--color-text-secondary)', flex: 1 }}>
+                      If you are setting up a Cashier terminal, make sure the Main Server is running, then click Auto-Detect to automatically connect to it.
+                    </p>
+                    <button 
+                      onClick={handleAutoDetect} 
+                      disabled={isScanning}
+                      className="desktop-btn-primary" 
+                      style={{ height: '36px', borderRadius: '0px' }}
+                    >
+                      {isScanning ? 'Scanning Network...' : 'Auto-Detect & Connect'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Panel>
           )}
 
           {activeTab === 'backups' && (

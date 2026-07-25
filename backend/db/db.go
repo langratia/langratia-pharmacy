@@ -27,12 +27,15 @@ func InitDB(dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
 	}
 
-	// Enable WAL mode & foreign keys for performance and integrity
+	// Enable WAL mode, foreign keys, and busy timeout for concurrent LAN performance
 	if _, err := sqlDB.Exec("PRAGMA journal_mode = WAL;"); err != nil {
 		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
 	}
 	if _, err := sqlDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
+	}
+	if _, err := sqlDB.Exec("PRAGMA busy_timeout = 5000;"); err != nil {
+		return nil, fmt.Errorf("failed to set busy timeout: %w", err)
 	}
 
 	db := &DB{sqlDB}

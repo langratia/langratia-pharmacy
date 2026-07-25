@@ -1,3 +1,22 @@
+export namespace main {
+	
+	export class NetworkStatus {
+	    is_host: boolean;
+	    db_path: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new NetworkStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.is_host = source["is_host"];
+	        this.db_path = source["db_path"];
+	    }
+	}
+
+}
+
 export namespace models {
 	
 	export class AuditLog {
@@ -639,6 +658,59 @@ export namespace services {
 	        this.unit_price = source["unit_price"];
 	    }
 	}
+	export class CashierPerformanceMetrics {
+	    total_sales: number;
+	    items_sold: number;
+	    total_revenue: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CashierPerformanceMetrics(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.total_sales = source["total_sales"];
+	        this.items_sold = source["items_sold"];
+	        this.total_revenue = source["total_revenue"];
+	    }
+	}
+	export class CashierPerformance {
+	    user_id: number;
+	    today: CashierPerformanceMetrics;
+	    this_week: CashierPerformanceMetrics;
+	    this_month: CashierPerformanceMetrics;
+	
+	    static createFrom(source: any = {}) {
+	        return new CashierPerformance(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.user_id = source["user_id"];
+	        this.today = this.convertValues(source["today"], CashierPerformanceMetrics);
+	        this.this_week = this.convertValues(source["this_week"], CashierPerformanceMetrics);
+	        this.this_month = this.convertValues(source["this_month"], CashierPerformanceMetrics);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class SalesTrendPoint {
 	    date: string;
 	    amount: number;

@@ -12,7 +12,9 @@ import {
   Sun,
   Moon,
   Search,
-  Building2
+  Building2,
+  Server,
+  Monitor
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -23,9 +25,10 @@ import { formatCurrency } from '../../utils/formatters';
 import {
   GetUserTodaySalesTotal,
   GetNotificationsSummary,
-  GlobalSearch
+  GlobalSearch,
+  GetNetworkStatus
 } from '../../../wailsjs/go/main/App';
-import { models } from '../../../wailsjs/go/models';
+import { models, main } from '../../../wailsjs/go/models';
 
 interface HeaderProps {
   onSelectView: (view: NavItemKey) => void;
@@ -46,6 +49,10 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
   const [searchResults, setSearchResults] = useState<models.SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
+  
+  // Network Status State
+  const [networkStatus, setNetworkStatus] = useState<main.NetworkStatus | null>(null);
+
   const searchRef = useRef<HTMLDivElement>(null);
 
   const [avatarUrl, setAvatarUrl] = useState<string>('');
@@ -83,6 +90,13 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
 
       const notifs = await GetNotificationsSummary();
       setNotifications(notifs);
+
+      try {
+        const netStatus = await GetNetworkStatus();
+        setNetworkStatus(netStatus);
+      } catch (netErr) {
+        console.error('Failed to get network status:', netErr);
+      }
     } catch (err) {
       console.error('Failed to load header metrics:', err);
     }
@@ -275,6 +289,31 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
 
         {/* Right Toolbar Controls & User Profile Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Network Status Badge */}
+          {networkStatus && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                height: '24px',
+                padding: '0 10px',
+                backgroundColor: networkStatus.is_host ? 'rgba(46, 125, 50, 0.1)' : 'rgba(2, 136, 209, 0.1)',
+                border: `1px solid ${networkStatus.is_host ? 'rgba(46, 125, 50, 0.5)' : 'rgba(2, 136, 209, 0.5)'}`,
+                color: networkStatus.is_host ? '#4caf50' : '#0288d1',
+                borderRadius: '12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.02em',
+                marginRight: '8px'
+              }}
+              title={networkStatus.is_host ? 'Local Database Connection' : `Connected via LAN: ${networkStatus.db_path}`}
+            >
+              {networkStatus.is_host ? <Server size={12} /> : <Monitor size={12} />}
+              {networkStatus.is_host ? 'Main Server' : 'Connected to Server'}
+            </div>
+          )}
+
           {/* Dark / Light Mode Toggle */}
           <button
             onClick={toggleTheme}

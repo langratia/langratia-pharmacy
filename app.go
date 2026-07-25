@@ -2,12 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"app/backend/db"
 	"app/backend/models"
+	"app/backend/network"
 	"app/backend/services"
 )
 
@@ -29,6 +34,16 @@ type App struct {
 	searchService       *services.SearchService
 }
 
+// Config represents the local application configuration
+type Config struct {
+	DBPath string `json:"db_path"`
+}
+
+type NetworkStatus struct {
+	IsHost bool   `json:"is_host"`
+	DBPath string `json:"db_path"`
+}
+
 // NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
@@ -38,13 +53,24 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Locate data directory
-	userConfigDir, err := os.UserConfigDir()
+	// 1. Try to load custom configuration for LAN setup
+	var customConfig Config
+	configData, err := os.ReadFile("config.json")
+	if err == nil {
+		_ = json.Unmarshal(configData, &customConfig)
+	}
+
+	// 2. Locate data directory (use custom if available)
 	var dbPath string
-	if err != nil {
-		dbPath = filepath.Join(".", "data", "pharmacy.db")
+	if customConfig.DBPath != "" {
+		dbPath = customConfig.DBPath
 	} else {
-		dbPath = filepath.Join(userConfigDir, "LangratiaPharmacy", "pharmacy.db")
+		userConfigDir, err := os.UserConfigDir()
+		if err != nil {
+			dbPath = filepath.Join(".", "data", "pharmacy.db")
+		} else {
+			dbPath = filepath.Join(userConfigDir, "LangratiaPharmacy", "pharmacy.db")
+		}
 	}
 
 	database, err := db.InitDB(dbPath)
@@ -71,6 +97,11 @@ func (a *App) startup(ctx context.Context) {
 	a.prescriptionService = services.NewPrescriptionService(database)
 	a.notificationService = services.NewNotificationService(database)
 	a.searchService = services.NewSearchService(database)
+
+	// If running in Host mode, start UDP Discovery Listener
+	if customConfig.DBPath == "" {
+		go network.StartServerListener("LangratiaData$")
+	}
 }
 
 // Auth API Bindings
@@ -145,14 +176,12 @@ func (a *App) ListMedicinesPaginated(search, category string, includeArchived bo
 	return a.medicineService.ListMedicinesPaginated(search, category, includeArchived, page, pageSize)
 }
 
-
 func (a *App) BulkImportMedicines(medicines []models.Medicine, userID int64, username string) (int, error) {
 	if a.medicineService == nil {
 		return 0, fmt.Errorf("service not initialized")
 	}
 	return a.medicineService.BulkImportMedicines(medicines, userID, username)
 }
-
 
 // Batch & FEFO API Bindings
 func (a *App) AddBatch(batch models.Batch, userID int64, username string) (*models.Batch, error) {
@@ -227,7 +256,6 @@ func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurch
 	return a.purchaseService.ListPurchasesPaginated(page, pageSize)
 }
 
-
 // Sales / POS API Bindings
 func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string) (*models.Sale, error) {
 	if a.salesService == nil {
@@ -289,6 +317,13 @@ func (a *App) GetUserTodaySalesTotal(userID int64) (float64, error) {
 	return a.salesService.GetUserTodaySalesTotal(userID)
 }
 
+func (a *App) GetCashierPerformance(userID int64) (*services.CashierPerformance, error) {
+	if a.salesService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.salesService.GetCashierPerformance(userID)
+}
+
 // Notification API Binding
 func (a *App) GetNotificationsSummary() (*models.NotificationSummary, error) {
 	if a.notificationService == nil {
@@ -334,4 +369,62 @@ func (a *App) UpdatePrescriptionStatus(userID int64, username string, prescripti
 	return a.prescriptionService.UpdatePrescriptionStatus(userID, username, prescriptionID, status)
 }
 
+// Network Config API Bindings
+func (a *App) GetNetworkStatus() NetworkStatus {
+	isHost := true
+	if strings.HasPrefix(a.dbPath, "\\\\") || strings.HasPrefix(a.dbPath, "//") {
+		isHost = false
+	}
+	return NetworkStatus{
+		IsHost: isHost,
+		DBPath: a.dbPath,
+	}
+}
 
+func (a *App) UpdateDatabaseConfig(newPath string) error {
+	config := Config{DBPath: newPath}
+	data, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Write to config.json in the executable's directory
+	if err := os.WriteFile("config.json", data, 0644); err != nil {
+		return fmt.Errorf("failed to save configuration: %w", err)
+	}
+	return nil
+}
+
+// EnableMainServerMode automatically configures Windows to share the DB folder
+func (a *App) EnableMainServerMode() error {
+	if runtime.GOOS != "windows" {
+		return fmt.Errorf("auto-sharing is only supported on Windows")
+	}
+
+	dbDir := filepath.Dir(a.dbPath)
+	shareName := "LangratiaData$"
+
+	// 'net share' command to create the hidden share
+	cmdStr := fmt.Sprintf("net share %s=\"%s\" /grant:Everyone,FULL", shareName, dbDir)
+
+	cmd := exec.Command("powershell", "-Command", "Start-Process", "cmd", "-ArgumentList", fmt.Sprintf("'/c %s'", cmdStr), "-Verb", "RunAs", "-WindowStyle", "Hidden")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to enable main server mode: %v", err)
+	}
+	return nil
+}
+
+// AutoDiscoverServer scans the network and automatically updates config
+func (a *App) AutoDiscoverServer() (string, error) {
+	path, err := network.DiscoverServer()
+	if err != nil {
+		return "", err
+	}
+
+	err = a.UpdateDatabaseConfig(path)
+	if err != nil {
+		return "", fmt.Errorf("discovered server but failed to save config: %v", err)
+	}
+
+	return path, nil
+}
