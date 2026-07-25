@@ -3,8 +3,8 @@ package services
 import (
 	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
-	"math/big"
 	"time"
 
 	"app/backend/db"
@@ -65,8 +65,9 @@ func (p *PrescriptionService) CreatePrescription(userID int64, username string, 
 	}
 	defer tx.Rollback()
 
-	n, _ := rand.Int(rand.Reader, big.NewInt(1000000))
-	rxNumber := fmt.Sprintf("RX-%s-%06d", time.Now().Format("20060102"), n.Int64())
+	b := make([]byte, 4)
+	rand.Read(b)
+	rxNumber := fmt.Sprintf("RX-%s-%s", time.Now().Format("20060102"), hex.EncodeToString(b))
 
 	res, err := tx.Exec(`
 		INSERT INTO prescriptions (prescription_number, patient_name, patient_age, patient_phone, doctor_name, doctor_contact, status, notes, created_by)
