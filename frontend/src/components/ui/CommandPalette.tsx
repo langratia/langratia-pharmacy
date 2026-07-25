@@ -131,22 +131,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        paddingTop: '100px',
-        zIndex: 2000,
-        userSelect: 'none'
-      }}
+      className="modal-overlay"
+      style={{ alignItems: 'flex-start', paddingTop: '10vh' }}
     >
       <div
+        className="animate-popup"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',

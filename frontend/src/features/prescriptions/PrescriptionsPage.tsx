@@ -404,8 +404,8 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
 
       {/* Create New Prescription Dialog */}
       {showNewModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '16px', width: '560px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+        <div className="modal-overlay" onClick={() => setShowNewModal(false)}>
+          <div className="animate-popup" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'var(--color-panel-solid)', border: '1px solid var(--color-border-subtle)', borderRadius: '16px', width: '560px', padding: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
             <div style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginBottom: '16px', borderBottom: '1px solid #CBD5E1', paddingBottom: '12px' }}>
               CREATE NEW DOCTOR PRESCRIPTION
             </div>

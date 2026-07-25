@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { 
   ShoppingCart, 
@@ -9,7 +10,8 @@ import {
   X,
   Filter,
   CheckCircle,
-  PackageCheck
+  PackageCheck,
+  Loader
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -46,10 +48,10 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
   }, [externalCartItems]);
 
-  // Checkout Receipt Modal State
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [completedSale, setCompletedSale] = useState<any | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
+  const [completedSale, setCompletedSale] = useState<any>(null);
+  const [showSuccessAnim, setShowSuccessAnim] = useState<boolean>(false);
 
   const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
 
@@ -174,7 +176,10 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       setCompletedSale(sale);
       setCart([]);
       setIsCheckoutOpen(true);
-      toast.success(`POS Sale Approved! Total: UGX ${cartTotal.toLocaleString()}`);
+      setShowSuccessAnim(true);
+      
+      // We no longer need the top toast since we have a dedicated success screen
+      // toast.success(`POS Sale Approved! Total: UGX ${cartTotal.toLocaleString()}`);
       fetchMedicines();
     } catch (err: any) {
       toast.error(err?.message || 'Checkout failed.');
@@ -189,7 +194,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   // Primary Pane Content - Spacious Desktop Workstation Tiles Grid
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0', height: '100%', backgroundColor: 'var(--color-desktop-bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', backgroundColor: 'var(--color-desktop-bg)' }}>
       {/* Spacious Application Toolbar */}
       <Panel noPadding style={{ padding: '16px 24px', borderBottom: '1px solid var(--color-border-subtle)', background: 'var(--color-panel-solid)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
@@ -229,13 +234,14 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
           gap: '24px',
-          padding: '24px',
+          padding: '0',
           alignContent: 'start'
         }}
       >
         {isLoading ? (
-          <div style={{ gridColumn: 'span 4', padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            Loading catalog items...
+          <div style={{ gridColumn: 'span 4', padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', gap: '12px' }}>
+            <Loader size={24} className="animate-spin" style={{ color: 'var(--color-accent)' }} />
+            <span>Loading catalog items...</span>
           </div>
         ) : medicines.length === 0 ? (
           <div style={{ gridColumn: 'span 4', padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
@@ -428,67 +434,81 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         </button>
       </div>
 
-      {/* Completed Sale Receipt Modal */}
-      {isCheckoutOpen && completedSale && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            backdropFilter: 'blur(4px)'
-          }}
-        >
+      {/* Completed Sale Receipt Modal (Portaled for true center) */}
+      {isCheckoutOpen && completedSale && createPortal(
+        <div className="modal-overlay" onClick={() => setIsCheckoutOpen(false)}>
           <div
+            className="animate-popup"
+            onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: 'var(--color-panel-solid)',
               border: '1px solid var(--color-border-subtle)',
               borderRadius: '24px',
               width: '400px',
               padding: '24px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.15)'
+              boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '12px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
-              <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'var(--color-desktop-bg)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
-            </div>
+            {showSuccessAnim ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div className="animate-success-pop" style={{ color: '#10B981' }}>
+                  <CheckCircle size={80} />
+                </div>
+                <h2 style={{ margin: 0, fontSize: '24px', color: 'var(--color-text-primary)' }}>Sale Successful!</h2>
+                <p style={{ color: 'var(--color-text-muted)', fontSize: '14px', margin: 0 }}>
+                  Amount Paid: <strong style={{ color: 'var(--color-accent)' }}>UGX {completedSale.total_amount?.toLocaleString()}</strong>
+                </p>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px', width: '100%' }}>
+                  <button onClick={() => setShowSuccessAnim(false)} className="desktop-btn-secondary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
+                    View Receipt
+                  </button>
+                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
+                    New Sale
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
+                  <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'var(--color-desktop-bg)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} style={{ color: 'var(--color-text-muted)' }} /></button>
+                </div>
 
-            <div style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-              <div style={{ marginBottom: '4px' }}>Operator: <strong>{completedSale.username}</strong></div>
-              <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
+                <div style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                  <div style={{ marginBottom: '4px' }}>Operator: <strong>{completedSale.username}</strong></div>
+                  <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
 
-              <div style={{ margin: '16px 0', borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {completedSale.items?.map((it: any, idx: number) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
-                    <span style={{ fontWeight: 600 }}>UGX {(it.subtotal || (it.unit_price * it.quantity)).toLocaleString()}</span>
+                  <div style={{ margin: '16px 0', borderTop: '1px dashed var(--color-border)', borderBottom: '1px dashed var(--color-border)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {completedSale.items?.map((it: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
+                        <span style={{ fontWeight: 600 }}>UGX {(it.subtotal || (it.unit_price * it.quantity)).toLocaleString()}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent)' }}>
-                <span>TOTAL PAID:</span>
-                <span>UGX {completedSale.total_amount?.toLocaleString()}</span>
-              </div>
-            </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent)' }}>
+                    <span>TOTAL PAID:</span>
+                    <span>UGX {completedSale.total_amount?.toLocaleString()}</span>
+                  </div>
+                </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-              <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '20px' }}>
-                <Printer size={16} /> Print Receipt
-              </button>
-              <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
-                Done
-              </button>
-            </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '20px' }}>
+                    <Printer size={16} /> Print Receipt
+                  </button>
+                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '20px' }}>
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -30,7 +30,7 @@ export const Panel: React.FC<PanelProps> = ({
         backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)',
         border: '1px solid var(--color-border-subtle)',
-        borderRadius: '16px',
+        borderRadius: '10px',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
         overflow: 'hidden',
         display: 'flex',
@@ -49,7 +49,9 @@ export const Panel: React.FC<PanelProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: 'var(--color-accent-light)',
-            flexShrink: 0
+            flexShrink: 0,
+            borderTopLeftRadius: '9px',
+            borderTopRightRadius: '9px'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>

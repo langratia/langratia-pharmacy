@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader } from 'lucide-react';
 
 export interface Column<T> {
   key: string;
@@ -115,7 +116,10 @@ export function DataGrid<T>({
                     fontSize: '12px'
                   }}
                 >
-                  Fetching workspace data...
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <Loader size={16} className="animate-spin" style={{ color: 'var(--color-accent)' }} />
+                    <span>Fetching workspace data...</span>
+                  </div>
                 </td>
               </tr>
             ) : data.length === 0 ? (
