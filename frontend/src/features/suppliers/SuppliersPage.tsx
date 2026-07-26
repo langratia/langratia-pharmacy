@@ -3,6 +3,7 @@ import { Plus, Users, Save, Archive, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { Panel } from '../../components/ui/Panel';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
@@ -10,7 +11,8 @@ import { SplitPane } from '../../components/ui/SplitPane';
 
 export const SuppliersPage: React.FC = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { can } = usePermissions();
+  const canManage = can('manage_suppliers');
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
@@ -72,7 +74,7 @@ export const SuppliersPage: React.FC = () => {
   };
 
   const handleOpenAdd = () => {
-    if (!isAdmin) return;
+    if (!canManage) return;
     setSelectedSupplier(null);
     setIsNewSupplier(true);
     setError(null);
@@ -89,7 +91,7 @@ export const SuppliersPage: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) return;
+    if (!canManage) return;
     if (!formData.name.trim()) {
       setError('Supplier Name is required');
       return;
@@ -119,7 +121,7 @@ export const SuppliersPage: React.FC = () => {
   };
 
   const handleToggleArchive = async (sup: Supplier) => {
-    if (!isAdmin) return;
+    if (!canManage) return;
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp && typeof wailsApp.ArchiveSupplier === 'function') {
@@ -188,7 +190,7 @@ export const SuppliersPage: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact..." width="240px" showShortcut={false} />
-            {isAdmin && (
+            {canManage && (
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 <input
                   type="checkbox"
@@ -199,7 +201,7 @@ export const SuppliersPage: React.FC = () => {
                 Archived
               </label>
             )}
-            {isAdmin && (
+            {canManage && (
               <button onClick={handleOpenAdd} className="desktop-btn-primary" style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}>
                 <Plus size={14} />
                 <span>Add Supplier</span>
@@ -252,31 +254,31 @@ export const SuppliersPage: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Supplier Company Name *</label>
-            <input ref={nameInputRef} type="text" required disabled={!isAdmin} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+            <input ref={nameInputRef} type="text" required disabled={!canManage} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Contact Person</label>
-            <input type="text" disabled={!isAdmin} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+            <input type="text" disabled={!canManage} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Telephone</label>
-              <input type="text" disabled={!isAdmin} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              <input type="text" disabled={!canManage} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Email</label>
-              <input type="email" disabled={!isAdmin} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              <input type="email" disabled={!canManage} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
             </div>
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Physical Office Address</label>
-            <textarea rows={3} disabled={!isAdmin} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '6px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+            <textarea rows={3} disabled={!canManage} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '6px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
           </div>
 
-          {isAdmin && (
+          {canManage && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {selectedSupplier && !isNewSupplier && (

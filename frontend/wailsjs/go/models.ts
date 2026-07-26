@@ -159,6 +159,7 @@ export namespace models {
 	    name: string;
 	    generic_name: string;
 	    brand_name: string;
+	    barcode: string;
 	    category: string;
 	    dosage_strength: string;
 	    medicine_form: string;
@@ -168,7 +169,12 @@ export namespace models {
 	    current_stock: number;
 	    reorder_level: number;
 	    manufacturer: string;
+	    supplier_id?: number;
+	    supplier_name?: string;
 	    description: string;
+	    tax_rate: number;
+	    requires_prescription: boolean;
+	    product_status: string;
 	    is_archived: boolean;
 	    // Go type: time
 	    created_at: any;
@@ -183,6 +189,7 @@ export namespace models {
 	        this.name = source["name"];
 	        this.generic_name = source["generic_name"];
 	        this.brand_name = source["brand_name"];
+	        this.barcode = source["barcode"];
 	        this.category = source["category"];
 	        this.dosage_strength = source["dosage_strength"];
 	        this.medicine_form = source["medicine_form"];
@@ -192,7 +199,12 @@ export namespace models {
 	        this.current_stock = source["current_stock"];
 	        this.reorder_level = source["reorder_level"];
 	        this.manufacturer = source["manufacturer"];
+	        this.supplier_id = source["supplier_id"];
+	        this.supplier_name = source["supplier_name"];
 	        this.description = source["description"];
+	        this.tax_rate = source["tax_rate"];
+	        this.requires_prescription = source["requires_prescription"];
+	        this.product_status = source["product_status"];
 	        this.is_archived = source["is_archived"];
 	        this.created_at = this.convertValues(source["created_at"], null);
 	    }
@@ -430,6 +442,56 @@ export namespace models {
 	        this.key = source["key"];
 	        this.label = source["label"];
 	        this.description = source["description"];
+	    }
+	}
+	export class PharmacyConfig {
+	    pharmacy_name: string;
+	    logo: string;
+	    address: string;
+	    phone: string;
+	    email: string;
+	    license_number: string;
+	    registration_number: string;
+	    tax_number: string;
+	    operating_hours: string;
+	    currency: string;
+	    date_format: string;
+	    time_format: string;
+	    receipt_format: string;
+	    invoice_format: string;
+	    default_tax: number;
+	    default_discount: number;
+	    low_stock_threshold: number;
+	    expiry_warning_days: number;
+	    return_rules: string;
+	    numbering_formats: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PharmacyConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pharmacy_name = source["pharmacy_name"];
+	        this.logo = source["logo"];
+	        this.address = source["address"];
+	        this.phone = source["phone"];
+	        this.email = source["email"];
+	        this.license_number = source["license_number"];
+	        this.registration_number = source["registration_number"];
+	        this.tax_number = source["tax_number"];
+	        this.operating_hours = source["operating_hours"];
+	        this.currency = source["currency"];
+	        this.date_format = source["date_format"];
+	        this.time_format = source["time_format"];
+	        this.receipt_format = source["receipt_format"];
+	        this.invoice_format = source["invoice_format"];
+	        this.default_tax = source["default_tax"];
+	        this.default_discount = source["default_discount"];
+	        this.low_stock_threshold = source["low_stock_threshold"];
+	        this.expiry_warning_days = source["expiry_warning_days"];
+	        this.return_rules = source["return_rules"];
+	        this.numbering_formats = source["numbering_formats"];
 	    }
 	}
 	export class PrescriptionItem {

@@ -33,22 +33,28 @@ type Supplier struct {
 }
 
 type Medicine struct {
-	ID             int64     `json:"id"`
-	Name           string    `json:"name"`
-	GenericName    string    `json:"generic_name"`
-	BrandName      string    `json:"brand_name"`
-	Category       string    `json:"category"`
-	DosageStrength string    `json:"dosage_strength"`
-	MedicineForm   string    `json:"medicine_form"`
-	PackSize       string    `json:"pack_size"`
-	BuyingPrice    float64   `json:"buying_price"`
-	SellingPrice   float64   `json:"selling_price"`
-	CurrentStock   int       `json:"current_stock"`
-	ReorderLevel   int       `json:"reorder_level"`
-	Manufacturer   string    `json:"manufacturer"`
-	Description    string    `json:"description"`
-	IsArchived     bool      `json:"is_archived"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID                  int64     `json:"id"`
+	Name                string    `json:"name"`
+	GenericName         string    `json:"generic_name"`
+	BrandName           string    `json:"brand_name"`
+	Barcode             string    `json:"barcode"`
+	Category            string    `json:"category"`
+	DosageStrength      string    `json:"dosage_strength"`
+	MedicineForm        string    `json:"medicine_form"`
+	PackSize            string    `json:"pack_size"`
+	BuyingPrice         float64   `json:"buying_price"`
+	SellingPrice        float64   `json:"selling_price"`
+	CurrentStock        int       `json:"current_stock"`
+	ReorderLevel        int       `json:"reorder_level"`
+	Manufacturer        string    `json:"manufacturer"`
+	SupplierID          *int64    `json:"supplier_id,omitempty"`
+	SupplierName        string    `json:"supplier_name,omitempty"`
+	Description         string    `json:"description"`
+	TaxRate             float64   `json:"tax_rate"`
+	RequiresPrescription bool     `json:"requires_prescription"`
+	ProductStatus       string    `json:"product_status"`
+	IsArchived          bool      `json:"is_archived"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type Batch struct {
@@ -247,7 +253,31 @@ var AllPermissions = []PermissionInfo{
 	{Key: "dispense_prescription", Label: "Dispense Prescription", Description: "Dispense prescribed medicines"},
 	{Key: "approve_transactions", Label: "Approve Transactions", Description: "Approve pending transactions"},
 	{Key: "view_audit_logs", Label: "View Audit Logs", Description: "Access system audit trail"},
+	{Key: "manage_settings", Label: "Manage Pharmacy Settings", Description: "Configure pharmacy-wide settings (name, tax, currency etc.)"},
 	{Key: "access_settings", Label: "Access Settings", Description: "Access system settings panel"},
+}
+
+type PharmacyConfig struct {
+	PharmacyName       string  `json:"pharmacy_name"`
+	Logo               string  `json:"logo"`
+	Address            string  `json:"address"`
+	Phone              string  `json:"phone"`
+	Email              string  `json:"email"`
+	LicenseNumber      string  `json:"license_number"`
+	RegistrationNumber string  `json:"registration_number"`
+	TaxNumber          string  `json:"tax_number"`
+	OperatingHours     string  `json:"operating_hours"`
+	Currency           string  `json:"currency"`
+	DateFormat         string  `json:"date_format"`
+	TimeFormat         string  `json:"time_format"`
+	ReceiptFormat      string  `json:"receipt_format"`
+	InvoiceFormat      string  `json:"invoice_format"`
+	DefaultTax         float64 `json:"default_tax"`
+	DefaultDiscount    float64 `json:"default_discount"`
+	LowStockThreshold  int     `json:"low_stock_threshold"`
+	ExpiryWarningDays  int     `json:"expiry_warning_days"`
+	ReturnRules        string  `json:"return_rules"`
+	NumberingFormats   string  `json:"numbering_formats"`
 }
 
 type AuthConfig struct {

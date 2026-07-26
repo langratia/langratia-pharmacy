@@ -33,6 +33,7 @@ type App struct {
 	notificationService *services.NotificationService
 	searchService       *services.SearchService
 	permissionService   *services.PermissionService
+	configService       *services.ConfigService
 }
 
 // Config represents the local application configuration
@@ -116,6 +117,7 @@ func (a *App) startup(ctx context.Context) {
 	a.notificationService = services.NewNotificationService(database)
 	a.searchService = services.NewSearchService(database)
 	a.permissionService = services.NewPermissionService(database)
+	a.configService = services.NewConfigService(database)
 
 	// If running in Host mode, start UDP Discovery Listener
 	if customConfig.DBPath == "" {
@@ -579,6 +581,27 @@ func (a *App) UpdatePrescriptionStatus(userID int64, username string, prescripti
 		return fmt.Errorf("service not initialized")
 	}
 	return a.prescriptionService.UpdatePrescriptionStatus(userID, username, prescriptionID, status)
+}
+
+// Pharmacy Config API Bindings
+func (a *App) GetPharmacyConfig(userID int64) (*models.PharmacyConfig, error) {
+	if a.configService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return nil, err
+	}
+	return a.configService.GetConfig()
+}
+
+func (a *App) UpdatePharmacyConfig(cfg *models.PharmacyConfig, userID int64) error {
+	if a.configService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
+	return a.configService.UpdateConfig(cfg)
 }
 
 // Network Config API Bindings

@@ -247,6 +247,7 @@ var Migrations = []Migration{
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'approve_transactions');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'view_audit_logs');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'access_settings');
+			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'manage_settings');
 
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'view_dashboard');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'create_sale');
@@ -254,6 +255,49 @@ var Migrations = []Migration{
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'print_receipt');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'manage_prescriptions');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'dispense_prescription');
+		`,
+	},
+	{
+		Version:     6,
+		Description: "Add pharmacy_config table for pharmacy-wide settings",
+		Script: `
+			CREATE TABLE IF NOT EXISTS pharmacy_config (
+			    id INTEGER PRIMARY KEY CHECK (id = 1),
+			    pharmacy_name TEXT NOT NULL DEFAULT 'My Pharmacy',
+			    logo TEXT DEFAULT '',
+			    address TEXT DEFAULT '',
+			    phone TEXT DEFAULT '',
+			    email TEXT DEFAULT '',
+			    license_number TEXT DEFAULT '',
+			    registration_number TEXT DEFAULT '',
+			    tax_number TEXT DEFAULT '',
+			    operating_hours TEXT DEFAULT '',
+			    currency TEXT NOT NULL DEFAULT 'UGX',
+			    date_format TEXT NOT NULL DEFAULT 'DD/MM/YYYY',
+			    time_format TEXT NOT NULL DEFAULT 'HH:mm',
+			    receipt_format TEXT DEFAULT '',
+			    invoice_format TEXT DEFAULT '',
+			    default_tax REAL NOT NULL DEFAULT 0.0,
+			    default_discount REAL NOT NULL DEFAULT 0.0,
+			    low_stock_threshold INTEGER NOT NULL DEFAULT 10,
+			    expiry_warning_days INTEGER NOT NULL DEFAULT 60,
+			    return_rules TEXT DEFAULT '',
+			    numbering_formats TEXT DEFAULT '{}',
+			    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			);
+			INSERT OR IGNORE INTO pharmacy_config (id, pharmacy_name) VALUES (1, 'My Pharmacy');
+		`,
+	},
+	{
+		Version:     7,
+		Description: "Add barcode, supplier_id, tax_rate, requires_prescription, product_status to medicines",
+		Script: `
+			ALTER TABLE medicines ADD COLUMN barcode TEXT DEFAULT '';
+			ALTER TABLE medicines ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL;
+			ALTER TABLE medicines ADD COLUMN tax_rate REAL NOT NULL DEFAULT 0.0;
+			ALTER TABLE medicines ADD COLUMN requires_prescription INTEGER NOT NULL DEFAULT 0;
+			ALTER TABLE medicines ADD COLUMN product_status TEXT NOT NULL DEFAULT 'active';
 		`,
 	},
 }

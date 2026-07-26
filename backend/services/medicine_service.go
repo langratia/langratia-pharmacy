@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"app/backend/db"
 	"app/backend/models"
@@ -17,6 +18,15 @@ func NewMedicineService(database *db.DB) *MedicineService {
 	return &MedicineService{db: database}
 }
 
+const medicineCols = `m.id, m.name, m.generic_name, m.brand_name, m.barcode,
+	m.category, m.dosage_strength, m.medicine_form, m.pack_size,
+	m.buying_price, m.selling_price, m.current_stock, m.reorder_level,
+	m.manufacturer, m.supplier_id, m.description,
+	m.tax_rate, m.requires_prescription, m.product_status,
+	m.is_archived, m.created_at`
+
+const medicineJoin = `FROM medicines m LEFT JOIN suppliers s ON m.supplier_id = s.id`
+
 // AddMedicine creates a new medicine entry.
 func (s *MedicineService) AddMedicine(med models.Medicine, userID int64, username string) (*models.Medicine, error) {
 	if med.Name == "" {
@@ -25,15 +35,17 @@ func (s *MedicineService) AddMedicine(med models.Medicine, userID int64, usernam
 
 	query := `
 		INSERT INTO medicines (
-			name, generic_name, brand_name, category, dosage_strength,
+			name, generic_name, brand_name, barcode, category, dosage_strength,
 			medicine_form, pack_size, buying_price, selling_price,
-			current_stock, reorder_level, manufacturer, description, is_archived
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+			current_stock, reorder_level, manufacturer, supplier_id, description,
+			tax_rate, requires_prescription, product_status, is_archived
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
 
 	res, err := s.db.Exec(query,
-		med.Name, med.GenericName, med.BrandName, med.Category, med.DosageStrength,
+		med.Name, med.GenericName, med.BrandName, med.Barcode, med.Category, med.DosageStrength,
 		med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
-		med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.Description,
+		med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.SupplierID, med.Description,
+		med.TaxRate, boolToInt(med.RequiresPrescription), med.ProductStatus,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add medicine: %w", err)
@@ -45,29 +57,39 @@ func (s *MedicineService) AddMedicine(med models.Medicine, userID int64, usernam
 	}
 	med.ID = id
 
-	// Audit Log
 	s.logAction(userID, username, "ADD_MEDICINE", fmt.Sprintf("Added medicine %s (ID: %d)", med.Name, med.ID))
-
 	return &med, nil
 }
 
-// UpdateMedicine updates an existing medicine entry.
+// UpdateMedicine updates an existing medicine entry with field-level audit.
 func (s *MedicineService) UpdateMedicine(med models.Medicine, userID int64, username string) error {
 	if med.ID <= 0 || med.Name == "" {
 		return errors.New("valid medicine ID and name are required")
 	}
 
+	old, err := s.GetMedicineByID(med.ID)
+	if err != nil {
+		return fmt.Errorf("failed to fetch current medicine state: %w", err)
+	}
+
 	query := `
 		UPDATE medicines SET
-			name = ?, generic_name = ?, brand_name = ?, category = ?, dosage_strength = ?,
-			medicine_form = ?, pack_size = ?, buying_price = ?, selling_price = ?,
-			current_stock = ?, reorder_level = ?, manufacturer = ?, description = ?
+			name = ?, generic_name = ?, brand_name = ?, barcode = ?,
+			category = ?, dosage_strength = ?, medicine_form = ?, pack_size = ?,
+			buying_price = ?, selling_price = ?,
+			current_stock = ?, reorder_level = ?,
+			manufacturer = ?, supplier_id = ?, description = ?,
+			tax_rate = ?, requires_prescription = ?, product_status = ?
 		WHERE id = ?`
 
 	res, err := s.db.Exec(query,
-		med.Name, med.GenericName, med.BrandName, med.Category, med.DosageStrength,
-		med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
-		med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.Description, med.ID,
+		med.Name, med.GenericName, med.BrandName, med.Barcode,
+		med.Category, med.DosageStrength, med.MedicineForm, med.PackSize,
+		med.BuyingPrice, med.SellingPrice,
+		med.CurrentStock, med.ReorderLevel,
+		med.Manufacturer, med.SupplierID, med.Description,
+		med.TaxRate, boolToInt(med.RequiresPrescription), med.ProductStatus,
+		med.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update medicine: %w", err)
@@ -78,7 +100,33 @@ func (s *MedicineService) UpdateMedicine(med models.Medicine, userID int64, user
 		return errors.New("medicine not found")
 	}
 
-	s.logAction(userID, username, "UPDATE_MEDICINE", fmt.Sprintf("Updated medicine %s (ID: %d)", med.Name, med.ID))
+	// Field-level audit diff
+	var changes []string
+	checkChange(&changes, "name", old.Name, med.Name)
+	checkChange(&changes, "generic_name", old.GenericName, med.GenericName)
+	checkChange(&changes, "brand_name", old.BrandName, med.BrandName)
+	checkChange(&changes, "barcode", old.Barcode, med.Barcode)
+	checkChange(&changes, "category", old.Category, med.Category)
+	checkChange(&changes, "dosage_strength", old.DosageStrength, med.DosageStrength)
+	checkChange(&changes, "medicine_form", old.MedicineForm, med.MedicineForm)
+	checkChange(&changes, "pack_size", old.PackSize, med.PackSize)
+	checkChangeFloat(&changes, "buying_price", old.BuyingPrice, med.BuyingPrice)
+	checkChangeFloat(&changes, "selling_price", old.SellingPrice, med.SellingPrice)
+	checkChangeInt(&changes, "current_stock", old.CurrentStock, med.CurrentStock)
+	checkChangeInt(&changes, "reorder_level", old.ReorderLevel, med.ReorderLevel)
+	checkChange(&changes, "manufacturer", old.Manufacturer, med.Manufacturer)
+	checkChangeSupplier(&changes, "supplier", old.SupplierID, old.SupplierName, med.SupplierID)
+	checkChangeFloat(&changes, "tax_rate", old.TaxRate, med.TaxRate)
+	checkChangeBool(&changes, "requires_prescription", old.RequiresPrescription, med.RequiresPrescription)
+	checkChange(&changes, "product_status", old.ProductStatus, med.ProductStatus)
+
+	if len(changes) > 0 {
+		s.logAction(userID, username, "UPDATE_MEDICINE",
+			fmt.Sprintf("Updated medicine %s (ID: %d): %s", med.Name, med.ID, strings.Join(changes, "; ")))
+	} else {
+		s.logAction(userID, username, "UPDATE_MEDICINE",
+			fmt.Sprintf("Updated medicine %s (ID: %d) — no field changes", med.Name, med.ID))
+	}
 	return nil
 }
 
@@ -89,12 +137,10 @@ func (s *MedicineService) ArchiveMedicine(id int64, archive bool, userID int64, 
 		archivedVal = 1
 	}
 
-	query := `UPDATE medicines SET is_archived = ? WHERE id = ?`
-	res, err := s.db.Exec(query, archivedVal, id)
+	res, err := s.db.Exec(`UPDATE medicines SET is_archived = ? WHERE id = ?`, archivedVal, id)
 	if err != nil {
 		return fmt.Errorf("failed to update archive status: %w", err)
 	}
-
 	rowsAffected, _ := res.RowsAffected()
 	if rowsAffected == 0 {
 		return errors.New("medicine not found")
@@ -110,29 +156,23 @@ func (s *MedicineService) ArchiveMedicine(id int64, archive bool, userID int64, 
 
 // ListMedicines retrieves medicines based on search term, category, and archived state.
 func (s *MedicineService) ListMedicines(search, category string, includeArchived bool) ([]models.Medicine, error) {
-	query := `
-		SELECT id, name, generic_name, brand_name, category, dosage_strength,
-		       medicine_form, pack_size, buying_price, selling_price, current_stock,
-		       reorder_level, manufacturer, description, is_archived, created_at
-		FROM medicines
-		WHERE 1=1`
-
+	query := `SELECT ` + medicineCols + `, s.name as supplier_name ` + medicineJoin + ` WHERE 1=1`
 	var args []interface{}
 
 	if !includeArchived {
-		query += ` AND is_archived = 0`
+		query += ` AND m.is_archived = 0`
 	}
 	if category != "" && category != "All" {
-		query += ` AND category = ?`
+		query += ` AND m.category = ?`
 		args = append(args, category)
 	}
 	if search != "" {
-		query += ` AND (name LIKE ? OR generic_name LIKE ? OR brand_name LIKE ?)`
+		query += ` AND (m.name LIKE ? OR m.generic_name LIKE ? OR m.brand_name LIKE ? OR m.barcode LIKE ?)`
 		pattern := "%" + search + "%"
-		args = append(args, pattern, pattern, pattern)
+		args = append(args, pattern, pattern, pattern, pattern)
 	}
 
-	query += ` ORDER BY name ASC`
+	query += ` ORDER BY m.name ASC`
 
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
@@ -143,19 +183,27 @@ func (s *MedicineService) ListMedicines(search, category string, includeArchived
 	var medicines []models.Medicine
 	for rows.Next() {
 		var m models.Medicine
+		var supName sql.NullString
 		var isArchivedInt int
+		var reqRxInt int
 		err := rows.Scan(
-			&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Category, &m.DosageStrength,
-			&m.MedicineForm, &m.PackSize, &m.BuyingPrice, &m.SellingPrice, &m.CurrentStock,
-			&m.ReorderLevel, &m.Manufacturer, &m.Description, &isArchivedInt, &m.CreatedAt,
+			&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Barcode,
+			&m.Category, &m.DosageStrength, &m.MedicineForm, &m.PackSize,
+			&m.BuyingPrice, &m.SellingPrice, &m.CurrentStock, &m.ReorderLevel,
+			&m.Manufacturer, &m.SupplierID, &m.Description,
+			&m.TaxRate, &reqRxInt, &m.ProductStatus,
+			&isArchivedInt, &m.CreatedAt, &supName,
 		)
 		if err != nil {
 			return nil, err
 		}
 		m.IsArchived = isArchivedInt == 1
+		m.RequiresPrescription = reqRxInt == 1
+		if supName.Valid {
+			m.SupplierName = supName.String
+		}
 		medicines = append(medicines, m)
 	}
-
 	return medicines, nil
 }
 
@@ -173,32 +221,25 @@ func (s *MedicineService) ListMedicinesPaginated(search, category string, includ
 	var args []interface{}
 
 	if !includeArchived {
-		baseWhere += ` AND is_archived = 0`
+		baseWhere += ` AND m.is_archived = 0`
 	}
 	if category != "" && category != "All" {
-		baseWhere += ` AND category = ?`
+		baseWhere += ` AND m.category = ?`
 		args = append(args, category)
 	}
 	if search != "" {
-		baseWhere += ` AND (name LIKE ? OR generic_name LIKE ? OR brand_name LIKE ?)`
+		baseWhere += ` AND (m.name LIKE ? OR m.generic_name LIKE ? OR m.brand_name LIKE ? OR m.barcode LIKE ?)`
 		pattern := "%" + search + "%"
-		args = append(args, pattern, pattern, pattern)
+		args = append(args, pattern, pattern, pattern, pattern)
 	}
 
-	// 1. Get total count
-	countQuery := `SELECT COUNT(*) FROM medicines` + baseWhere
+	countQuery := `SELECT COUNT(*) ` + medicineJoin + baseWhere
 	var totalCount int
 	if err := s.db.QueryRow(countQuery, args...).Scan(&totalCount); err != nil {
 		return nil, fmt.Errorf("failed to count medicines: %w", err)
 	}
 
-	// 2. Query paginated records
-	query := `
-		SELECT id, name, generic_name, brand_name, category, dosage_strength,
-		       medicine_form, pack_size, buying_price, selling_price, current_stock,
-		       reorder_level, manufacturer, description, is_archived, created_at
-		FROM medicines` + baseWhere + ` ORDER BY name ASC LIMIT ? OFFSET ?`
-
+	query := `SELECT ` + medicineCols + `, s.name as supplier_name ` + medicineJoin + baseWhere + ` ORDER BY m.name ASC LIMIT ? OFFSET ?`
 	queryArgs := append(args, pageSize, offset)
 
 	rows, err := s.db.Query(query, queryArgs...)
@@ -210,16 +251,25 @@ func (s *MedicineService) ListMedicinesPaginated(search, category string, includ
 	var medicines []models.Medicine
 	for rows.Next() {
 		var m models.Medicine
+		var supName sql.NullString
 		var isArchivedInt int
+		var reqRxInt int
 		err := rows.Scan(
-			&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Category, &m.DosageStrength,
-			&m.MedicineForm, &m.PackSize, &m.BuyingPrice, &m.SellingPrice, &m.CurrentStock,
-			&m.ReorderLevel, &m.Manufacturer, &m.Description, &isArchivedInt, &m.CreatedAt,
+			&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Barcode,
+			&m.Category, &m.DosageStrength, &m.MedicineForm, &m.PackSize,
+			&m.BuyingPrice, &m.SellingPrice, &m.CurrentStock, &m.ReorderLevel,
+			&m.Manufacturer, &m.SupplierID, &m.Description,
+			&m.TaxRate, &reqRxInt, &m.ProductStatus,
+			&isArchivedInt, &m.CreatedAt, &supName,
 		)
 		if err != nil {
 			return nil, err
 		}
 		m.IsArchived = isArchivedInt == 1
+		m.RequiresPrescription = reqRxInt == 1
+		if supName.Valid {
+			m.SupplierName = supName.String
+		}
 		medicines = append(medicines, m)
 	}
 
@@ -231,21 +281,20 @@ func (s *MedicineService) ListMedicinesPaginated(search, category string, includ
 	}, nil
 }
 
-
 // GetMedicineByID fetches a single medicine by ID.
 func (s *MedicineService) GetMedicineByID(id int64) (*models.Medicine, error) {
-	query := `
-		SELECT id, name, generic_name, brand_name, category, dosage_strength,
-		       medicine_form, pack_size, buying_price, selling_price, current_stock,
-		       reorder_level, manufacturer, description, is_archived, created_at
-		FROM medicines WHERE id = ?`
-
+	query := `SELECT ` + medicineCols + `, s.name as supplier_name ` + medicineJoin + ` WHERE m.id = ?`
 	var m models.Medicine
+	var supName sql.NullString
 	var isArchivedInt int
+	var reqRxInt int
 	err := s.db.QueryRow(query, id).Scan(
-		&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Category, &m.DosageStrength,
-		&m.MedicineForm, &m.PackSize, &m.BuyingPrice, &m.SellingPrice, &m.CurrentStock,
-		&m.ReorderLevel, &m.Manufacturer, &m.Description, &isArchivedInt, &m.CreatedAt,
+		&m.ID, &m.Name, &m.GenericName, &m.BrandName, &m.Barcode,
+		&m.Category, &m.DosageStrength, &m.MedicineForm, &m.PackSize,
+		&m.BuyingPrice, &m.SellingPrice, &m.CurrentStock, &m.ReorderLevel,
+		&m.Manufacturer, &m.SupplierID, &m.Description,
+		&m.TaxRate, &reqRxInt, &m.ProductStatus,
+		&isArchivedInt, &m.CreatedAt, &supName,
 	)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("medicine not found")
@@ -254,6 +303,10 @@ func (s *MedicineService) GetMedicineByID(id int64) (*models.Medicine, error) {
 		return nil, err
 	}
 	m.IsArchived = isArchivedInt == 1
+	m.RequiresPrescription = reqRxInt == 1
+	if supName.Valid {
+		m.SupplierName = supName.String
+	}
 	return &m, nil
 }
 
@@ -271,10 +324,11 @@ func (s *MedicineService) BulkImportMedicines(medicines []models.Medicine, userI
 
 	stmt, err := tx.Prepare(`
 		INSERT INTO medicines (
-			name, generic_name, brand_name, category, dosage_strength,
+			name, generic_name, brand_name, barcode, category, dosage_strength,
 			medicine_form, pack_size, buying_price, selling_price,
-			current_stock, reorder_level, manufacturer, description, is_archived
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
+			current_stock, reorder_level, manufacturer, supplier_id, description,
+			tax_rate, requires_prescription, product_status, is_archived
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`)
 	if err != nil {
 		return 0, fmt.Errorf("failed to prepare statement: %w", err)
 	}
@@ -286,9 +340,10 @@ func (s *MedicineService) BulkImportMedicines(medicines []models.Medicine, userI
 			continue
 		}
 		_, err := stmt.Exec(
-			med.Name, med.GenericName, med.BrandName, med.Category, med.DosageStrength,
+			med.Name, med.GenericName, med.BrandName, med.Barcode, med.Category, med.DosageStrength,
 			med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
-			med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.Description,
+			med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.SupplierID, med.Description,
+			med.TaxRate, boolToInt(med.RequiresPrescription), med.ProductStatus,
 		)
 		if err != nil {
 			return 0, fmt.Errorf("failed to insert medicine %s: %w", med.Name, err)
@@ -311,3 +366,49 @@ func (s *MedicineService) logAction(userID int64, username, action, details stri
 	)
 }
 
+// --- helpers ---
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func checkChange(changes *[]string, field, old, new string) {
+	if old != new {
+		*changes = append(*changes, fmt.Sprintf("%s: '%s' -> '%s'", field, old, new))
+	}
+}
+
+func checkChangeInt(changes *[]string, field string, old, new int) {
+	if old != new {
+		*changes = append(*changes, fmt.Sprintf("%s: %d -> %d", field, old, new))
+	}
+}
+
+func checkChangeFloat(changes *[]string, field string, old, new float64) {
+	if old != new {
+		*changes = append(*changes, fmt.Sprintf("%s: %.2f -> %.2f", field, old, new))
+	}
+}
+
+func checkChangeBool(changes *[]string, field string, old, new bool) {
+	if old != new {
+		*changes = append(*changes, fmt.Sprintf("%s: %t -> %t", field, old, new))
+	}
+}
+
+func checkChangeSupplier(changes *[]string, field string, oldID *int64, oldName string, newID *int64) {
+	oldStr := "(none)"
+	if oldID != nil {
+		oldStr = fmt.Sprintf("%s (ID %d)", oldName, *oldID)
+	}
+	newStr := "(none)"
+	if newID != nil {
+		newStr = fmt.Sprintf("(ID %d)", *newID)
+	}
+	if (oldID == nil && newID != nil) || (oldID != nil && newID == nil) || (oldID != nil && newID != nil && *oldID != *newID) {
+		*changes = append(*changes, fmt.Sprintf("%s: %s -> %s", field, oldStr, newStr))
+	}
+}

@@ -24,6 +24,7 @@ export interface Medicine {
   name: string;
   generic_name: string;
   brand_name: string;
+  barcode: string;
   category: string;
   dosage_strength: string;
   medicine_form: string;
@@ -33,7 +34,12 @@ export interface Medicine {
   current_stock: number;
   reorder_level: number;
   manufacturer: string;
+  supplier_id?: number;
+  supplier_name?: string;
   description: string;
+  tax_rate: number;
+  requires_prescription: boolean;
+  product_status: string;
   is_archived: boolean;
   created_at: string;
 }

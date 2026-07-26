@@ -98,6 +98,10 @@ export function GetNotificationsSummary() {
   return window['go']['main']['App']['GetNotificationsSummary']();
 }
 
+export function GetPharmacyConfig(arg1) {
+  return window['go']['main']['App']['GetPharmacyConfig'](arg1);
+}
+
 export function GetPrescriptionDetails(arg1) {
   return window['go']['main']['App']['GetPrescriptionDetails'](arg1);
 }
@@ -216,6 +220,10 @@ export function UpdateDatabaseConfig(arg1) {
 
 export function UpdateMedicine(arg1, arg2, arg3) {
   return window['go']['main']['App']['UpdateMedicine'](arg1, arg2, arg3);
+}
+
+export function UpdatePharmacyConfig(arg1, arg2) {
+  return window['go']['main']['App']['UpdatePharmacyConfig'](arg1, arg2);
 }
 
 export function UpdatePrescriptionStatus(arg1, arg2, arg3, arg4) {

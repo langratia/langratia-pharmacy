@@ -11,8 +11,9 @@ import {
   AlertTriangle,
   Boxes
 } from 'lucide-react';
-import { Medicine } from '../../types';
+import { Medicine, Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../context/PermissionContext';
 import { Panel } from '../../components/ui/Panel';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';
@@ -31,6 +32,7 @@ const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'cre
   name: '',
   generic_name: '',
   brand_name: '',
+  barcode: '',
   category: 'General',
   dosage_strength: '',
   medicine_form: 'Tablet',
@@ -40,12 +42,17 @@ const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'cre
   current_stock: 0,
   reorder_level: 10,
   manufacturer: '',
-  description: ''
+  supplier_id: undefined,
+  description: '',
+  tax_rate: 0,
+  requires_prescription: false,
+  product_status: 'active'
 };
 
 export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onFilterChange }) => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { can } = usePermissions();
+  const canEdit = can('edit_inventory');
 
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [search, setSearch] = useState('');
@@ -67,6 +74,9 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
+
+  // Suppliers for dropdown
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   // CSV file ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,11 +105,11 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     try {
       let data: Medicine[] = [];
       try {
-        data = await ListMedicines(search, category === 'All' ? '' : category, includeArchived && isAdmin);
+        data = await ListMedicines(search, category === 'All' ? '' : category, includeArchived && canEdit);
       } catch {
         const wailsApp = (window as any)?.go?.main?.App;
         if (wailsApp && typeof wailsApp.ListMedicines === 'function') {
-          data = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, includeArchived && isAdmin);
+          data = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, includeArchived && canEdit);
         }
       }
       setMedicines(data || []);
@@ -120,6 +130,18 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     fetchMedicines();
   }, [debouncedSearch, category, includeArchived]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.ListSuppliers === 'function') {
+          const data = await wailsApp.ListSuppliers(false);
+          setSuppliers(data || []);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
   const handleSelectMedicine = (med: Medicine) => {
     setSelectedMedicine(med);
     setIsNewRecord(false);
@@ -129,6 +151,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       name: med.name,
       generic_name: med.generic_name,
       brand_name: med.brand_name,
+      barcode: med.barcode,
       category: med.category,
       dosage_strength: med.dosage_strength,
       medicine_form: med.medicine_form,
@@ -138,12 +161,16 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       current_stock: med.current_stock,
       reorder_level: med.reorder_level,
       manufacturer: med.manufacturer,
-      description: med.description
+      supplier_id: med.supplier_id,
+      description: med.description,
+      tax_rate: med.tax_rate,
+      requires_prescription: med.requires_prescription,
+      product_status: med.product_status
     });
   };
 
   const handleCreateNewRecord = () => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     setSelectedMedicine(null);
     setIsNewRecord(true);
     setIsEditingMode(true);
@@ -153,7 +180,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAdmin) return;
+    if (!canEdit) return;
     if (!formData.name.trim()) {
       setInspectorError('Medicine Name is required.');
       return;
@@ -191,7 +218,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   };
 
   const handleToggleArchive = async (med: Medicine) => {
-    if (!isAdmin) return;
+    if (!canEdit) return;
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp && typeof wailsApp.ArchiveMedicine === 'function') {
@@ -207,7 +234,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   // CSV Bulk Import Handler
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !isAdmin) return;
+    if (!file || !canEdit) return;
 
     setCsvLoading(true);
     const reader = new FileReader();
@@ -242,6 +269,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
             name: name,
             generic_name: getVal(['generic_name', 'generic', 'composition']),
             brand_name: getVal(['brand_name', 'brand']),
+            barcode: getVal(['barcode', 'bar_code', 'ean']),
             category: getVal(['category']) || 'General',
             dosage_strength: getVal(['dosage_strength', 'strength', 'dosage']),
             medicine_form: getVal(['medicine_form', 'form']) || 'Tablet',
@@ -251,7 +279,11 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
             current_stock: parseInt(getVal(['current_stock', 'stock', 'quantity', 'qty'])) || 0,
             reorder_level: parseInt(getVal(['reorder_level', 'reorder', 'min_stock'])) || 10,
             manufacturer: getVal(['manufacturer', 'company']),
+            supplier_id: undefined,
             description: getVal(['description', 'notes']),
+            tax_rate: parseFloat(getVal(['tax_rate', 'tax'])) || 0,
+            requires_prescription: getVal(['requires_prescription', 'rx_required', 'prescription']).toLowerCase() === 'yes',
+            product_status: getVal(['product_status', 'status']) || 'active',
             is_archived: false,
             created_at: new Date().toISOString()
           });
@@ -319,7 +351,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
         </span>
       )
     },
-    ...(isAdmin ? [{
+    ...(canEdit ? [{
       key: 'buying_price',
       header: 'Buy (UGX)',
       width: '12%',
@@ -435,7 +467,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 ))}
               </select>
 
-              {isAdmin && (
+              {canEdit && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <input
                     type="checkbox"
@@ -448,7 +480,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               )}
             </div>
 
-            {isAdmin && (
+            {canEdit && (
               <>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -512,7 +544,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
             <AlertTriangle size={12} /> Low Stock Warnings: <strong>{lowStockCount}</strong>
           </span>
         </div>
-        {isAdmin && (
+        {canEdit && (
           <div>
             Inventory Valuation: <strong style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(totalStockValuation)}</strong>
           </div>
@@ -542,7 +574,12 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
             </span>
             {selectedMedicine && (
-              <StatusBadge status={selectedMedicine.is_archived ? 'archived' : selectedMedicine.current_stock <= 0 ? 'out_of_stock' : selectedMedicine.current_stock <= selectedMedicine.reorder_level ? 'low_stock' : 'in_stock'} />
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {selectedMedicine.product_status && selectedMedicine.product_status !== 'active' && (
+                  <StatusBadge status={selectedMedicine.product_status as any} />
+                )}
+                <StatusBadge status={selectedMedicine.is_archived ? 'archived' : selectedMedicine.current_stock <= 0 ? 'out_of_stock' : selectedMedicine.current_stock <= selectedMedicine.reorder_level ? 'low_stock' : 'in_stock'} />
+              </div>
             )}
           </div>
 
@@ -553,7 +590,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
             <input
               type="text"
               required
-              disabled={!isAdmin}
+              disabled={!canEdit}
               placeholder="e.g. Amoxicillin Trihydrate"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -568,7 +605,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               </label>
               <input
                 type="text"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 placeholder="e.g. Amoxicillin"
                 value={formData.generic_name}
                 onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
@@ -581,7 +618,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               </label>
               <input
                 type="text"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 placeholder="e.g. Amoxil"
                 value={formData.brand_name}
                 onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
@@ -593,10 +630,23 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Barcode
+              </label>
+              <input
+                type="text"
+                disabled={!canEdit}
+                placeholder="e.g. 8901234567890"
+                value={formData.barcode}
+                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Category
               </label>
               <select
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
@@ -606,12 +656,15 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 ))}
               </select>
             </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Form
               </label>
               <select
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 value={formData.medicine_form}
                 onChange={(e) => setFormData({ ...formData, medicine_form: e.target.value })}
                 style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
@@ -621,32 +674,46 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 ))}
               </select>
             </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Dosage / Strength
               </label>
               <input
                 type="text"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 placeholder="e.g. 500mg"
                 value={formData.dosage_strength}
                 onChange={(e) => setFormData({ ...formData, dosage_strength: e.target.value })}
                 style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
               />
             </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Pack Specification
               </label>
               <input
                 type="text"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 placeholder="e.g. 10x10"
                 value={formData.pack_size}
                 onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
+                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Tax Rate (%)
+              </label>
+              <input
+                type="number"
+                disabled={!canEdit}
+                min="0"
+                step="0.01"
+                value={formData.tax_rate}
+                onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
                 style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
               />
             </div>
@@ -659,7 +726,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               </label>
               <input
                 type="number"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 min="0"
                 step="0.01"
                 value={formData.buying_price}
@@ -673,7 +740,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               </label>
               <input
                 type="number"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 min="0"
                 step="0.01"
                 value={formData.selling_price}
@@ -686,11 +753,42 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Product Status
+              </label>
+              <select
+                disabled={!canEdit}
+                value={formData.product_status}
+                onChange={(e) => setFormData({ ...formData, product_status: e.target.value })}
+                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+              >
+                <option value="active">Active</option>
+                <option value="discontinued">Discontinued</option>
+                <option value="out_of_stock">Out of Stock</option>
+                <option value="on_hold">On Hold</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase', height: '28px' }}>
+                <input
+                  type="checkbox"
+                  disabled={!canEdit}
+                  checked={formData.requires_prescription}
+                  onChange={(e) => setFormData({ ...formData, requires_prescription: e.target.checked })}
+                  style={{ margin: 0, width: '14px', height: '14px', cursor: canEdit ? 'pointer' : 'not-allowed' }}
+                />
+                Requires Prescription (Rx)
+              </label>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
                 Current Stock Qty
               </label>
               <input
                 type="number"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 min="0"
                 value={formData.current_stock || 0}
                 onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) || 0 })}
@@ -703,7 +801,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               </label>
               <input
                 type="number"
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 min="0"
                 value={formData.reorder_level}
                 onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
@@ -712,21 +810,53 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
             </div>
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Manufacturer
+              </label>
+              <input
+                type="text"
+                disabled={!canEdit}
+                placeholder="e.g. Rene Industries"
+                value={formData.manufacturer}
+                onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
+                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Supplier
+              </label>
+              <select
+                disabled={!canEdit}
+                value={formData.supplier_id ?? ''}
+                onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+              >
+                <option value="">-- No Supplier --</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-              Manufacturer
+              Description / Notes
             </label>
-            <input
-              type="text"
-              disabled={!isAdmin}
-              placeholder="e.g. Rene Industries"
-              value={formData.manufacturer}
-              onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-              style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+            <textarea
+              rows={2}
+              disabled={!canEdit}
+              placeholder="Additional information about this medicine..."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              style={{ width: '100%', padding: '6px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
             />
           </div>
 
-          {isAdmin && (
+          {canEdit && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {selectedMedicine && (

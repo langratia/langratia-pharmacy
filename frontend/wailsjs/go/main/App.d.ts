@@ -52,6 +52,8 @@ export function GetNetworkStatus():Promise<main.NetworkStatus>;
 
 export function GetNotificationsSummary():Promise<models.NotificationSummary>;
 
+export function GetPharmacyConfig(arg1:number):Promise<models.PharmacyConfig>;
+
 export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>;
 
 export function GetRolePermissions(arg1:string):Promise<Array<string>>;
@@ -111,6 +113,8 @@ export function UnlockUser(arg1:number,arg2:number):Promise<void>;
 export function UpdateDatabaseConfig(arg1:string):Promise<void>;
 
 export function UpdateMedicine(arg1:models.Medicine,arg2:number,arg3:string):Promise<void>;
+
+export function UpdatePharmacyConfig(arg1:models.PharmacyConfig,arg2:number):Promise<void>;
 
 export function UpdatePrescriptionStatus(arg1:number,arg2:string,arg3:number,arg4:string):Promise<void>;
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare } from 'lucide-react';
+import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions, SetRolePermissions, GetAllPermissionDefs } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
@@ -10,12 +10,13 @@ import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
 import { ReAuthDialog } from '../../components/ui/ReAuthDialog';
+import { PharmacySetupTab } from './PharmacySetupTab';
 import lanGuide from '../../assets/lan_setup_guide.png';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { can } = usePermissions();
-  const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit' | 'network' | 'permissions'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'backups' | 'audit' | 'network' | 'permissions' | 'pharmacy'>('users');
   
   // Users state
   const [users, setUsers] = useState<models.User[]>([]);
@@ -77,6 +78,8 @@ export const SettingsPage: React.FC = () => {
       fetchAuditLogs();
     } else if (activeTab === 'permissions') {
       fetchPermissions();
+    } else if (activeTab === 'pharmacy') {
+      // Pharmacy setup tab uses its own internal data fetching
     }
   }, [activeTab]);
 
@@ -645,6 +648,25 @@ export const SettingsPage: React.FC = () => {
                 <CheckSquare size={14} /> Permissions
               </button>
             )}
+            {can('manage_settings') && (
+              <button
+                onClick={() => setActiveTab('pharmacy')}
+                style={{
+                  height: '36px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  justifyContent: 'flex-start',
+                  gap: '8px',
+                  padding: '0 12px',
+                  borderRadius: '0px',
+                  backgroundColor: activeTab === 'pharmacy' ? 'var(--color-accent-subtle)' : 'transparent',
+                  border: activeTab === 'pharmacy' ? '1px solid var(--color-accent-base)' : '1px solid transparent',
+                  color: activeTab === 'pharmacy' ? 'var(--color-accent-base)' : 'var(--color-text-secondary)'
+                }}
+              >
+                <Building2 size={14} /> Pharmacy Setup
+              </button>
+            )}
           </div>
         </Panel>
 
@@ -896,6 +918,14 @@ export const SettingsPage: React.FC = () => {
                     {isSavingPerms ? 'Saving...' : 'Save Permissions'}
                   </button>
                 </div>
+              </div>
+            </Panel>
+          )}
+
+          {activeTab === 'pharmacy' && (
+            <Panel title="PHARMACY SETUP" style={{ height: '100%', overflow: 'hidden' }}>
+              <div style={{ padding: '16px', height: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+                <PharmacySetupTab />
               </div>
             </Panel>
           )}
