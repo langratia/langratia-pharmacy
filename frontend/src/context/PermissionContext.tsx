@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { HasPermission } from '../../wailsjs/go/main/App';
+import { HasPermission, GetRolePermissions } from '../../wailsjs/go/main/App';
 
 interface PermissionContextType {
   can: (permission: string) => boolean;
@@ -27,28 +27,28 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsLoading(false);
       return;
     }
-    setIsLoading(true);
 
-    const adminPerms = [
-      'view_dashboard', 'create_sale', 'edit_sale', 'void_sale', 'refund_sale',
-      'apply_discount', 'view_inventory', 'edit_inventory', 'stock_receiving',
-      'view_reports', 'export_data', 'print_receipt', 'manage_users',
-      'manage_suppliers', 'manage_prescriptions', 'dispense_prescription',
-      'approve_transactions', 'view_audit_logs', 'access_settings',
-    ];
+    const fetchPermissions = async () => {
+      setIsLoading(true);
+      try {
+        const perms = await GetRolePermissions(user.role);
+        setPermissions(new Set(perms || []));
+      } catch {
+        // Fallback: if backend fetch fails, derive from role hardcoded fallback
+        setPermissions(new Set(user.role === 'admin' 
+          ? ['view_dashboard', 'create_sale', 'edit_sale', 'void_sale', 'refund_sale',
+             'apply_discount', 'view_inventory', 'edit_inventory', 'stock_receiving',
+             'view_reports', 'export_data', 'print_receipt', 'manage_users',
+             'manage_suppliers', 'manage_prescriptions', 'dispense_prescription',
+             'approve_transactions', 'view_audit_logs', 'access_settings']
+          : ['create_sale', 'view_inventory', 'print_receipt',
+             'manage_prescriptions', 'dispense_prescription']));
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    if (user.role === 'admin') {
-      setPermissions(new Set(adminPerms));
-      setIsLoading(false);
-      return;
-    }
-
-    const cashierPerms = [
-      'create_sale', 'view_inventory', 'print_receipt',
-      'manage_prescriptions', 'dispense_prescription',
-    ];
-    setPermissions(new Set(cashierPerms));
-    setIsLoading(false);
+    fetchPermissions();
   }, [user]);
 
   const hasPermission = async (permission: string): Promise<boolean> => {
