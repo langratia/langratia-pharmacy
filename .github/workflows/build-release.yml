@@ -1,4 +1,4 @@
-name: Build & Release Windows Installer
+name: Build & Release Windows App
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-windows:
-    name: Build Windows NSIS Installer
+    name: Build Windows App (Installer & Portable)
     runs-on: windows-latest
     permissions:
       contents: write
@@ -53,25 +53,34 @@ jobs:
       - name: Build Wails App & NSIS Installer
         run: wails build -nsis -clean
 
-      - name: Prepare Installer Output
+      - name: Prepare Installer and Portable Executables
         shell: powershell
         run: |
+          # Locate NSIS Installer
           $installer = Get-ChildItem -Path build/bin -Filter "*installer*.exe" | Select-Object -First 1
-          if (-not $installer) {
-            $installer = Get-ChildItem -Path build/bin -Filter "*.exe" | Select-Object -First 1
-          }
           if ($installer) {
             Copy-Item $installer.FullName -Destination "build/bin/PharmacyPOS-Setup-Windows.exe"
-            Write-Host "Prepared installer output at build/bin/PharmacyPOS-Setup-Windows.exe from $($installer.Name)"
+            Write-Host "Prepared setup installer at build/bin/PharmacyPOS-Setup-Windows.exe"
           } else {
-            Write-Error "Executable artifact was not found in build/bin."
+            Write-Warning "NSIS Installer was not generated."
           }
 
-      - name: Upload Windows Installer Artifact
+          # Locate Standalone / Portable Executable
+          $portable = Get-ChildItem -Path build/bin -Filter "*.exe" | Where-Object { $_.Name -notlike "*installer*" -and $_.Name -notlike "*Setup*" } | Select-Object -First 1
+          if ($portable) {
+            Copy-Item $portable.FullName -Destination "build/bin/PharmacyPOS-Portable-Windows.exe"
+            Write-Host "Prepared portable executable at build/bin/PharmacyPOS-Portable-Windows.exe"
+          } else {
+            Write-Warning "Portable executable was not found."
+          }
+
+      - name: Upload Windows Executables Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PharmacyPOS-Setup-Windows
-          path: build/bin/PharmacyPOS-Setup-Windows.exe
+          name: PharmacyPOS-Windows-Executables
+          path: |
+            build/bin/PharmacyPOS-Setup-Windows.exe
+            build/bin/PharmacyPOS-Portable-Windows.exe
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
@@ -80,6 +89,8 @@ jobs:
           name: "Release ${{ github.ref_name }}"
           draft: false
           prerelease: false
-          files: build/bin/PharmacyPOS-Setup-Windows.exe
+          files: |
+            build/bin/PharmacyPOS-Setup-Windows.exe
+            build/bin/PharmacyPOS-Portable-Windows.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

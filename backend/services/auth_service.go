@@ -39,22 +39,12 @@ func (s *AuthService) logAction(userID int64, username, action, details string) 
 
 // IsFirstTimeSetup checks if initial onboarding setup is required.
 func (s *AuthService) IsFirstTimeSetup() (bool, error) {
-	var count int
-	err := s.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	var configuredCount int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM users WHERE password_changed_at IS NOT NULL").Scan(&configuredCount)
 	if err != nil {
 		return false, err
 	}
-	if count == 0 {
-		return true, nil
-	}
-
-	var pwdChangedAt sql.NullTime
-	err = s.db.QueryRow("SELECT password_changed_at FROM users WHERE username = 'admin'").Scan(&pwdChangedAt)
-	if err == nil && !pwdChangedAt.Valid {
-		return true, nil
-	}
-
-	return false, nil
+	return configuredCount == 0, nil
 }
 
 // CompleteFirstTimeSetup configures company name and admin credentials on first launch.
@@ -78,9 +68,9 @@ func (s *AuthService) CompleteFirstTimeSetup(pharmacyName, fullName, username, p
 	}
 
 	var existingID int64
-	err = s.db.QueryRow("SELECT id FROM users WHERE username = 'admin' OR username = ?", username).Scan(&existingID)
+	err = s.db.QueryRow("SELECT id FROM users ORDER BY id ASC LIMIT 1").Scan(&existingID)
 	if err == nil {
-		_, err = s.db.Exec("UPDATE users SET username = ?, password_hash = ?, full_name = ?, password_changed_at = ?, active = 1 WHERE id = ?",
+		_, err = s.db.Exec("UPDATE users SET username = ?, password_hash = ?, role = 'admin', full_name = ?, password_changed_at = ?, active = 1, failed_login_attempts = 0, locked_until = NULL WHERE id = ?",
 			username, string(hashedPassword), fullName, now, existingID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to update admin account: %w", err)
@@ -88,7 +78,7 @@ func (s *AuthService) CompleteFirstTimeSetup(pharmacyName, fullName, username, p
 		return s.GetUser(existingID)
 	}
 
-	res, err := s.db.Exec(`INSERT INTO users (username, password_hash, role, full_name, password_changed_at, active) VALUES (?, ?, 'admin', ?, ?, 1)`,
+	res, err := s.db.Exec(`INSERT INTO users (username, password_hash, role, full_name, password_changed_at, active, failed_login_attempts) VALUES (?, ?, 'admin', ?, ?, 1, 0)`,
 		username, string(hashedPassword), fullName, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin account: %w", err)

@@ -89,13 +89,15 @@ export const LoginPage: React.FC = () => {
 
       if (userRes) {
         await refreshConfig();
-        setSetupStep('animating');
-        toast.success('Initial setup completed successfully!');
+        toast.success('Admin setup complete!');
+        setUsername(setupUsername.trim());
+        setPassword(setupPassword);
 
-        // Smooth transition animation before logging in automatically
-        setTimeout(async () => {
-          await login(setupUsername.trim(), setupPassword);
-        }, 1500);
+        // Directly attempt login with newly configured credentials
+        const ok = await login(setupUsername.trim(), setupPassword);
+        if (!ok) {
+          setIsFirstTime(false);
+        }
       }
     } catch (err: any) {
       setSetupError(err?.message || 'Failed to complete setup. Please try again.');
@@ -132,22 +134,8 @@ export const LoginPage: React.FC = () => {
           padding: '36px 32px 28px',
           border: '1px solid var(--color-border-default)'
         }}>
-          {setupStep === 'animating' ? (
-            <div style={{ padding: '30px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-              <div className="animate-success-pop" style={{ color: 'var(--color-success-text)' }}>
-                <CheckCircle size={64} />
-              </div>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Setup Complete!
-              </h2>
-              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', margin: 0 }}>
-                Launching {setupPharmacyName || 'Pharmacy'} POS Workspace...
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Header */}
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                   System Initial Setup
                 </h1>
@@ -262,8 +250,6 @@ export const LoginPage: React.FC = () => {
                   {isSettingUp ? 'Configuring System...' : 'Initialize System & Complete Setup'}
                 </button>
               </form>
-            </>
-          )}
         </div>
       </div>
     );
