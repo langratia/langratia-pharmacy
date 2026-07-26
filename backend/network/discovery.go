@@ -1,11 +1,12 @@
 package network
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strings"
 	"time"
+
+	"app/backend/logger"
 )
 
 const (
@@ -24,18 +25,18 @@ func StartServerListener(shareName string) {
 
 	conn, err := net.ListenUDP("udp", &addr)
 	if err != nil {
-		fmt.Printf("Failed to start UDP discovery listener: %v\n", err)
+		logger.Error("Failed to start UDP discovery listener: %v", err)
 		return
 	}
 	defer conn.Close()
 
-	fmt.Printf("UDP Discovery Listener started on port %d\n", DiscoveryPort)
+	logger.Info("UDP Discovery Listener started on port %d", DiscoveryPort)
 
 	buf := make([]byte, 1024)
 	for {
 		n, remoteAddr, err := conn.ReadFromUDP(buf)
 		if err != nil {
-			fmt.Printf("UDP read error: %v\n", err)
+			logger.Error("UDP read error: %v", err)
 			continue
 		}
 
@@ -50,7 +51,7 @@ func StartServerListener(shareName string) {
 			response := fmt.Sprintf("%s|%s|%s", MagicResponse, hostname, shareName)
 			_, err := conn.WriteToUDP([]byte(response), remoteAddr)
 			if err != nil {
-				fmt.Printf("Failed to send UDP response to %v: %v\n", remoteAddr, err)
+				logger.Error("Failed to send UDP response to %v: %v", remoteAddr, err)
 			}
 		}
 	}

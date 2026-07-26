@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"app/backend/db"
+	"app/backend/logger"
 	"app/backend/models"
 	"app/backend/network"
 	"app/backend/services"
@@ -82,6 +83,13 @@ func init() {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Initialize logging to executable directory
+	logDir := filepath.Join(execDir, "logs")
+	if err := logger.Init(logDir); err != nil {
+		fmt.Printf("Warning: failed to initialize log file: %v\n", err)
+	}
+	logger.Info("Langratia Pharmacy POS starting up...")
+
 	// 1. Try to load custom configuration for LAN setup
 	var customConfig Config
 	configPath := filepath.Join(execDir, "config.json")
@@ -105,11 +113,12 @@ func (a *App) startup(ctx context.Context) {
 
 	database, err := db.InitDB(dbPath)
 	if err != nil {
-		fmt.Printf("Error initializing SQLite database at %s: %v\n", dbPath, err)
+		logger.Error("Error initializing SQLite database at %s: %v", dbPath, err)
 		// Fallback to local executable directory
 		dbPath = filepath.Join(execDir, "pharmacy.db")
 		database, err = db.InitDB(dbPath)
 		if err != nil {
+			logger.Error("Critical failure: cannot initialize database: %v", err)
 			panic(fmt.Sprintf("Critical failure: cannot initialize database: %v", err))
 		}
 	}
@@ -134,6 +143,17 @@ func (a *App) startup(ctx context.Context) {
 	if customConfig.DBPath == "" {
 		go network.StartServerListener("LangratiaData$")
 	}
+}
+
+// shutdown is called when the app is terminating.
+func (a *App) shutdown(ctx context.Context) {
+	logger.Info("Shutting down Langratia Pharmacy POS...")
+	if a.database != nil {
+		if err := a.database.Close(); err != nil {
+			logger.Error("Error closing database: %v", err)
+		}
+	}
+	logger.Info("Shutdown complete.")
 }
 
 // Auth API Bindings
