@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -77,6 +78,16 @@ func init() {
 	if err == nil {
 		execDir = filepath.Dir(exe)
 	}
+}
+
+// platformFileMode returns the appropriate file permission mode for the platform.
+// On Windows, Unix permission bits are ignored but we use 0644 for readability;
+// on Unix, we use 0600 for user-only access to config with potential secrets.
+func platformFileMode() fs.FileMode {
+	if runtime.GOOS == "windows" {
+		return 0644
+	}
+	return 0600
 }
 
 // startup is called when the app starts.
@@ -635,6 +646,15 @@ func (a *App) UpdatePharmacyConfig(cfg *models.PharmacyConfig, userID int64) err
 	return a.configService.UpdateConfig(cfg)
 }
 
+// GetWorkstationName returns the machine hostname for session tracking.
+func (a *App) GetWorkstationName() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "unknown"
+	}
+	return hostname
+}
+
 // Network Config API Bindings
 func (a *App) GetNetworkStatus() NetworkStatus {
 	isHost := true
@@ -659,13 +679,16 @@ func (a *App) UpdateDatabaseConfig(newPath string) error {
 	}
 
 	configPath := filepath.Join(execDir, "config.json")
-	if err := os.WriteFile(configPath, data, 0600); err != nil {
+	if err := os.WriteFile(configPath, data, platformFileMode()); err != nil {
 		return fmt.Errorf("failed to save configuration at %s: %w", configPath, err)
 	}
 	return nil
 }
 
-// EnableMainServerMode automatically configures Windows to share the DB folder
+// EnableMainServerMode automatically configures Windows to share the DB folder.
+// This will trigger a Windows UAC prompt for admin elevation.
+// The user must accept the UAC prompt for the operation to succeed.
+// Windows Firewall may also prompt to allow UDP port 45555 for LAN discovery.
 func (a *App) EnableMainServerMode(userID int64) error {
 	if err := a.requireAdmin(userID); err != nil {
 		return err
@@ -677,13 +700,18 @@ func (a *App) EnableMainServerMode(userID int64) error {
 	dbDir := filepath.Dir(a.dbPath)
 	shareName := "LangratiaData$"
 
+	logger.Info("Enabling main server mode: sharing %s as %s", dbDir, shareName)
+
 	// 'net share' command to create the hidden share
 	cmdStr := fmt.Sprintf("net share %s=\"%s\" /grant:Everyone,FULL", shareName, dbDir)
 
 	cmd := exec.Command("powershell", "-Command", "Start-Process", "cmd", "-ArgumentList", fmt.Sprintf("'/c %s'", cmdStr), "-Verb", "RunAs", "-WindowStyle", "Hidden")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to enable main server mode: %v", err)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Error("Failed to enable main server mode: %v | Output: %s", err, string(output))
+		return fmt.Errorf("failed to enable sharing. If a UAC prompt appeared, please accept it. Error: %v", err)
 	}
+	logger.Info("Main server mode enabled successfully: %s shared as %s", dbDir, shareName)
 	return nil
 }
 
