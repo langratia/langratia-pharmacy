@@ -11,8 +11,7 @@
     "email": "allan.info.comp@gmail.com"
   },
   "windows": {
-    "webview2": "fixed",
-    "webview2version": "126.0.2592.113",
+    "webview2": "download",
     "nsis": {
       "name": "Langratia Pharmacy POS",
       "displayName": "Langratia Pharmacy Point of Sale",
