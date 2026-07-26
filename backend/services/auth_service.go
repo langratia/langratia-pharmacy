@@ -148,22 +148,27 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 		&failedAttempts, &lockedUntil, &pwdChangedAt, &user.CreatedAt,
 	)
 	if err != nil {
+		fmt.Printf("DEBUG LOGIN: Scan error: %v\n", err)
 		return nil, errors.New("invalid username or password")
 	}
+	fmt.Printf("DEBUG LOGIN: Scan SUCCESS for user %s\n", username)
 	if lastLoginAt.Valid { user.LastLoginAt = &lastLoginAt.Time }
 	if lastLogoutAt.Valid { user.LastLogoutAt = &lastLogoutAt.Time }
 	if lockedUntil.Valid { user.LockedUntil = &lockedUntil.Time }
 	if pwdChangedAt.Valid { user.PasswordChangedAt = &pwdChangedAt.Time }
 
 	if !user.Active {
+		fmt.Printf("DEBUG LOGIN: User is not active\n")
 		return nil, errors.New("account is disabled")
 	}
 
 	if lockedUntil.Valid && time.Now().Before(lockedUntil.Time) {
+		fmt.Printf("DEBUG LOGIN: User is locked out\n")
 		return nil, fmt.Errorf("account is locked until %s", lockedUntil.Time.Format("2006-01-02 15:04"))
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
+		fmt.Printf("DEBUG LOGIN: bcrypt error: %v\n", err)
 		s.db.Exec("UPDATE users SET failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1 WHERE id = ?", user.ID)
 
 		var attemptCount int
@@ -191,6 +196,7 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 		remaining := maxAttempts - attemptCount
 		return nil, fmt.Errorf("invalid username or password (%d attempt(s) remaining)", remaining)
 	}
+	fmt.Printf("DEBUG LOGIN: bcrypt SUCCESS!\n")
 
 	now := time.Now()
 	s.db.Exec("UPDATE users SET failed_login_attempts = 0, last_login_at = ?, last_workstation = ? WHERE id = ?", now, workstation, user.ID)

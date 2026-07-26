@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 
-function getWorkstation(): string {
+async function getWorkstation(): Promise<string> {
   try {
     const wailsApp = (window as any)?.go?.main?.App;
     if (wailsApp?.GetWorkstationName) {
-      return wailsApp.GetWorkstationName();
+      const name = await wailsApp.GetWorkstationName();
+      if (name) return name;
     }
   } catch {
     // fallback
@@ -78,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         return false;
       }
-      const workstation = getWorkstation();
+      const workstation = await getWorkstation();
       const loggedUser: User = await wailsApp.Login(username, password, workstation);
       setUser(loggedUser);
       saveSession(loggedUser);
