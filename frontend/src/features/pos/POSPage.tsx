@@ -209,9 +209,16 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   const handlePrintReceipt = () => {
     const printContents = receiptRef.current?.innerHTML;
     if (!printContents) return;
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(`
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(`
       <html><head><title>POS Receipt</title>
       <style>
         body { font-family: 'Inter', sans-serif; font-size: 12px; padding: 20px; color: #000; }
@@ -219,8 +226,10 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #ccc; }
       </style></head><body>${printContents}</body></html>
     `);
-    win.document.close();
-    win.print();
+    doc.close();
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
   };
 
   // Primary Pane Content - Spacious Desktop Workstation Tiles Grid

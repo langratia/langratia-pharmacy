@@ -625,6 +625,18 @@ func (a *App) UpdatePrescriptionStatus(userID int64, username string, prescripti
 	return a.prescriptionService.UpdatePrescriptionStatus(userID, username, prescriptionID, status)
 }
 
+// GetCurrencySymbol returns the configured currency symbol for display formatting.
+func (a *App) GetCurrencySymbol() (string, error) {
+	if a.configService == nil {
+		return "", fmt.Errorf("service not initialized")
+	}
+	cfg, err := a.configService.GetConfig()
+	if err != nil {
+		return "UGX", nil
+	}
+	return cfg.Currency, nil
+}
+
 // Pharmacy Config API Bindings
 func (a *App) GetPharmacyConfig(userID int64) (*models.PharmacyConfig, error) {
 	if a.configService == nil {

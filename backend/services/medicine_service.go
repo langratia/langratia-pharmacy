@@ -184,7 +184,7 @@ func (s *MedicineService) ListMedicines(search, category string, includeArchived
 	}
 	if search != "" {
 		query += ` AND (m.name LIKE ? OR m.generic_name LIKE ? OR m.brand_name LIKE ? OR m.barcode LIKE ?)`
-		pattern := "%" + search + "%"
+		pattern := "%" + EscapeLike(search) + "%"
 		args = append(args, pattern, pattern, pattern, pattern)
 	}
 
@@ -245,7 +245,7 @@ func (s *MedicineService) ListMedicinesPaginated(search, category string, includ
 	}
 	if search != "" {
 		baseWhere += ` AND (m.name LIKE ? OR m.generic_name LIKE ? OR m.brand_name LIKE ? OR m.barcode LIKE ?)`
-		pattern := "%" + search + "%"
+		pattern := "%" + EscapeLike(search) + "%"
 		args = append(args, pattern, pattern, pattern, pattern)
 	}
 

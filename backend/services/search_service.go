@@ -16,13 +16,17 @@ func NewSearchService(database *db.DB) *SearchService {
 	return &SearchService{db: database}
 }
 
+func EscapeLike(s string) string {
+	return strings.NewReplacer(`%`, `\%`, `_`, `\_`, `\`, `\\`).Replace(s)
+}
+
 func (s *SearchService) GlobalSearch(query string, userRole string) ([]models.SearchResultItem, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return []models.SearchResultItem{}, nil
 	}
 
-	searchTerm := "%" + query + "%"
+	searchTerm := "%" + EscapeLike(query) + "%"
 	var results []models.SearchResultItem
 
 	// 1. Search Medicines (Available to all roles)

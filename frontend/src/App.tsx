@@ -8,6 +8,7 @@ import { MainLayout } from './components/layout/MainLayout';
 import { NavItemKey } from './components/layout/Sidebar';
 import { CommandPalette } from './components/ui/CommandPalette';
 import { IdleTimer } from './components/ui/IdleTimer';
+import { loadCurrency } from './utils/currency';
 
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { POSPage } from './features/pos/POSPage';
@@ -23,6 +24,8 @@ const SESSION_IDLE_TIMEOUT_MINUTES = 15;
 const MainApp: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeView, setActiveView] = useState<NavItemKey>('dashboard');
+
+  useEffect(() => { loadCurrency(); }, []);
   const [inventoryFilter, setInventoryFilter] = useState<string>('all');
   const [posCartItems, setPosCartItems] = useState<any[]>([]);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);

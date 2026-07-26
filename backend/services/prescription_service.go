@@ -157,7 +157,7 @@ func (p *PrescriptionService) ListPrescriptions(status string, search string, li
 	}
 	if search != "" {
 		query += ` AND (p.prescription_number LIKE ? OR p.patient_name LIKE ? OR p.doctor_name LIKE ?)`
-		searchPattern := "%" + search + "%"
+		searchPattern := "%" + EscapeLike(search) + "%"
 		args = append(args, searchPattern, searchPattern, searchPattern)
 	}
 

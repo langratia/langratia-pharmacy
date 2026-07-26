@@ -4,16 +4,18 @@
  * Formats whole numbers cleanly without trailing decimal zeroes (e.g. 5,000)
  * while properly rounding floats (e.g. 12,493.016 -> 12,493.02).
  */
+import { getCurrencySymbol } from './currency';
+
 export const formatCurrency = (
   val: number | string | null | undefined,
   includeSymbol: boolean = false
 ): string => {
   if (val === null || val === undefined || val === '') {
-    return includeSymbol ? 'UGX 0' : '0';
+    return includeSymbol ? `${getCurrencySymbol()} 0` : '0';
   }
   const num = typeof val === 'number' ? val : parseFloat(String(val));
   if (isNaN(num)) {
-    return includeSymbol ? 'UGX 0' : '0';
+    return includeSymbol ? `${getCurrencySymbol()} 0` : '0';
   }
 
   const formatted = new Intl.NumberFormat('en-US', {
@@ -21,7 +23,7 @@ export const formatCurrency = (
     maximumFractionDigits: 2,
   }).format(num);
 
-  return includeSymbol ? `UGX ${formatted}` : formatted;
+  return includeSymbol ? `${getCurrencySymbol()} ${formatted}` : formatted;
 };
 
 /**

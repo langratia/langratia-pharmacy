@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"app/backend/db"
@@ -12,6 +13,7 @@ import (
 )
 
 type AuthService struct {
+	mu sync.Mutex
 	db *db.DB
 }
 
@@ -45,7 +47,6 @@ func (s *AuthService) recordLoginHistory(userID int64, username, action, worksta
 // GetUser returns a single user with all fields (no password hash).
 func (s *AuthService) GetUser(id int64) (*models.User, error) {
 	var u models.User
-	var phone, email, branch sql.NullString
 	err := s.db.QueryRow(`
 		SELECT id, username, role, full_name, COALESCE(phone, ''), COALESCE(email, ''),
 		       COALESCE(branch, ''), active, last_login_at, last_logout_at,
@@ -53,7 +54,7 @@ func (s *AuthService) GetUser(id int64) (*models.User, error) {
 		       locked_until, password_changed_at, created_at
 		FROM users WHERE id = ?`, id).Scan(
 		&u.ID, &u.Username, &u.Role, &u.FullName,
-		&phone, &email, &branch,
+		&u.Phone, &u.Email, &u.Branch,
 		&u.Active, &u.LastLoginAt, &u.LastLogoutAt,
 		&u.LastWorkstation, &u.FailedLoginAttempts,
 		&u.LockedUntil, &u.PasswordChangedAt, &u.CreatedAt,
@@ -61,19 +62,18 @@ func (s *AuthService) GetUser(id int64) (*models.User, error) {
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
-	u.Phone = phone.String
-	u.Email = email.String
-	u.Branch = branch.String
 	return &u, nil
 }
 
 // Login authenticates user credentials and returns user details.
 func (s *AuthService) Login(username, password, workstation string) (*models.User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	var user models.User
 	var passwordHash string
 	var failedAttempts int
 	var lockedUntil sql.NullTime
-	var phone, email, branch sql.NullString
 
 	query := `SELECT id, username, password_hash, role, full_name,
 		COALESCE(phone, ''), COALESCE(email, ''), COALESCE(branch, ''),
@@ -82,7 +82,7 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 		locked_until, password_changed_at, created_at FROM users WHERE username = ?`
 	err := s.db.QueryRow(query, username).Scan(
 		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName,
-		&phone, &email, &branch,
+		&user.Phone, &user.Email, &user.Branch,
 		&user.Active,
 		&user.LastLoginAt, &user.LastLogoutAt, &user.LastWorkstation,
 		&failedAttempts, &lockedUntil, &user.PasswordChangedAt, &user.CreatedAt,
@@ -90,10 +90,6 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 	if err != nil {
 		return nil, errors.New("invalid username or password")
 	}
-
-	user.Phone = phone.String
-	user.Email = email.String
-	user.Branch = branch.String
 
 	if !user.Active {
 		return nil, errors.New("account is disabled")
@@ -223,20 +219,16 @@ func (s *AuthService) ListUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		var phone, email, branch sql.NullString
 		var lockedUntil sql.NullTime
 		if err := rows.Scan(
 			&u.ID, &u.Username, &u.Role, &u.FullName,
-			&phone, &email, &branch,
+			&u.Phone, &u.Email, &u.Branch,
 			&u.Active, &u.LastLoginAt, &u.LastLogoutAt,
 			&u.LastWorkstation, &u.FailedLoginAttempts,
 			&lockedUntil, &u.PasswordChangedAt, &u.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
-		u.Phone = phone.String
-		u.Email = email.String
-		u.Branch = branch.String
 		if lockedUntil.Valid {
 			u.LockedUntil = &lockedUntil.Time
 		}
