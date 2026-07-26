@@ -48,6 +48,19 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 		paymentMethod = "Cash"
 	}
 
+	// Server-side input validation
+	for i, item := range items {
+		if item.MedicineID <= 0 {
+			return nil, fmt.Errorf("item %d: invalid medicine ID", i)
+		}
+		if item.Quantity <= 0 {
+			return nil, fmt.Errorf("item %d: quantity must be greater than zero", i)
+		}
+		if item.UnitPrice < 0 {
+			return nil, fmt.Errorf("item %d: unit price cannot be negative", i)
+		}
+	}
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
@@ -58,9 +71,6 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 
 	totalAmount := 0.0
 	for _, item := range items {
-		if item.Quantity <= 0 {
-			return nil, errors.New("item quantity must be greater than zero")
-		}
 		totalAmount += item.UnitPrice * float64(item.Quantity)
 	}
 

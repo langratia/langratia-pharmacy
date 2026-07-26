@@ -65,67 +65,77 @@ func (s *BackupService) ExportDatabase(destPath string, userID int64, username s
 	return nil
 }
 
-// RestoreDatabase safely closes the active database pool, overwrites the DB file, and re-initializes the pool.
+// RestoreDatabase safely replaces the active database with a backup copy.
+// It creates the new connection first, then atomically swaps the pointer
+// under the mutex before closing the old connection.
 func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, username string) error {
 	if sourceBackupPath == "" {
 		return errors.New("source backup path is required")
 	}
 
+	// 1. Verify backup file is readable before taking any locks
 	srcFile, err := os.Open(sourceBackupPath)
 	if err != nil {
 		return fmt.Errorf("failed to open backup file: %w", err)
 	}
 	defer srcFile.Close()
 
-	s.db.Lock()
+	// 2. Create a new SQLite connection to the backup file to verify it's valid
+	backupConn, err := sql.Open("sqlite", sourceBackupPath)
+	if err != nil {
+		return fmt.Errorf("failed to validate backup file: %w", err)
+	}
+	if err := backupConn.Ping(); err != nil {
+		backupConn.Close()
+		return fmt.Errorf("backup file is not a valid database: %w", err)
+	}
+	backupConn.Close()
 
-	// 1. Flush WAL logs
+	s.db.Lock()
+	defer s.db.Unlock()
+
+	// 3. Flush WAL logs to ensure all data is in the main db file
 	if _, err := s.db.Exec("PRAGMA wal_checkpoint(FULL);"); err != nil {
-		s.db.Unlock()
 		return fmt.Errorf("failed to checkpoint WAL: %w", err)
 	}
 
-	// 2. Close active connection pool to release OS file locks
-	if err := s.db.Close(); err != nil {
-		s.db.Unlock()
-		return fmt.Errorf("failed to close active database connection: %w", err)
-	}
-
-	// 3. Overwrite database file
+	// 4. Overwrite database file on disk
 	destFile, err := os.Create(s.dbPath)
 	if err != nil {
-		s.db.Unlock()
 		return fmt.Errorf("failed to open target db for overwrite: %w", err)
 	}
 
+	// Re-open source file (it was already opened above, but io.Copy works)
+	srcFile.Seek(0, 0)
 	if _, err := io.Copy(destFile, srcFile); err != nil {
 		destFile.Close()
-		s.db.Unlock()
 		return fmt.Errorf("failed to write restored database: %w", err)
 	}
 	destFile.Close()
 
-	// 4. Re-open SQLite connection pool
+	// 5. Open new connection to the restored database
 	newSqlDB, err := sql.Open("sqlite", s.dbPath)
 	if err != nil {
-		s.db.Unlock()
 		return fmt.Errorf("failed to re-open restored database: %w", err)
 	}
 
-	// Re-enable WAL & Foreign Keys
+	// Re-enable WAL & Foreign Keys on the new connection
 	if _, err := newSqlDB.Exec("PRAGMA journal_mode = WAL;"); err != nil {
-		s.db.Unlock()
+		newSqlDB.Close()
 		return fmt.Errorf("failed to set WAL mode on restored db: %w", err)
 	}
 	if _, err := newSqlDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		s.db.Unlock()
+		newSqlDB.Close()
 		return fmt.Errorf("failed to enable foreign keys on restored db: %w", err)
 	}
 
-	// Replace underlying *sql.DB in the shared *db.DB reference under mutex
+	// 6. Atomically swap the underlying *sql.DB — new queries go to the new DB
+	oldDB := s.db.DB
 	s.db.DB = newSqlDB
 
-	s.db.Unlock()
+	// 7. Close the old connection pool outside the critical section
+	//    (oldDB is no longer referenced by anyone after the swap)
+	go oldDB.Close()
 
 	s.logAction(userID, username, "DATABASE_RESTORE", fmt.Sprintf("Restored database from %s", sourceBackupPath))
 	return nil

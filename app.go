@@ -68,13 +68,24 @@ func (a *App) requireAdmin(userID int64) error {
 	return nil
 }
 
+// execDir caches the executable's directory at startup.
+var execDir string
+
+func init() {
+	exe, err := os.Executable()
+	if err == nil {
+		execDir = filepath.Dir(exe)
+	}
+}
+
 // startup is called when the app starts.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
 	// 1. Try to load custom configuration for LAN setup
 	var customConfig Config
-	configData, err := os.ReadFile("config.json")
+	configPath := filepath.Join(execDir, "config.json")
+	configData, err := os.ReadFile(configPath)
 	if err == nil {
 		_ = json.Unmarshal(configData, &customConfig)
 	}
@@ -86,7 +97,7 @@ func (a *App) startup(ctx context.Context) {
 	} else {
 		userConfigDir, err := os.UserConfigDir()
 		if err != nil {
-			dbPath = filepath.Join(".", "data", "pharmacy.db")
+			dbPath = filepath.Join(execDir, "data", "pharmacy.db")
 		} else {
 			dbPath = filepath.Join(userConfigDir, "LangratiaPharmacy", "pharmacy.db")
 		}
@@ -95,8 +106,8 @@ func (a *App) startup(ctx context.Context) {
 	database, err := db.InitDB(dbPath)
 	if err != nil {
 		fmt.Printf("Error initializing SQLite database at %s: %v\n", dbPath, err)
-		// Fallback to local execution directory
-		dbPath = filepath.Join(".", "pharmacy.db")
+		// Fallback to local executable directory
+		dbPath = filepath.Join(execDir, "pharmacy.db")
 		database, err = db.InitDB(dbPath)
 		if err != nil {
 			panic(fmt.Sprintf("Critical failure: cannot initialize database: %v", err))
@@ -627,9 +638,9 @@ func (a *App) UpdateDatabaseConfig(newPath string) error {
 		return err
 	}
 
-	// Write to config.json in the executable's directory with user-only permissions
-	if err := os.WriteFile("config.json", data, 0600); err != nil {
-		return fmt.Errorf("failed to save configuration: %w", err)
+	configPath := filepath.Join(execDir, "config.json")
+	if err := os.WriteFile(configPath, data, 0600); err != nil {
+		return fmt.Errorf("failed to save configuration at %s: %w", configPath, err)
 	}
 	return nil
 }
