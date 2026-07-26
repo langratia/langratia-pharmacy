@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Cross, Lock, User as UserIcon, ShieldAlert, Cpu } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { usePharmacy } from '../../context/PharmacyContext';
 
 export const LoginPage: React.FC = () => {
   const { login, isLoading, error } = useAuth();
+  const { pharmacyName, logoUrl } = usePharmacy();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -34,21 +36,25 @@ export const LoginPage: React.FC = () => {
       }}>
         {/* Header Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '0px',
-            backgroundColor: 'var(--color-accent-solid)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-text-inverse)',
-            marginBottom: '14px'
-          }}>
-            <Cross size={24} />
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
+          ) : (
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '0px',
+              backgroundColor: 'var(--color-accent-solid)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-text-inverse)',
+              marginBottom: '14px'
+            }}>
+              <Cross size={24} />
+            </div>
+          )}
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-            Langratia Pharmacy
+            {pharmacyName}
           </h1>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, backgroundColor: 'var(--color-bg-base)', padding: '2px 8px', border: '1px solid var(--color-border-subtle)' }}>
             <Cpu size={12} style={{ color: 'var(--color-accent-base)' }} />
@@ -213,7 +219,7 @@ export const LoginPage: React.FC = () => {
           textTransform: 'uppercase',
           letterSpacing: '0.05em'
         }}>
-          Langratia OS • v1.4.2 Build 8920
+          {pharmacyName} POS • v1.0.0 Enterprise Release
         </div>
       </div>
     </div>

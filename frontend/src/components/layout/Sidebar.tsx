@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
+import { usePharmacy } from '../../context/PharmacyContext';
 
 export type NavItemKey = 'dashboard' | 'pos' | 'prescriptions' | 'inventory' | 'purchases' | 'suppliers' | 'reports' | 'settings';
 
@@ -76,6 +77,7 @@ const navGroups: NavGroup[] = [
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCollapsed, onToggleCollapse }) => {
   const { user, logout } = useAuth();
   const { can } = usePermissions();
+  const { pharmacyName, logoUrl } = usePharmacy();
 
   // Sidebar uses its own deep navy surface, independent of the light/dark panel tokens
   // so that it always reads as a distinct navigation layer.
@@ -117,28 +119,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div
-            style={{
-              width: '16px',
-              height: '16px',
-              borderRadius: '0px',
-              backgroundColor: 'var(--color-accent-solid)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-text-inverse)',
-              flexShrink: 0
-            }}
-          >
-            <Cross size={11} />
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+          ) : (
+            <div
+              style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '0px',
+                backgroundColor: 'var(--color-accent-solid)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-text-inverse)',
+                flexShrink: 0
+              }}
+            >
+              <Cross size={11} />
+            </div>
+          )}
           {!isCollapsed && (
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: sidebarTextActive, letterSpacing: '-0.01em' }}>
-                Langratia
-              </span>
-              <span style={{ fontSize: '10px', color: sidebarTextMuted, marginLeft: '5px', fontWeight: 600 }}>
-                POS
+              <span style={{ fontSize: '13px', fontWeight: 700, color: sidebarTextActive, letterSpacing: '-0.01em' }}>
+                {pharmacyName}
               </span>
             </div>
           )}

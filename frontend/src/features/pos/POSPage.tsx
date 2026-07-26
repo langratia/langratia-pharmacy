@@ -21,6 +21,7 @@ import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 import { getMedicineFormImage } from '../../utils/medicineForms';
+import { usePharmacy } from '../../context/PharmacyContext';
 
 type PaymentMethod = 'cash' | 'card' | 'momo';
 const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', card: 'Card', momo: 'Mobile Money' };
@@ -37,6 +38,7 @@ interface POSPageProps {
 
 export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExternalCart }) => {
   const { user } = useAuth();
+  const { config, pharmacyName } = usePharmacy();
   const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [category, setCategory] = useState('All');
@@ -587,6 +589,14 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 </div>
 
                 <div ref={receiptRef} style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                  {/* Dynamic Company Branding Header */}
+                  <div style={{ textAlign: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '8px' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{pharmacyName}</div>
+                    {config?.address && <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{config.address}</div>}
+                    {config?.phone && <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Tel: {config.phone} {config?.email ? `| ${config.email}` : ''}</div>}
+                    {config?.tax_number && <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>TIN: {config.tax_number}</div>}
+                  </div>
+
                   <div style={{ marginBottom: '4px' }}>Operator: <strong>{completedSale.username}</strong></div>
                   <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
 
@@ -594,15 +604,21 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     {completedSale.items?.map((it: any, idx: number) => (
                       <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
-                        <span style={{ fontWeight: 600 }}>UGX {formatCurrency(it.subtotal || (it.unit_price * it.quantity))}</span>
+                        <span style={{ fontWeight: 600 }}>{config?.currency || 'UGX'} {formatCurrency(it.subtotal || (it.unit_price * it.quantity))}</span>
                       </div>
                     ))}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent-base)' }}>
                     <span>TOTAL PAID:</span>
-                    <span>UGX {formatCurrency(completedSale.total_amount)}</span>
+                    <span>{config?.currency || 'UGX'} {formatCurrency(completedSale.total_amount)}</span>
                   </div>
+                  
+                  {config?.return_rules && (
+                    <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '9px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '6px' }}>
+                      {config.return_rules}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>

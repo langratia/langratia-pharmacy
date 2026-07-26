@@ -125,12 +125,14 @@ const MainApp: React.FC = () => {
 };
 
 import { ThemeProvider } from './context/ThemeContext';
+import { PharmacyProvider } from './context/PharmacyContext';
 
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <PermissionProvider>
+      <PharmacyProvider>
+        <AuthProvider>
+          <PermissionProvider>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -160,7 +162,8 @@ function App() {
         <MainApp />
         </PermissionProvider>
       </AuthProvider>
-    </ThemeProvider>
+    </PharmacyProvider>
+  </ThemeProvider>
   );
 }
 
