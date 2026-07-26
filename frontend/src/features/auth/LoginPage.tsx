@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cross, Lock, User as UserIcon, ShieldAlert, Cpu } from 'lucide-react';
+import { Cross, Lock, User as UserIcon, ShieldAlert, Cpu, KeyRound } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePharmacy } from '../../context/PharmacyContext';
 
@@ -208,6 +208,29 @@ export const LoginPage: React.FC = () => {
             {isLoading ? 'Authenticating System...' : 'Sign In to System'}
           </button>
         </form>
+
+        {/* First-Time Setup Credentials Guidance Banner */}
+        <div style={{
+          marginTop: '16px',
+          padding: '10px 12px',
+          backgroundColor: 'var(--color-bg-base)',
+          border: '1px solid var(--color-border-subtle)',
+          borderRadius: '0px',
+          fontSize: '11px',
+          color: 'var(--color-text-secondary)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          textAlign: 'left'
+        }}>
+          <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <KeyRound size={13} style={{ color: 'var(--color-accent-base)' }} /> First-Time System Credentials:
+          </div>
+          <div>Username: <strong style={{ color: 'var(--color-text-primary)' }}>admin</strong> &nbsp;|&nbsp; Password: <strong style={{ color: 'var(--color-text-primary)' }}>admin123</strong></div>
+          <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+            (You can update default passwords or add new operators in System Settings).
+          </div>
+        </div>
 
         <div style={{
           marginTop: '24px',
