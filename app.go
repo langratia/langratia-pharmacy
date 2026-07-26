@@ -168,6 +168,20 @@ func (a *App) shutdown(ctx context.Context) {
 }
 
 // Auth API Bindings
+func (a *App) IsFirstTimeSetup() (bool, error) {
+	if a.authService == nil {
+		return false, fmt.Errorf("service not initialized")
+	}
+	return a.authService.IsFirstTimeSetup()
+}
+
+func (a *App) CompleteFirstTimeSetup(pharmacyName, fullName, username, password string) (*models.User, error) {
+	if a.authService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	return a.authService.CompleteFirstTimeSetup(pharmacyName, fullName, username, password)
+}
+
 func (a *App) Login(username, password, workstation string) (*models.User, error) {
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")

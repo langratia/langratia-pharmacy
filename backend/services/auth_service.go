@@ -37,6 +37,71 @@ func (s *AuthService) logAction(userID int64, username, action, details string) 
 	)
 }
 
+// IsFirstTimeSetup checks if initial onboarding setup is required.
+func (s *AuthService) IsFirstTimeSetup() (bool, error) {
+	var count int
+	err := s.db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	if count == 0 {
+		return true, nil
+	}
+
+	var pwdChangedAt sql.NullTime
+	err = s.db.QueryRow("SELECT password_changed_at FROM users WHERE username = 'admin'").Scan(&pwdChangedAt)
+	if err == nil && !pwdChangedAt.Valid {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// CompleteFirstTimeSetup configures company name and admin credentials on first launch.
+func (s *AuthService) CompleteFirstTimeSetup(pharmacyName, fullName, username, password string) (*models.User, error) {
+	if username == "" || password == "" || fullName == "" {
+		return nil, errors.New("admin full name, username, and password are required")
+	}
+	if len(password) < 4 {
+		return nil, errors.New("password must be at least 4 characters long")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	now := time.Now()
+
+	if pharmacyName != "" {
+		_, _ = s.db.Exec("UPDATE pharmacy_config SET pharmacy_name = ?, updated_at = ? WHERE id = 1", pharmacyName, now)
+	}
+
+	var existingID int64
+	err = s.db.QueryRow("SELECT id FROM users WHERE username = 'admin' OR username = ?", username).Scan(&existingID)
+	if err == nil {
+		_, err = s.db.Exec("UPDATE users SET username = ?, password_hash = ?, full_name = ?, password_changed_at = ?, active = 1 WHERE id = ?",
+			username, string(hashedPassword), fullName, now, existingID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update admin account: %w", err)
+		}
+		return s.GetUser(existingID)
+	}
+
+	res, err := s.db.Exec(`INSERT INTO users (username, password_hash, role, full_name, password_changed_at, active) VALUES (?, ?, 'admin', ?, ?, 1)`,
+		username, string(hashedPassword), fullName, now)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create admin account: %w", err)
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetUser(id)
+}
+
 func (s *AuthService) recordLoginHistory(userID int64, username, action, workstation string) {
 	_, _ = s.db.Exec(
 		`INSERT INTO login_history (user_id, username, action, workstation) VALUES (?, ?, ?, ?)`,

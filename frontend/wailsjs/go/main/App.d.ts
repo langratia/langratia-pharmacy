@@ -24,6 +24,8 @@ export function BulkImportMedicines(arg1:Array<models.Medicine>,arg2:number,arg3
 
 export function ChangePassword(arg1:number,arg2:string,arg3:string):Promise<void>;
 
+export function CompleteFirstTimeSetup(arg1:string,arg2:string,arg3:string,arg4:string):Promise<models.User>;
+
 export function CreatePrescription(arg1:number,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:string,arg9:Array<services.PrescriptionItemInput>):Promise<models.Prescription>;
 
 export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:string,arg8:number):Promise<models.User>;
@@ -41,6 +43,8 @@ export function GetAllPermissionDefs():Promise<Array<models.PermissionInfo>>;
 export function GetBatchesByMedicine(arg1:number):Promise<Array<models.Batch>>;
 
 export function GetCashierPerformance(arg1:number):Promise<services.CashierPerformance>;
+
+export function GetCurrencySymbol():Promise<string>;
 
 export function GetDashboardSummary():Promise<services.DashboardSummary>;
 
@@ -66,9 +70,13 @@ export function GetUserActivity(arg1:number,arg2:number,arg3:number):Promise<Arr
 
 export function GetUserTodaySalesTotal(arg1:number):Promise<number>;
 
+export function GetWorkstationName():Promise<string>;
+
 export function GlobalSearch(arg1:string,arg2:string):Promise<Array<models.SearchResultItem>>;
 
 export function HasPermission(arg1:number,arg2:string):Promise<boolean>;
+
+export function IsFirstTimeSetup():Promise<boolean>;
 
 export function ListAuditLogs(arg1:number,arg2:number):Promise<Array<models.AuditLog>>;
 
