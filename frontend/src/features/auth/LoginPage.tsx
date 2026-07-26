@@ -148,19 +148,6 @@ export const LoginPage: React.FC = () => {
             <>
               {/* Header */}
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <div style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '0px',
-                  backgroundColor: 'var(--color-accent-solid)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--color-text-inverse)',
-                  marginBottom: '12px'
-                }}>
-                  <Sparkles size={24} />
-                </div>
                 <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                   System Initial Setup
                 </h1>
@@ -303,22 +290,8 @@ export const LoginPage: React.FC = () => {
       }}>
         {/* Header Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          {logoUrl ? (
+          {logoUrl && (
             <img src={logoUrl} alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
-          ) : (
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '0px',
-              backgroundColor: 'var(--color-accent-solid)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--color-text-inverse)',
-              marginBottom: '14px'
-            }}>
-              <Cross size={24} />
-            </div>
           )}
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
             {pharmacyName}

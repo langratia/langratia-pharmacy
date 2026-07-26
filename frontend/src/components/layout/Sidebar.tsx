@@ -119,24 +119,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {logoUrl ? (
+          {logoUrl && (
             <img src={logoUrl} alt="Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-          ) : (
-            <div
-              style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '0px',
-                backgroundColor: 'var(--color-accent-solid)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--color-text-inverse)',
-                flexShrink: 0
-              }}
-            >
-              <Cross size={11} />
-            </div>
           )}
           {!isCollapsed && (
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
