@@ -22,6 +22,7 @@ import { SplitPane } from '../../components/ui/SplitPane';
 import { ListMedicines, GetExpiringBatches } from '../../../wailsjs/go/main/App';
 
 import { formatCurrency, sanitizePriceInput } from '../../utils/formatters';
+import { getMedicineFormImage } from '../../utils/medicineForms';
 
 interface InventoryPageProps {
   initialFilter?: string;
@@ -314,9 +315,16 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       header: 'Medicine Name',
       width: '28%',
       accessor: (med) => (
-        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{med.name}</span>
-          <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginLeft: '6px' }}>({med.pack_size || '-'})</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img 
+            src={getMedicineFormImage(med.medicine_form)} 
+            alt={med.medicine_form} 
+            style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px', backgroundColor: '#fff', border: '1px solid var(--color-border-default)' }}
+          />
+          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{med.name}</span>
+            <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginLeft: '6px' }}>({med.pack_size || '-'})</span>
+          </div>
         </div>
       )
     },
@@ -570,9 +578,18 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       ) : (
         <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-              {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {selectedMedicine && (
+                <img 
+                  src={getMedicineFormImage(selectedMedicine.medicine_form)} 
+                  alt={selectedMedicine.medicine_form} 
+                  style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '4px', backgroundColor: '#fff', border: '1px solid var(--color-border-default)' }}
+                />
+              )}
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
+              </span>
+            </div>
             {selectedMedicine && (
               <div style={{ display: 'flex', gap: '4px' }}>
                 {selectedMedicine.product_status && selectedMedicine.product_status !== 'active' && (

@@ -20,6 +20,7 @@ import { SplitPane } from '../../components/ui/SplitPane';
 import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
 import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
+import { getMedicineFormImage } from '../../utils/medicineForms';
 
 type PaymentMethod = 'cash' | 'card' | 'momo';
 const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', card: 'Card', momo: 'Mobile Money' };
@@ -305,26 +306,30 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   padding: viewMode === 'grid' ? '16px' : '10px 16px'
                 }}
               >
-                {/* Neutral Monogram Avatar Icon */}
+                {/* Professional Medicine Form Image */}
                 <div style={{
-                  width: viewMode === 'grid' ? '56px' : '36px',
-                  height: viewMode === 'grid' ? '56px' : '36px',
-                  borderRadius: '0px',
-                  backgroundColor: 'var(--color-bg-base)',
+                  width: viewMode === 'grid' ? '64px' : '40px',
+                  height: viewMode === 'grid' ? '64px' : '40px',
+                  borderRadius: '4px',
+                  backgroundColor: '#ffffff',
                   border: '1px solid var(--color-border-subtle)',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: viewMode === 'grid' ? '10px' : '0',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  padding: '4px',
+                  boxSizing: 'border-box'
                 }}>
-                  <Pill size={viewMode === 'grid' ? 20 : 16} style={{ color: 'var(--color-accent-base)' }} />
-                  {viewMode === 'grid' && (
-                    <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', marginTop: '2px' }}>
-                      {med.name.substring(0, 3)}
-                    </span>
-                  )}
+                  <img
+                    src={getMedicineFormImage(med.medicine_form)}
+                    alt={med.medicine_form}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain'
+                    }}
+                  />
                 </div>
 
                 {/* Title & Price */}
@@ -397,12 +402,27 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   border: '1px solid var(--color-border-subtle)'
                 }}
               >
-                <div style={{ flex: 1, overflow: 'hidden', paddingRight: '8px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
-                    {item.medicine.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    UGX {formatCurrency(item.medicine.selling_price)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden', paddingRight: '8px' }}>
+                  <img
+                    src={getMedicineFormImage(item.medicine.medicine_form)}
+                    alt={item.medicine.medicine_form}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      objectFit: 'contain',
+                      borderRadius: '4px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid var(--color-border-subtle)',
+                      flexShrink: 0
+                    }}
+                  />
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
+                      {item.medicine.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      UGX {formatCurrency(item.medicine.selling_price)}
+                    </div>
                   </div>
                 </div>
 

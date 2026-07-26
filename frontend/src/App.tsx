@@ -27,6 +27,15 @@ const MainApp: React.FC = () => {
   const [posCartItems, setPosCartItems] = useState<any[]>([]);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
+  // Set default view based on user role
+  useEffect(() => {
+    if (user?.role === 'cashier') {
+      setActiveView('pos');
+    } else {
+      setActiveView('dashboard');
+    }
+  }, [user]);
+
   const handleSelectView = (view: NavItemKey, filter?: string) => {
     if (filter) {
       setInventoryFilter(filter);

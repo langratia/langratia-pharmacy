@@ -44,7 +44,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     const cashierPerms = [
-      'view_dashboard', 'create_sale', 'view_inventory', 'print_receipt',
+      'create_sale', 'view_inventory', 'print_receipt',
       'manage_prescriptions', 'dispense_prescription',
     ];
     setPermissions(new Set(cashierPerms));

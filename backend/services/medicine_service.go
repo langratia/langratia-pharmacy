@@ -33,6 +33,22 @@ func (s *MedicineService) AddMedicine(med models.Medicine, userID int64, usernam
 		return nil, errors.New("medicine name is required")
 	}
 
+	// Check for existing active medicine with the same name to prevent duplicates
+	var existingID int64
+	var existingStock int
+	err := s.db.QueryRow(`SELECT id, current_stock FROM medicines WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND is_archived = 0`, med.Name).Scan(&existingID, &existingStock)
+	if err == nil {
+		return nil, fmt.Errorf("a medicine named '%s' already exists (ID: %d, Current Stock: %d). Please update the existing medicine's stock instead of creating a duplicate entry", med.Name, existingID, existingStock)
+	}
+
+	if med.Barcode != "" {
+		var barcodeMedID int64
+		err = s.db.QueryRow(`SELECT id FROM medicines WHERE LOWER(TRIM(barcode)) = LOWER(TRIM(?)) AND is_archived = 0`, med.Barcode).Scan(&barcodeMedID)
+		if err == nil {
+			return nil, fmt.Errorf("a medicine with barcode '%s' already exists in inventory (ID: %d)", med.Barcode, barcodeMedID)
+		}
+	}
+
 	query := `
 		INSERT INTO medicines (
 			name, generic_name, brand_name, barcode, category, dosage_strength,
@@ -339,14 +355,28 @@ func (s *MedicineService) BulkImportMedicines(medicines []models.Medicine, userI
 		if med.Name == "" {
 			continue
 		}
-		_, err := stmt.Exec(
-			med.Name, med.GenericName, med.BrandName, med.Barcode, med.Category, med.DosageStrength,
-			med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
-			med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.SupplierID, med.Description,
-			med.TaxRate, boolToInt(med.RequiresPrescription), med.ProductStatus,
-		)
-		if err != nil {
-			return 0, fmt.Errorf("failed to insert medicine %s: %w", med.Name, err)
+
+		// Check if medicine already exists by name
+		var existingID int64
+		err := tx.QueryRow(`SELECT id FROM medicines WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND is_archived = 0`, med.Name).Scan(&existingID)
+		if err == nil {
+			// Update stock and price of existing medicine instead of creating duplicate
+			_, err = tx.Exec(`UPDATE medicines SET current_stock = current_stock + ?, buying_price = ?, selling_price = ? WHERE id = ?`,
+				med.CurrentStock, med.BuyingPrice, med.SellingPrice, existingID)
+			if err != nil {
+				return 0, fmt.Errorf("failed to update existing medicine %s: %w", med.Name, err)
+			}
+		} else {
+			// Insert new medicine
+			_, err = stmt.Exec(
+				med.Name, med.GenericName, med.BrandName, med.Barcode, med.Category, med.DosageStrength,
+				med.MedicineForm, med.PackSize, med.BuyingPrice, med.SellingPrice,
+				med.CurrentStock, med.ReorderLevel, med.Manufacturer, med.SupplierID, med.Description,
+				med.TaxRate, boolToInt(med.RequiresPrescription), med.ProductStatus,
+			)
+			if err != nil {
+				return 0, fmt.Errorf("failed to insert medicine %s: %w", med.Name, err)
+			}
 		}
 		importedCount++
 	}
