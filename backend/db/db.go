@@ -32,9 +32,22 @@ func InitDB(dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)
 	}
 
-	// Enable WAL mode, foreign keys, and busy timeout for concurrent LAN performance
+	// Configure connection pooling for SQLite
+	sqlDB.SetMaxOpenConns(10)
+	sqlDB.SetMaxIdleConns(5)
+
+	// Enable WAL mode, synchronous NORMAL, in-memory temp tables, 64MB cache, foreign keys, and busy timeout
 	if _, err := sqlDB.Exec("PRAGMA journal_mode = WAL;"); err != nil {
 		return nil, fmt.Errorf("failed to set WAL mode: %w", err)
+	}
+	if _, err := sqlDB.Exec("PRAGMA synchronous = NORMAL;"); err != nil {
+		return nil, fmt.Errorf("failed to set synchronous mode: %w", err)
+	}
+	if _, err := sqlDB.Exec("PRAGMA temp_store = MEMORY;"); err != nil {
+		return nil, fmt.Errorf("failed to set temp_store: %w", err)
+	}
+	if _, err := sqlDB.Exec("PRAGMA cache_size = -64000;"); err != nil {
+		return nil, fmt.Errorf("failed to set cache size: %w", err)
 	}
 	if _, err := sqlDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
