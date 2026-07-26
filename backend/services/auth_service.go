@@ -102,6 +102,7 @@ func (s *AuthService) recordLoginHistory(userID int64, username, action, worksta
 // GetUser returns a single user with all fields (no password hash).
 func (s *AuthService) GetUser(id int64) (*models.User, error) {
 	var u models.User
+	var lastLoginAt, lastLogoutAt, lockedUntil, pwdChangedAt sql.NullTime
 	err := s.db.QueryRow(`
 		SELECT id, username, role, full_name, COALESCE(phone, ''), COALESCE(email, ''),
 		       COALESCE(branch, ''), active, last_login_at, last_logout_at,
@@ -110,13 +111,17 @@ func (s *AuthService) GetUser(id int64) (*models.User, error) {
 		FROM users WHERE id = ?`, id).Scan(
 		&u.ID, &u.Username, &u.Role, &u.FullName,
 		&u.Phone, &u.Email, &u.Branch,
-		&u.Active, &u.LastLoginAt, &u.LastLogoutAt,
+		&u.Active, &lastLoginAt, &lastLogoutAt,
 		&u.LastWorkstation, &u.FailedLoginAttempts,
-		&u.LockedUntil, &u.PasswordChangedAt, &u.CreatedAt,
+		&lockedUntil, &pwdChangedAt, &u.CreatedAt,
 	)
 	if err != nil {
 		return nil, errors.New("user not found")
 	}
+	if lastLoginAt.Valid { u.LastLoginAt = &lastLoginAt.Time }
+	if lastLogoutAt.Valid { u.LastLogoutAt = &lastLogoutAt.Time }
+	if lockedUntil.Valid { u.LockedUntil = &lockedUntil.Time }
+	if pwdChangedAt.Valid { u.PasswordChangedAt = &pwdChangedAt.Time }
 	return &u, nil
 }
 
@@ -128,7 +133,7 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 	var user models.User
 	var passwordHash string
 	var failedAttempts int
-	var lockedUntil sql.NullTime
+	var lastLoginAt, lastLogoutAt, lockedUntil, pwdChangedAt sql.NullTime
 
 	query := `SELECT id, username, password_hash, role, full_name,
 		COALESCE(phone, ''), COALESCE(email, ''), COALESCE(branch, ''),
@@ -139,12 +144,16 @@ func (s *AuthService) Login(username, password, workstation string) (*models.Use
 		&user.ID, &user.Username, &passwordHash, &user.Role, &user.FullName,
 		&user.Phone, &user.Email, &user.Branch,
 		&user.Active,
-		&user.LastLoginAt, &user.LastLogoutAt, &user.LastWorkstation,
-		&failedAttempts, &lockedUntil, &user.PasswordChangedAt, &user.CreatedAt,
+		&lastLoginAt, &lastLogoutAt, &user.LastWorkstation,
+		&failedAttempts, &lockedUntil, &pwdChangedAt, &user.CreatedAt,
 	)
 	if err != nil {
 		return nil, errors.New("invalid username or password")
 	}
+	if lastLoginAt.Valid { user.LastLoginAt = &lastLoginAt.Time }
+	if lastLogoutAt.Valid { user.LastLogoutAt = &lastLogoutAt.Time }
+	if lockedUntil.Valid { user.LockedUntil = &lockedUntil.Time }
+	if pwdChangedAt.Valid { user.PasswordChangedAt = &pwdChangedAt.Time }
 
 	if !user.Active {
 		return nil, errors.New("account is disabled")
@@ -274,19 +283,20 @@ func (s *AuthService) ListUsers() ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		var lockedUntil sql.NullTime
+		var lastLoginAt, lastLogoutAt, lockedUntil, pwdChangedAt sql.NullTime
 		if err := rows.Scan(
 			&u.ID, &u.Username, &u.Role, &u.FullName,
 			&u.Phone, &u.Email, &u.Branch,
-			&u.Active, &u.LastLoginAt, &u.LastLogoutAt,
+			&u.Active, &lastLoginAt, &lastLogoutAt,
 			&u.LastWorkstation, &u.FailedLoginAttempts,
-			&lockedUntil, &u.PasswordChangedAt, &u.CreatedAt,
+			&lockedUntil, &pwdChangedAt, &u.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
-		if lockedUntil.Valid {
-			u.LockedUntil = &lockedUntil.Time
-		}
+		if lastLoginAt.Valid { u.LastLoginAt = &lastLoginAt.Time }
+		if lastLogoutAt.Valid { u.LastLogoutAt = &lastLogoutAt.Time }
+		if lockedUntil.Valid { u.LockedUntil = &lockedUntil.Time }
+		if pwdChangedAt.Valid { u.PasswordChangedAt = &pwdChangedAt.Time }
 		users = append(users, u)
 	}
 
