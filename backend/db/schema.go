@@ -249,7 +249,6 @@ var Migrations = []Migration{
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'access_settings');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('admin', 'manage_settings');
 
-			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'view_dashboard');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'create_sale');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'view_inventory');
 			INSERT OR IGNORE INTO role_permissions (role, permission) VALUES ('cashier', 'print_receipt');
