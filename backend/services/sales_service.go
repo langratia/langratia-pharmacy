@@ -4,11 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"app/backend/db"
 	"app/backend/models"
 )
+
+var invoiceSeq int64
 
 type CashierPerformanceMetrics struct {
 	TotalSales   int     `json:"total_sales"`
@@ -62,13 +65,17 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 		}
 	}
 
+	s.db.Lock()
+	defer s.db.Unlock()
+
 	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	invoiceNumber := fmt.Sprintf("INV-POS-%s-%d", time.Now().Format("20060102"), time.Now().UnixNano()%10000)
+	seq := atomic.AddInt64(&invoiceSeq, 1)
+	invoiceNumber := fmt.Sprintf("INV-POS-%s-%06d-%d", time.Now().Format("20060102150405"), seq%1000000, time.Now().UnixNano()%100000)
 
 	totalAmount := 0.0
 	for _, item := range items {
