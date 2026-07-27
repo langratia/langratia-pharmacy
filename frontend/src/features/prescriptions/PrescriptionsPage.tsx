@@ -279,7 +279,8 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
           selling_price: item.medicine_price || 0,
           current_stock: item.current_stock || 0,
         } as models.Medicine,
-        quantity: item.quantity_prescribed
+        quantity: item.quantity_prescribed,
+        prescription_id: rx.id
       }));
       onLoadPrescriptionToPOS(itemsToLoad);
     }

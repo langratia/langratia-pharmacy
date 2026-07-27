@@ -12,11 +12,18 @@ import (
 )
 
 type PrescriptionService struct {
-	db *db.DB
+	db           *db.DB
+	batchService *BatchService
 }
 
-func NewPrescriptionService(database *db.DB) *PrescriptionService {
-	return &PrescriptionService{db: database}
+func NewPrescriptionService(database *db.DB, batchService ...*BatchService) *PrescriptionService {
+	var bs *BatchService
+	if len(batchService) > 0 && batchService[0] != nil {
+		bs = batchService[0]
+	} else {
+		bs = NewBatchService(database)
+	}
+	return &PrescriptionService{db: database, batchService: bs}
 }
 
 type PrescriptionItemInput struct {
@@ -246,8 +253,53 @@ func (p *PrescriptionService) UpdatePrescriptionStatus(userID int64, username st
 	if !validStatuses[status] {
 		return fmt.Errorf("invalid status: %s (must be Pending, Dispensed, or Cancelled)", status)
 	}
-	_, err := p.db.Exec(`UPDATE prescriptions SET status = ? WHERE id = ?`, status, prescriptionID)
+
+	tx, err := p.db.Begin()
 	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if status == "Dispensed" {
+		rows, err := tx.Query(`SELECT medicine_id, quantity_prescribed, quantity_dispensed FROM prescription_items WHERE prescription_id = ?`, prescriptionID)
+		if err != nil {
+			return fmt.Errorf("failed to query prescription items: %w", err)
+		}
+
+		type dispenseItem struct {
+			medicineID int64
+			qty        int
+		}
+		var itemsToDeduct []dispenseItem
+
+		for rows.Next() {
+			var medID int64
+			var qPrescribed, qDispensed int
+			if err := rows.Scan(&medID, &qPrescribed, &qDispensed); err == nil {
+				needed := qPrescribed - qDispensed
+				if needed > 0 {
+					itemsToDeduct = append(itemsToDeduct, dispenseItem{medicineID: medID, qty: needed})
+				}
+			}
+		}
+		rows.Close()
+
+		for _, item := range itemsToDeduct {
+			if p.batchService != nil {
+				if _, err := p.batchService.DeductStockFEFO(tx, item.medicineID, item.qty); err != nil {
+					return fmt.Errorf("failed FEFO stock deduction for medicine ID %d: %w", item.medicineID, err)
+				}
+			}
+			_, _ = tx.Exec(`UPDATE prescription_items SET quantity_dispensed = quantity_prescribed WHERE prescription_id = ? AND medicine_id = ?`, prescriptionID, item.medicineID)
+		}
+	}
+
+	_, err = tx.Exec(`UPDATE prescriptions SET status = ? WHERE id = ?`, status, prescriptionID)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return err
 	}
 

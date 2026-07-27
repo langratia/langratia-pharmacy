@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"app/backend/db"
 	"app/backend/models"
@@ -72,6 +73,17 @@ func (s *MedicineService) AddMedicine(med models.Medicine, userID int64, usernam
 		return nil, err
 	}
 	med.ID = id
+
+	// If initial stock is provided, create an initial batch so FEFO POS stock deduction functions seamlessly
+	if med.CurrentStock > 0 {
+		batchNum := fmt.Sprintf("BATCH-INIT-%d", med.ID)
+		expiryDate := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
+		_, _ = s.db.Exec(`
+			INSERT INTO batches (batch_number, medicine_id, supplier_id, quantity_received, quantity_remaining, buying_price, expiry_date)
+			VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			batchNum, med.ID, med.SupplierID, med.CurrentStock, med.CurrentStock, med.BuyingPrice, expiryDate,
+		)
+	}
 
 	s.logAction(userID, username, "ADD_MEDICINE", fmt.Sprintf("Added medicine %s (ID: %d)", med.Name, med.ID))
 	return &med, nil

@@ -164,7 +164,8 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     const cartInput = cart.map(item => ({
       medicine_id: item.medicine.id,
       quantity: item.quantity,
-      unit_price: item.medicine.selling_price
+      unit_price: item.medicine.selling_price,
+      prescription_id: (item as any).prescription_id || undefined
     }));
 
       const PM = PAYMENT_LABELS[paymentMethod];

@@ -50,6 +50,13 @@ func TestMedicineService(t *testing.T) {
 		t.Errorf("expected valid medicine ID, got %d", created.ID)
 	}
 
+	// Verify Initial Batch Was Created for FEFO stock deduction
+	var batchCount int
+	err = database.QueryRow("SELECT COUNT(*) FROM batches WHERE medicine_id = ?", created.ID).Scan(&batchCount)
+	if err != nil || batchCount != 1 {
+		t.Errorf("expected 1 initial batch created, got %d, err: %v", batchCount, err)
+	}
+
 	// Update Medicine
 	created.SellingPrice = 12000.0
 	err = medService.UpdateMedicine(*created, 1, "admin")

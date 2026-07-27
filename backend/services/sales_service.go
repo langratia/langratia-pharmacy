@@ -30,9 +30,10 @@ type SalesService struct {
 
 
 type CartItemInput struct {
-	MedicineID int64   `json:"medicine_id"`
-	Quantity   int     `json:"quantity"`
-	UnitPrice  float64 `json:"unit_price"`
+	MedicineID     int64   `json:"medicine_id"`
+	Quantity       int     `json:"quantity"`
+	UnitPrice      float64 `json:"unit_price"`
+	PrescriptionID *int64  `json:"prescription_id,omitempty"`
 }
 
 func NewSalesService(database *db.DB, batchService *BatchService) *SalesService {
@@ -92,6 +93,12 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 
 	// 2. For each item, perform FEFO stock deduction and insert sale items per batch deducted
 	for _, cartItem := range items {
+		// If cart item is associated with a prescription, mark prescription as Dispensed
+		if cartItem.PrescriptionID != nil && *cartItem.PrescriptionID > 0 {
+			_, _ = tx.Exec(`UPDATE prescriptions SET status = 'Dispensed' WHERE id = ?`, *cartItem.PrescriptionID)
+			_, _ = tx.Exec(`UPDATE prescription_items SET quantity_dispensed = quantity_prescribed WHERE prescription_id = ? AND medicine_id = ?`, *cartItem.PrescriptionID, cartItem.MedicineID)
+		}
+
 		// Deduct stock using FEFO
 		deductions, err := s.batchService.DeductStockFEFO(tx, cartItem.MedicineID, cartItem.Quantity)
 		if err != nil {
