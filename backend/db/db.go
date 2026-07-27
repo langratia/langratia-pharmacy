@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	_ "modernc.org/sqlite"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type DB struct {
@@ -109,28 +108,7 @@ func (db *DB) Migrate() error {
 	return nil
 }
 
-// seedDefaultAdmin checks if the users table is empty and creates an admin user (admin / admin123).
+// seedDefaultAdmin is maintained for backward compatibility migrations, but leaves the users table empty on clean installs to enforce initial onboarding setup.
 func (db *DB) seedDefaultAdmin() error {
-	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
-	if err != nil {
-		return err
-	}
-
-	if count == 0 {
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-		if err != nil {
-			return err
-		}
-
-		_, err = db.Exec(
-			"INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)",
-			"admin", string(hashedPassword), "admin", "System Administrator",
-		)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

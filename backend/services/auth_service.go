@@ -89,7 +89,12 @@ func (s *AuthService) CompleteFirstTimeSetup(pharmacyName, fullName, username, p
 		return nil, err
 	}
 
-	return s.GetUser(id)
+	user, err := s.GetUser(id)
+	if err == nil && user != nil {
+		s.logAction(user.ID, user.Username, "FIRST_TIME_SETUP", fmt.Sprintf("Completed initial system setup for pharmacy '%s'", pharmacyName))
+		s.recordLoginHistory(user.ID, user.Username, "system_setup", "")
+	}
+	return user, err
 }
 
 func (s *AuthService) recordLoginHistory(userID int64, username, action, workstation string) {

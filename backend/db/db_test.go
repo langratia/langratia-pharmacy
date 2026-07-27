@@ -4,8 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 func TestInitDBAndSchema(t *testing.T) {
@@ -23,19 +21,15 @@ func TestInitDBAndSchema(t *testing.T) {
 	}
 	defer database.Close()
 
-	// Verify Admin User Seeded
-	var username, role, passwordHash string
-	err = database.QueryRow("SELECT username, role, password_hash FROM users WHERE username = ?", "admin").Scan(&username, &role, &passwordHash)
+	// Verify Fresh DB starts with 0 users (requiring first-time onboarding setup)
+	var count int
+	err = database.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil {
-		t.Fatalf("failed to query seeded admin user: %v", err)
+		t.Fatalf("failed to query users count: %v", err)
 	}
 
-	if username != "admin" || role != "admin" {
-		t.Errorf("expected username admin and role admin, got %s, %s", username, role)
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("admin123")); err != nil {
-		t.Errorf("admin password hash verification failed: %v", err)
+	if count != 0 {
+		t.Errorf("expected 0 users on fresh DB initialization, got %d", count)
 	}
 }
 

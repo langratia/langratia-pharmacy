@@ -196,6 +196,23 @@ func (a *App) Logout(userID int64) error {
 	return a.authService.Logout(userID)
 }
 
+func (a *App) ValidateSession(userID int64) (*models.User, error) {
+	if a.authService == nil {
+		return nil, fmt.Errorf("service not initialized")
+	}
+	user, err := a.authService.GetUser(userID)
+	if err != nil {
+		return nil, err
+	}
+	if !user.Active {
+		return nil, fmt.Errorf("account is disabled")
+	}
+	if user.PasswordChangedAt == nil {
+		return nil, fmt.Errorf("initial setup required")
+	}
+	return user, nil
+}
+
 func (a *App) CreateUser(username, password, role, fullName, phone, email, branch string, userID int64) (*models.User, error) {
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")

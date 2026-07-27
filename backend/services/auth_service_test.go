@@ -24,10 +24,28 @@ func TestAuthService(t *testing.T) {
 
 	authService := NewAuthService(database)
 
-	// Test default admin login
-	adminUser, err := authService.Login("admin", "admin123", "test-workstation")
+	// Test first-time setup check on fresh database
+	isFirst, err := authService.IsFirstTimeSetup()
+	if err != nil || !isFirst {
+		t.Fatalf("expected IsFirstTimeSetup true on fresh DB, got %v, err: %v", isFirst, err)
+	}
+
+	// Completing first-time setup
+	adminUser, err := authService.CompleteFirstTimeSetup("Langratia Test Pharmacy", "Admin User", "admin", "admin123")
 	if err != nil {
-		t.Fatalf("expected successful admin login, got error: %v", err)
+		t.Fatalf("CompleteFirstTimeSetup failed: %v", err)
+	}
+
+	// Verify IsFirstTimeSetup is now false
+	isFirst, err = authService.IsFirstTimeSetup()
+	if err != nil || isFirst {
+		t.Fatalf("expected IsFirstTimeSetup false after setup, got %v, err: %v", isFirst, err)
+	}
+
+	// Test login with newly configured admin account
+	adminUser, err = authService.Login("admin", "admin123", "test-workstation")
+	if err != nil {
+		t.Fatalf("expected successful admin login after setup, got error: %v", err)
 	}
 	if adminUser.Role != "admin" {
 		t.Errorf("expected role admin, got %s", adminUser.Role)
@@ -121,6 +139,7 @@ func TestAccountLockout(t *testing.T) {
 	defer database.Close()
 
 	authService := NewAuthService(database)
+	_, _ = authService.CompleteFirstTimeSetup("Test Pharmacy", "Admin User", "admin", "admin123")
 
 	// Set low lockout threshold for testing (2 attempts)
 	database.Exec("UPDATE system_config SET value = '2' WHERE key = 'max_failed_attempts'")

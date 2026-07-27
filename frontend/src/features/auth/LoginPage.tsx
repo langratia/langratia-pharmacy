@@ -90,14 +90,12 @@ export const LoginPage: React.FC = () => {
       if (userRes) {
         await refreshConfig();
         toast.success('Admin setup complete!');
+        setIsFirstTime(false);
         setUsername(setupUsername.trim());
         setPassword(setupPassword);
 
         // Directly attempt login with newly configured credentials
-        const ok = await login(setupUsername.trim(), setupPassword);
-        if (!ok) {
-          setIsFirstTime(false);
-        }
+        await login(setupUsername.trim(), setupPassword);
       }
     } catch (err: any) {
       setSetupError(err?.message || 'Failed to complete setup. Please try again.');

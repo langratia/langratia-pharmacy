@@ -27,6 +27,8 @@ func TestSalesServicePOS(t *testing.T) {
 	medService := NewMedicineService(database)
 	batchService := NewBatchService(database)
 	salesService := NewSalesService(database, batchService)
+	authService := NewAuthService(database)
+	user, _ := authService.CompleteFirstTimeSetup("Test Pharmacy", "Admin User", "admin", "admin123")
 
 	// Add medicine
 	med, err := medService.AddMedicine(models.Medicine{
@@ -59,7 +61,7 @@ func TestSalesServicePOS(t *testing.T) {
 		UnitPrice:  500.0,
 	}
 
-	sale, err := salesService.ProcessSale(1, "cashier1", []CartItemInput{cartItem}, "Cash")
+	sale, err := salesService.ProcessSale(user.ID, "cashier1", []CartItemInput{cartItem}, "Cash")
 	if err != nil {
 		t.Fatalf("ProcessSale failed: %v", err)
 	}

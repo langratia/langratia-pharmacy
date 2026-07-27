@@ -105,6 +105,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearSession();
   };
 
+  // Validate stored session with backend on startup
+  useEffect(() => {
+    const validateSavedSession = async () => {
+      const savedUser = loadSession();
+      if (!savedUser) return;
+
+      try {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.ValidateSession === 'function') {
+          const validUser: User = await wailsApp.ValidateSession(savedUser.id);
+          setUser(validUser);
+          saveSession(validUser);
+        }
+      } catch {
+        setUser(null);
+        clearSession();
+      }
+    };
+    validateSavedSession();
+  }, []);
+
   // Clear session on visibility change (e.g., Windows lock screen, fast user switching)
   useEffect(() => {
     const handleVisibility = () => {

@@ -25,6 +25,8 @@ func TestBackupService(t *testing.T) {
 	defer database.Close()
 
 	backupService := NewBackupService(database, dbPath)
+	authService := NewAuthService(database)
+	_, _ = authService.CompleteFirstTimeSetup("Test Pharmacy", "Admin User", "admin", "admin123")
 
 	// Test Export
 	if err := backupService.ExportDatabase(destPath, 1, "admin"); err != nil {

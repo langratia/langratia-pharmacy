@@ -37,7 +37,11 @@ func StartServerListener(shareName string) {
 	for {
 		n, remoteAddr, err := conn.ReadFromUDP(buf)
 		if err != nil {
+			if strings.Contains(err.Error(), "use of closed network connection") {
+				return
+			}
 			logger.Error("UDP read error: %v", err)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 
