@@ -61,7 +61,7 @@ func TestSalesServicePOS(t *testing.T) {
 		UnitPrice:  500.0,
 	}
 
-	sale, err := salesService.ProcessSale(user.ID, "cashier1", []CartItemInput{cartItem}, "Cash")
+	sale, err := salesService.ProcessSale(user.ID, "cashier1", []CartItemInput{cartItem}, "Cash", 0, "fixed", nil)
 	if err != nil {
 		t.Fatalf("ProcessSale failed: %v", err)
 	}

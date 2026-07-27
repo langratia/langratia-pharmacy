@@ -44,12 +44,13 @@ func NewSalesService(database *db.DB, batchService *BatchService) *SalesService 
 }
 
 // ProcessSale completes a POS transaction by deducting stock via FEFO and creating a sale invoice.
-func (s *SalesService) ProcessSale(userID int64, username string, items []CartItemInput, paymentMethod string) (*models.Sale, error) {
+func (s *SalesService) ProcessSale(userID int64, username string, items []CartItemInput, paymentMethod string, discountAmount float64, discountType string, shiftID *int64) (*models.Sale, error) {
 	if len(items) == 0 {
 		return nil, errors.New("cart cannot be empty")
 	}
-	if paymentMethod == "" {
-		paymentMethod = "Cash"
+	paymentMethod = "Cash"
+	if discountType == "" {
+		discountType = "fixed"
 	}
 
 	// Server-side input validation
@@ -77,15 +78,28 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 	seq := atomic.AddInt64(&invoiceSeq, 1)
 	invoiceNumber := fmt.Sprintf("INV-POS-%s-%06d-%d", time.Now().Format("20060102150405"), seq%1000000, time.Now().UnixNano()%100000)
 
-	totalAmount := 0.0
+	grossAmount := 0.0
 	for _, item := range items {
-		totalAmount += item.UnitPrice * float64(item.Quantity)
+		grossAmount += item.UnitPrice * float64(item.Quantity)
+	}
+
+	// Calculate net amount after discount
+	netAmount := grossAmount
+	if discountAmount > 0 {
+		if discountType == "percent" {
+			netAmount = grossAmount - (grossAmount * (discountAmount / 100.0))
+		} else {
+			netAmount = grossAmount - discountAmount
+		}
+		if netAmount < 0 {
+			netAmount = 0
+		}
 	}
 
 	// 1. Insert Sale record
 	res, err := tx.Exec(
-		`INSERT INTO sales (invoice_number, user_id, total_amount, payment_method) VALUES (?, ?, ?, ?)`,
-		invoiceNumber, userID, totalAmount, paymentMethod,
+		`INSERT INTO sales (invoice_number, user_id, total_amount, payment_method, discount_amount, discount_type, shift_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		invoiceNumber, userID, netAmount, paymentMethod, discountAmount, discountType, shiftID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sale invoice: %w", err)
@@ -150,17 +164,20 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 		return nil, err
 	}
 
-	s.logAction(userID, username, "POS_SALE", fmt.Sprintf("Completed sale %s for UGX %.2f", invoiceNumber, totalAmount))
+	s.logAction(userID, username, "POS_SALE", fmt.Sprintf("Completed sale %s for UGX %.2f", invoiceNumber, netAmount))
 
 	return &models.Sale{
-		ID:            saleID,
-		InvoiceNumber: invoiceNumber,
-		UserID:        &userID,
-		Username:      username,
-		SaleDate:      time.Now(),
-		TotalAmount:   totalAmount,
-		PaymentMethod: paymentMethod,
-		Items:         saleItems,
+		ID:             saleID,
+		InvoiceNumber:  invoiceNumber,
+		UserID:         &userID,
+		Username:       username,
+		SaleDate:       time.Now(),
+		TotalAmount:    netAmount,
+		DiscountAmount: discountAmount,
+		DiscountType:   discountType,
+		ShiftID:        shiftID,
+		PaymentMethod:  paymentMethod,
+		Items:          saleItems,
 	}, nil
 }
 

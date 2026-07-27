@@ -115,7 +115,7 @@ func TestStressSuite(t *testing.T) {
 				}
 
 				t0 := time.Now()
-				_, err := salesService.ProcessSale(adminUser.ID, "cashier_stress", cart, "Cash")
+				_, err := salesService.ProcessSale(adminUser.ID, "cashier_stress", cart, "Cash", 0, "fixed", nil)
 				elapsed := time.Since(t0)
 
 				if err != nil {
@@ -201,7 +201,7 @@ func TestStressSuite(t *testing.T) {
 			for i := 0; i < 30; i++ {
 				medID := createdMedIDs[(wID*30+i)%len(createdMedIDs)]
 				cart := []CartItemInput{{MedicineID: medID, Quantity: 1, UnitPrice: 200.0}}
-				_, err := salesService.ProcessSale(adminUser.ID, "cashier_rw", cart, "Card")
+				_, err := salesService.ProcessSale(adminUser.ID, "cashier_rw", cart, "Card", 0, "fixed", nil)
 				if err != nil {
 					atomic.AddInt64(&writeFailures, 1)
 					if atomic.LoadInt64(&writeFailures) <= 3 {

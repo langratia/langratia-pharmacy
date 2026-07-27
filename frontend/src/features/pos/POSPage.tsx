@@ -1,30 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import {
   ShoppingCart,
   Plus,
   Minus,
-  Trash2,
-  Printer,
   X,
   CheckCircle,
-  PackageCheck,
   Loader,
-  PauseCircle,
-  Pill
+  Clock,
+  AlertTriangle,
+  Receipt,
+  Printer
 } from 'lucide-react';
-import { Medicine } from '../../types';
+import { Medicine, Shift, ShiftZReport } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { SplitPane } from '../../components/ui/SplitPane';
-import { ContextualToolbar } from '../../components/ui/ContextualToolbar';
-import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
+import { ListMedicines, ProcessSale, GetActiveShift, OpenShift, CloseShift } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
-import { getMedicineFormImage } from '../../utils/medicineForms';
 import { usePharmacy } from '../../context/PharmacyContext';
-
-type PaymentMethod = 'cash' | 'card' | 'momo';
-const PAYMENT_LABELS: Record<PaymentMethod, string> = { cash: 'Cash', card: 'Card', momo: 'Mobile Money' };
 
 interface CartItem {
   medicine: Medicine;
@@ -38,20 +30,36 @@ interface POSPageProps {
 
 export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExternalCart }) => {
   const { user } = useAuth();
-  const { config, pharmacyName } = usePharmacy();
+  const { pharmacyName } = usePharmacy();
   const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
+  
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'momo'>('cash');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
   const [completedSale, setCompletedSale] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Discount state
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('fixed');
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+
+  // Shift & Till Reconciliation state
+  const [activeShift, setActiveShift] = useState<Shift | null>(null);
+  const [isOpenShiftModalOpen, setIsOpenShiftModalOpen] = useState(false);
+  const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
+  const [openingCashInput, setOpeningCashInput] = useState<string>('50000');
+  const [actualCashInput, setActualCashInput] = useState<string>('');
+  const [shiftNotes, setShiftNotes] = useState<string>('');
+  const [zReport, setZReport] = useState<ShiftZReport | null>(null);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const zReportRef = useRef<HTMLDivElement>(null);
 
   // Debounce search input (300ms)
   useEffect(() => {
@@ -59,14 +67,50 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     return () => clearTimeout(timer);
   }, [search]);
 
-  // F10 keyboard shortcut for Approve Sale
+  // Load Active Shift on mount
+  const checkActiveShift = async () => {
+    if (!user) return;
+    try {
+      let shift: Shift | null = null;
+      try {
+        shift = await GetActiveShift(user.id);
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp?.GetActiveShift) {
+          shift = await wailsApp.GetActiveShift(user.id);
+        }
+      }
+      setActiveShift(shift);
+      if (!shift) {
+        setIsOpenShiftModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Failed to query shift:', err);
+    }
+  };
+
+  useEffect(() => {
+    checkActiveShift();
+  }, [user]);
+
+  // Global Keyboard Hotkeys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F10') {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        setIsDiscountModalOpen(prev => !prev);
+      } else if (e.key === 'F10' || e.key === 'F12') {
         e.preventDefault();
         if (!isProcessing && cart.length > 0) {
           handleApproveSale();
         }
+      } else if (e.key === 'Escape') {
+        setIsDiscountModalOpen(false);
+        setIsCheckoutOpen(false);
+        setIsCloseShiftModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -152,13 +196,76 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     setCart(prev => prev.filter(item => item.medicine.id !== medId));
   };
 
-  const cartTotal = cart.reduce((sum, item) => sum + (item.medicine.selling_price * item.quantity), 0);
+  // Cart financial computations
+  const grossTotal = cart.reduce((sum, item) => sum + (item.medicine.selling_price * item.quantity), 0);
+  
+  let calculatedDiscount = 0;
+  if (discountAmount > 0) {
+    if (discountType === 'percent') {
+      calculatedDiscount = grossTotal * (discountAmount / 100);
+    } else {
+      calculatedDiscount = discountAmount;
+    }
+    if (calculatedDiscount > grossTotal) calculatedDiscount = grossTotal;
+  }
+
+  const netTotal = Math.max(0, grossTotal - calculatedDiscount);
+
+  // Shift Management Handlers
+  const handleOpenShift = async () => {
+    const cash = parseFloat(openingCashInput) || 0;
+    try {
+      let shift: Shift | null = null;
+      try {
+        shift = await OpenShift(user?.id || 1, user?.username || 'cashier', cash);
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp?.OpenShift) {
+          shift = await wailsApp.OpenShift(user?.id || 1, user?.username || 'cashier', cash);
+        }
+      }
+      setActiveShift(shift);
+      setIsOpenShiftModalOpen(false);
+      toast.success(`Till Shift #${shift?.id || ''} opened successfully!`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to open shift');
+    }
+  };
+
+  const handleCloseShift = async () => {
+    if (!activeShift) return;
+    const actual = parseFloat(actualCashInput) || 0;
+    try {
+      let report: ShiftZReport | null = null;
+      try {
+        report = await CloseShift(activeShift.id, actual, shiftNotes);
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp?.CloseShift) {
+          report = await wailsApp.CloseShift(activeShift.id, actual, shiftNotes);
+        }
+      }
+      setZReport(report);
+      setActiveShift(null);
+      setIsCloseShiftModalOpen(false);
+      toast.success('Till Shift closed. Z-Report generated!');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to close shift');
+    }
+  };
 
   const handleApproveSale = async () => {
     if (cart.length === 0) {
       toast.error('Cart is empty');
       return;
     }
+
+    if (!activeShift) {
+      toast.error('Please open a Till Shift before processing sales');
+      setIsOpenShiftModalOpen(true);
+      return;
+    }
+
     setIsProcessing(true);
 
     const cartInput = cart.map(item => ({
@@ -168,38 +275,45 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       prescription_id: (item as any).prescription_id || undefined
     }));
 
-      const PM = PAYMENT_LABELS[paymentMethod];
+    try {
+      let sale: any = null;
       try {
-        let sale: any = null;
-        try {
-          sale = await ProcessSale(
+        sale = await ProcessSale(
+          user?.id || 1,
+          user?.username || 'cashier',
+          cartInput as any,
+          'Cash',
+          discountAmount,
+          discountType,
+          activeShift?.id || null
+        );
+      } catch {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.ProcessSale === 'function') {
+          sale = await wailsApp.ProcessSale(
             user?.id || 1,
             user?.username || 'cashier',
-            cartInput as any,
-            PM
+            cartInput,
+            'Cash',
+            discountAmount,
+            discountType,
+            activeShift?.id || null
           );
-        } catch {
-          const wailsApp = (window as any)?.go?.main?.App;
-          if (wailsApp && typeof wailsApp.ProcessSale === 'function') {
-            sale = await wailsApp.ProcessSale(
-              user?.id || 1,
-              user?.username || 'cashier',
-              cartInput,
-              PM
-            );
-          }
         }
+      }
 
-        if (!sale) {
-          throw new Error('Sale processing returned no result. Please try again.');
-        }
+      if (!sale) {
+        throw new Error('Sale processing returned no result. Please try again.');
+      }
 
       setCompletedSale(sale);
       setCart([]);
+      setDiscountAmount(0);
       setIsCheckoutOpen(true);
-      setShowSuccessAnim(true);
 
+      // Refresh medicines stock and active shift totals
       fetchMedicines();
+      checkActiveShift();
     } catch (err: any) {
       toast.error(err?.message || 'Checkout failed.');
     } finally {
@@ -207,8 +321,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
   };
 
-  const receiptRef = React.createRef<HTMLDivElement>();
-
+  // Thermal 80mm Receipt Print Handler
   const handlePrintReceipt = () => {
     const printContents = receiptRef.current?.innerHTML;
     if (!printContents) return;
@@ -222,11 +335,16 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     if (!doc) return;
     doc.open();
     doc.write(`
-      <html><head><title>POS Receipt</title>
+      <html><head><title>Thermal Receipt</title>
       <style>
-        body { font-family: 'Inter', sans-serif; font-size: 12px; padding: 20px; color: #000; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #ccc; }
+        @page { size: 80mm auto; margin: 0; }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 72mm; margin: 0 auto; padding: 10px 0; color: #000; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+        .divider { border-top: 1px dashed #000; margin: 6px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+        th, td { padding: 2px 0; font-size: 10px; }
       </style></head><body>${printContents}</body></html>
     `);
     doc.close();
@@ -235,416 +353,674 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     setTimeout(() => document.body.removeChild(iframe), 1000);
   };
 
-  // Primary Pane Content - Spacious Desktop Workstation Tiles Grid
-  const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', backgroundColor: 'var(--color-bg-base)' }}>
-      {/* Contextual Command Toolbar */}
-      <ContextualToolbar
-        title="PRODUCT CATALOG"
-        subtitle="Point of Sale Workstation"
-        searchQuery={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Type medicine name or brand..."
-        categories={categories}
-        selectedCategory={category}
-        onCategorySelect={setCategory}
-        categoryMode="chips"
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        actions={
-          <button
-            type="button"
-            onClick={() => toast('Held Sales Queue: 0 sales currently held')}
-            style={{
-              height: '28px',
-              padding: '0 10px',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'var(--color-bg-panel)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--color-text-primary)',
-              borderRadius: '0px',
-              cursor: 'pointer'
-            }}
-          >
-            <PauseCircle size={14} style={{ color: 'var(--color-accent-base)' }} />
-            <span>HELD SALES (0)</span>
-          </button>
-        }
-      />
-
-      {/* Product Catalog Grid / List */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          display: viewMode === 'grid' ? 'grid' : 'flex',
-          flexDirection: viewMode === 'grid' ? undefined : 'column',
-          gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(180px, 1fr))' : undefined,
-          gap: viewMode === 'grid' ? '16px' : '8px',
-          padding: '0 16px 16px',
-          alignContent: 'start'
-        }}
-      >
-        {isLoading ? (
-          <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', gap: '12px' }}>
-            <Loader size={24} className="animate-spin" style={{ color: 'var(--color-accent-base)' }} />
-            <span>Loading catalog items...</span>
-          </div>
-        ) : medicines.length === 0 ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            No medicines matching search query.
-          </div>
-        ) : (
-          medicines.map((med) => {
-            const isOutOfStock = med.current_stock <= 0;
-            const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
-            const inCart = cart.find(c => c.medicine.id === med.id);
-
-            return (
-              <div
-                key={med.id}
-                className={`product-card ${inCart ? 'selected' : ''} ${isLowStock ? 'low-stock' : ''}`}
-                onClick={() => !isOutOfStock && handleAddToCart(med)}
-                style={{
-                  opacity: isOutOfStock ? 0.6 : 1,
-                  display: 'flex',
-                  flexDirection: viewMode === 'grid' ? 'column' : 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: viewMode === 'grid' ? '16px' : '10px 16px'
-                }}
-              >
-                {/* Professional Medicine Form Image */}
-                <div style={{
-                  width: viewMode === 'grid' ? '64px' : '40px',
-                  height: viewMode === 'grid' ? '64px' : '40px',
-                  borderRadius: '4px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid var(--color-border-subtle)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: viewMode === 'grid' ? '10px' : '0',
-                  flexShrink: 0,
-                  padding: '4px',
-                  boxSizing: 'border-box'
-                }}>
-                  <img
-                    src={getMedicineFormImage(med.medicine_form)}
-                    alt={med.medicine_form}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain'
-                    }}
-                  />
-                </div>
-
-                {/* Title & Price */}
-                <div style={{ textAlign: viewMode === 'grid' ? 'center' : 'left', flex: 1, marginLeft: viewMode === 'grid' ? '0' : '16px', marginRight: viewMode === 'grid' ? '0' : '16px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.3, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: viewMode === 'grid' ? 'normal' : 'nowrap' }}>
-                    {med.name}
-                  </div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-accent)' }}>
-                    UGX {formatCurrency(med.selling_price)}
-                  </div>
-                </div>
-
-                {/* Add Button */}
-                <div style={{ width: viewMode === 'grid' ? '100%' : 'auto', marginTop: viewMode === 'grid' ? '10px' : '0' }}>
-                  <button
-                    disabled={isOutOfStock}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddToCart(med);
-                    }}
-                    className="pos-add-btn"
-                  >
-                    <span style={{
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {inCart ? <PackageCheck size={11} /> : <Plus size={11} />}
-                    </span>
-                    <span>{inCart ? `ADD (${inCart.quantity})` : 'ADD'}</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-
-  // Inspector Docked Cart Content (Spacious Desktop Style)
-  const cartContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px', boxSizing: 'border-box', backgroundColor: 'var(--color-desktop-bg)', borderLeft: '1px solid var(--color-border-subtle)' }}>
-
-      <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '16px' }}>
-        Current Order
-      </div>
-
-      {/* Cart Items List */}
-      <div style={{ flex: 1, overflowY: 'auto', backgroundColor: 'transparent', padding: '0 4px 0 0' }}>
-        {cart.length === 0 ? (
-          <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px', border: '1px solid var(--color-border-subtle)' }}>
-            <ShoppingCart size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
-            Cart is empty. Click workstation product tiles to add to sale.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {cart.map((item) => (
-              <div
-                key={item.medicine.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  border: '1px solid var(--color-border-subtle)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden', paddingRight: '8px' }}>
-                  <img
-                    src={getMedicineFormImage(item.medicine.medicine_form)}
-                    alt={item.medicine.medicine_form}
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      objectFit: 'contain',
-                      borderRadius: '4px',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid var(--color-border-subtle)',
-                      flexShrink: 0
-                    }}
-                  />
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '2px' }}>
-                      {item.medicine.name}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      UGX {formatCurrency(item.medicine.selling_price)}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--color-border-default)' }}>
-                    <button
-                      onClick={() => handleUpdateQty(item.medicine.id, -1)}
-                      style={{ width: '28px', height: '28px', padding: 0, border: 'none', borderRight: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    >
-                      <Minus size={12} color="var(--color-text-secondary)" />
-                    </button>
-                    <span style={{ fontSize: '13px', fontWeight: 700, width: '28px', textAlign: 'center' }}>
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => handleUpdateQty(item.medicine.id, 1)}
-                      style={{ width: '28px', height: '28px', padding: 0, border: 'none', borderLeft: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    >
-                      <Plus size={12} color="var(--color-text-secondary)" />
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveFromCart(item.medicine.id)}
-                    style={{ width: '28px', height: '28px', padding: 0, borderRadius: '0px', color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Total Calculation & Approve Sale */}
-      <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Total Summary Box */}
-        <div
-          style={{
-            padding: '12px 16px',
-            backgroundColor: 'var(--color-bg-base)',
-            color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border-default)',
-            borderRadius: '0px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: 'none'
-          }}
-        >
-          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>TOTAL DUE</span>
-          <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-accent)' }}>
-            UGX {formatCurrency(cartTotal)}
-          </span>
-        </div>
-
-        {/* Payment Method Selector */}
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {(Object.keys(PAYMENT_LABELS) as Array<keyof typeof PAYMENT_LABELS>).map(key => (
-            <button
-              key={key}
-              type="button"
-              disabled={isProcessing}
-              onClick={() => setPaymentMethod(key)}
-              style={{
-                flex: 1,
-                height: '28px',
-                fontSize: '11px',
-                fontWeight: paymentMethod === key ? 700 : 500,
-                backgroundColor: paymentMethod === key ? 'var(--color-accent-solid)' : 'var(--color-bg-panel)',
-                color: paymentMethod === key ? 'var(--color-text-inverse)' : 'var(--color-text-primary)',
-                border: paymentMethod === key ? '1px solid var(--color-accent-solid-hover)' : '1px solid var(--color-border-default)',
-                borderRadius: '0px',
-                cursor: 'pointer',
-                transition: 'var(--transition-fast)'
-              }}
-            >
-              {PAYMENT_LABELS[key]}
-            </button>
-          ))}
-        </div>
-
-        {/* Approve & Complete Sale Button */}
-        <button
-          onClick={handleApproveSale}
-          disabled={cart.length === 0 || isProcessing}
-          className="desktop-btn-primary"
-          style={{
-            height: '36px',
-            fontSize: '13px',
-            borderRadius: '0px',
-            width: '100%',
-            gap: '6px',
-            opacity: cart.length === 0 || isProcessing ? 0.6 : 1,
-            boxShadow: 'none'
-          }}
-        >
-          <CheckCircle size={16} />
-          <span>{isProcessing ? 'Processing Sale...' : 'Approve & Complete Sale (F10)'}</span>
-        </button>
-      </div>
-
-      {/* Completed Sale Receipt Modal (Portaled for true center) */}
-      {isCheckoutOpen && completedSale && createPortal(
-        <div
-          className="modal-overlay"
-          onClick={() => setIsCheckoutOpen(false)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setIsCheckoutOpen(false);
-          }}
-        >
-          <div
-            className="animate-popup"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            tabIndex={-1}
-            style={{
-              backgroundColor: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border-default)',
-              borderRadius: '0px',
-              width: '400px',
-              padding: '20px',
-              boxShadow: 'var(--shadow-dropdown)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'stretch'
-            }}
-          >
-            {showSuccessAnim ? (
-              <div style={{ padding: '24px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                <div className="animate-success-pop" style={{ color: 'var(--color-success-text)' }}>
-                  <CheckCircle size={64} />
-                </div>
-                <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--color-text-primary)' }}>Sale Successful!</h2>
-                <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', margin: 0 }}>
-                  Amount Paid: <strong style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(completedSale.total_amount)}</strong>
-                </p>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '16px', width: '100%' }}>
-                  <button autoFocus onClick={() => setShowSuccessAnim(false)} className="desktop-btn-secondary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
-                    View Receipt
-                  </button>
-                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '32px', borderRadius: '0px' }}>
-                    New Sale
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '12px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>POS RECEIPT #{completedSale.invoice_number}</span>
-                  <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', backgroundColor: 'transparent', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={16} style={{ color: 'var(--color-text-muted)' }} /></button>
-                </div>
-
-                <div ref={receiptRef} style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                  {/* Dynamic Company Branding Header */}
-                  <div style={{ textAlign: 'center', marginBottom: '12px', borderBottom: '1px solid var(--color-border-subtle)', paddingBottom: '8px' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text-primary)' }}>{pharmacyName}</div>
-                    {config?.address && <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{config.address}</div>}
-                    {config?.phone && <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Tel: {config.phone} {config?.email ? `| ${config.email}` : ''}</div>}
-                    {config?.tax_number && <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>TIN: {config.tax_number}</div>}
-                  </div>
-
-                  <div style={{ marginBottom: '4px' }}>Operator: <strong>{completedSale.username}</strong></div>
-                  <div>Date: {new Date(completedSale.sale_date).toLocaleString()}</div>
-
-                  <div style={{ margin: '16px 0', borderTop: '1px dashed var(--color-border-subtle)', borderBottom: '1px dashed var(--color-border-subtle)', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {completedSale.items?.map((it: any, idx: number) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>{it.medicine_name} <span style={{ color: 'var(--color-text-muted)' }}>x{it.quantity}</span></span>
-                        <span style={{ fontWeight: 600 }}>{config?.currency || 'UGX'} {formatCurrency(it.subtotal || (it.unit_price * it.quantity))}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 700, color: 'var(--color-accent-base)' }}>
-                    <span>TOTAL PAID:</span>
-                    <span>{config?.currency || 'UGX'} {formatCurrency(completedSale.total_amount)}</span>
-                  </div>
-                  
-                  {config?.return_rules && (
-                    <div style={{ marginTop: '12px', textAlign: 'center', fontSize: '9px', color: 'var(--color-text-muted)', borderTop: '1px solid var(--color-border-subtle)', paddingTop: '6px' }}>
-                      {config.return_rules}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-                  <button autoFocus onClick={handlePrintReceipt} className="desktop-btn-secondary" style={{ flex: 1, gap: '6px', height: '40px', borderRadius: '0px' }}>
-                    <Printer size={16} /> Print Receipt
-                  </button>
-                  <button onClick={() => setIsCheckoutOpen(false)} className="desktop-btn-primary" style={{ flex: 1, height: '40px', borderRadius: '0px' }}>
-                    Done
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
-    </div>
-  );
+  const handlePrintZReport = () => {
+    const printContents = zReportRef.current?.innerHTML;
+    if (!printContents) return;
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+    doc.open();
+    doc.write(`
+      <html><head><title>Shift Z-Report</title>
+      <style>
+        @page { size: 80mm auto; margin: 0; }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 72mm; margin: 0 auto; padding: 10px 0; color: #000; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .bold { font-weight: bold; }
+        .divider { border-top: 1px dashed #000; margin: 6px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+        th, td { padding: 2px 0; font-size: 10px; }
+      </style></head><body>${printContents}</body></html>
+    `);
+    doc.close();
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    setTimeout(() => document.body.removeChild(iframe), 1000);
+  };
 
   return (
-    <SplitPane
-      primaryPane={primaryContent}
-      inspectorPane={cartContent}
-      inspectorTitle={`CART INSPECTOR (${cart.length})`}
-      inspectorWidth="360px"
-    />
+    <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--color-bg-base)', overflow: 'hidden' }}>
+      
+      {/* LEFT MAIN PANEL: Catalog & Toolbar */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+        
+        {/* Contextual Command Toolbar with Shift Status */}
+        <div style={{ borderBottom: '1px solid var(--color-border-subtle)', backgroundColor: 'var(--color-bg-panel)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search medicine by name or category... [F2]"
+                style={{
+                  width: '100%',
+                  height: '34px',
+                  padding: '0 12px',
+                  fontSize: '12px',
+                  backgroundColor: 'var(--color-bg-input)',
+                  border: '1px solid var(--color-border-default)',
+                  color: 'var(--color-text-primary)',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Category Filter Chips */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
+              {categories.slice(0, 5).map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  style={{
+                    height: '28px',
+                    padding: '0 10px',
+                    fontSize: '11px',
+                    fontWeight: category === cat ? 700 : 500,
+                    backgroundColor: category === cat ? 'var(--color-accent-solid)' : 'var(--color-bg-elevated)',
+                    color: category === cat ? '#ffffff' : 'var(--color-text-primary)',
+                    border: '1px solid var(--color-border-default)',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Till Shift Indicator & Close Action */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {activeShift ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', fontSize: '11px', color: 'var(--color-success-text)', fontWeight: 600 }}>
+                <Clock size={13} />
+                <span>SHIFT #{activeShift.id} OPEN</span>
+                <span style={{ opacity: 0.7 }}>• Expected Drawer: UGX {formatCurrency(activeShift.expected_cash || activeShift.opening_cash)}</span>
+                <button
+                  onClick={() => {
+                    setActualCashInput(activeShift.expected_cash?.toString() || '0');
+                    setIsCloseShiftModalOpen(true);
+                  }}
+                  style={{
+                    marginLeft: '6px',
+                    padding: '2px 8px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    backgroundColor: 'var(--color-danger-bg)',
+                    color: 'var(--color-danger-text)',
+                    border: '1px solid var(--color-danger-border)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  CLOSE SHIFT (Z-REPORT)
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsOpenShiftModalOpen(true)}
+                style={{
+                  height: '32px',
+                  padding: '0 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  backgroundColor: 'var(--color-warning-bg)',
+                  color: 'var(--color-warning-text)',
+                  border: '1px solid var(--color-warning-border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <AlertTriangle size={13} />
+                <span>OPEN TILL SHIFT</span>
+              </button>
+            )}
+          </div>
+
+        </div>
+
+        {/* Product Catalog Grid / List */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '14px',
+            padding: '16px',
+            alignContent: 'start'
+          }}
+        >
+          {isLoading ? (
+            <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              <Loader size={24} className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--color-accent-base)' }} />
+              <span>Loading catalog...</span>
+            </div>
+          ) : medicines.length === 0 ? (
+            <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+              No medicines matching query.
+            </div>
+          ) : (
+            medicines.map((med) => {
+              const isOutOfStock = med.current_stock <= 0;
+              const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
+              const inCart = cart.find(c => c.medicine.id === med.id);
+
+              return (
+                <div
+                  key={med.id}
+                  onClick={() => !isOutOfStock && handleAddToCart(med)}
+                  style={{
+                    backgroundColor: 'var(--color-bg-panel)',
+                    border: inCart ? '2px solid var(--color-accent-solid)' : '1px solid var(--color-border-default)',
+                    padding: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                    opacity: isOutOfStock ? 0.5 : 1,
+                    position: 'relative',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {/* Top Badges */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+                      {med.medicine_form || 'Tablet'}
+                    </span>
+                    {isOutOfStock ? (
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', padding: '2px 6px' }}>OUT OF STOCK</span>
+                    ) : isLowStock ? (
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-warning-text)', backgroundColor: 'var(--color-warning-bg)', padding: '2px 6px' }}>LOW STOCK ({med.current_stock})</span>
+                    ) : (
+                      <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Stock: {med.current_stock}</span>
+                    )}
+                  </div>
+
+                  {/* Title & Generic Name */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.3, marginBottom: '2px' }}>
+                      {med.name}
+                    </div>
+                    {med.generic_name && (
+                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+                        {med.generic_name} {med.dosage_strength ? `(${med.dosage_strength})` : ''}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price & Action Button */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '8px', borderTop: '1px dashed var(--color-border-subtle)' }}>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-accent-solid)' }}>
+                      UGX {formatCurrency(med.selling_price)}
+                    </div>
+                    <button
+                      disabled={isOutOfStock}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(med);
+                      }}
+                      style={{
+                        padding: '5px 10px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        backgroundColor: inCart ? 'var(--color-accent-solid)' : 'var(--color-bg-base)',
+                        color: inCart ? '#ffffff' : 'var(--color-text-primary)',
+                        border: '1px solid var(--color-border-default)',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {inCart ? `ADD (${inCart.quantity})` : '+ ADD'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+      </div>
+
+      {/* RIGHT PANEL: Cart & Checkout Dock */}
+      <div style={{ width: '380px', backgroundColor: 'var(--color-bg-panel)', borderLeft: '1px solid var(--color-border-default)', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        
+        {/* Cart Header */}
+        <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--color-bg-elevated)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <ShoppingCart size={16} style={{ color: 'var(--color-accent-solid)' }} />
+            <span>Current Order</span>
+            {cart.length > 0 && (
+              <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: 'var(--color-accent-subtle)', color: 'var(--color-accent-solid)', fontWeight: 700 }}>
+                {cart.length} items
+              </span>
+            )}
+          </div>
+          {cart.length > 0 && (
+            <button
+              onClick={() => setCart([])}
+              style={{ fontSize: '11px', color: 'var(--color-danger-text)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Clear Cart
+            </button>
+          )}
+        </div>
+
+        {/* Cart Items List */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+          {cart.length === 0 ? (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+              <ShoppingCart size={32} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
+              <div>Cart is empty</div>
+              <div style={{ fontSize: '11px', marginTop: '4px' }}>Click any drug card to add to order</div>
+            </div>
+          ) : (
+            cart.map((item) => {
+              const itemSubtotal = item.medicine.selling_price * item.quantity;
+              return (
+                <div
+                  key={item.medicine.id}
+                  style={{
+                    backgroundColor: 'var(--color-bg-base)',
+                    border: '1px solid var(--color-border-subtle)',
+                    padding: '10px 12px',
+                    marginBottom: '8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', flex: 1, paddingRight: '8px' }}>
+                      {item.medicine.name}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFromCart(item.medicine.id)}
+                      style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      UGX {formatCurrency(item.medicine.selling_price)}
+                    </div>
+                    
+                    {/* Qty Controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        onClick={() => handleUpdateQty(item.medicine.id, -1)}
+                        style={{ width: '22px', height: '22px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Minus size={12} />
+                      </button>
+                      <span style={{ fontSize: '12px', fontWeight: 700, width: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                      <button
+                        onClick={() => handleUpdateQty(item.medicine.id, 1)}
+                        style={{ width: '22px', height: '22px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Plus size={12} />
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                      UGX {formatCurrency(itemSubtotal)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Cart Financial Summary & Checkout */}
+        <div style={{ borderTop: '1px solid var(--color-border-default)', padding: '16px', backgroundColor: 'var(--color-bg-elevated)' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
+              <span>Subtotal Gross</span>
+              <span>UGX {formatCurrency(grossTotal)}</span>
+            </div>
+
+            {/* Discount Row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: calculatedDiscount > 0 ? 'var(--color-success-text)' : 'var(--color-text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Discount</span>
+                <button
+                  onClick={() => setIsDiscountModalOpen(true)}
+                  style={{ fontSize: '10px', padding: '1px 5px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  [F4] EDIT
+                </button>
+              </div>
+              <span>- UGX {formatCurrency(calculatedDiscount)}</span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)', paddingTop: '6px', borderTop: '1px dashed var(--color-border-subtle)' }}>
+              <span>NET TOTAL (CASH)</span>
+              <span style={{ color: 'var(--color-accent-solid)' }}>UGX {formatCurrency(netTotal)}</span>
+            </div>
+          </div>
+
+          {/* Checkout Button */}
+          <button
+            disabled={cart.length === 0 || isProcessing}
+            onClick={handleApproveSale}
+            style={{
+              width: '100%',
+              height: '42px',
+              backgroundColor: cart.length === 0 ? 'var(--color-bg-hover)' : 'var(--color-accent-solid)',
+              color: cart.length === 0 ? 'var(--color-text-muted)' : '#ffffff',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            {isProcessing ? (
+              <Loader size={16} className="animate-spin" />
+            ) : (
+              <>
+                <CheckCircle size={16} />
+                <span>APPROVE SALE (F10)</span>
+              </>
+            )}
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* MODAL: OPEN SHIFT (Starting Float Cash) */}
+      {isOpenShiftModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ width: '380px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '6px' }}>
+              Open Till Shift
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+              Enter your starting drawer float cash to begin processing cash sales for this shift.
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px', color: 'var(--color-text-secondary)' }}>
+                STARTING CASH FLOAT (UGX)
+              </label>
+              <input
+                type="number"
+                value={openingCashInput}
+                onChange={(e) => setOpeningCashInput(e.target.value)}
+                style={{ width: '100%', height: '36px', padding: '0 12px', fontSize: '14px', fontWeight: 700, backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
+              />
+            </div>
+
+            <button
+              onClick={handleOpenShift}
+              style={{ width: '100%', height: '38px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+            >
+              START SHIFT & BEGIN SALES
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CLOSE SHIFT (Z-REPORT) */}
+      {isCloseShiftModalOpen && activeShift && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ width: '420px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                Close Till Shift #{activeShift.id}
+              </div>
+              <button onClick={() => setIsCloseShiftModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} /></button>
+            </div>
+
+            <div style={{ fontSize: '12px', backgroundColor: 'var(--color-bg-base)', padding: '10px', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div><strong>Opening Float:</strong> UGX {formatCurrency(activeShift.opening_cash)}</div>
+              <div><strong>Expected Cash in Till:</strong> UGX {formatCurrency(activeShift.expected_cash || activeShift.opening_cash)}</div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
+                ACTUAL CASH COUNTED IN DRAWER (UGX)
+              </label>
+              <input
+                type="number"
+                value={actualCashInput}
+                onChange={(e) => setActualCashInput(e.target.value)}
+                placeholder="Enter physical cash counted..."
+                style={{ width: '100%', height: '36px', padding: '0 12px', fontSize: '14px', fontWeight: 700, backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
+                SHIFT NOTES / VARIANCE REASON (OPTIONAL)
+              </label>
+              <input
+                type="text"
+                value={shiftNotes}
+                onChange={(e) => setShiftNotes(e.target.value)}
+                placeholder="e.g., Minor change discrepancy"
+                style={{ width: '100%', height: '32px', padding: '0 10px', fontSize: '12px', backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
+              />
+            </div>
+
+            <button
+              onClick={handleCloseShift}
+              style={{ width: '100%', height: '38px', backgroundColor: 'var(--color-danger-text)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+            >
+              CLOSE SHIFT & PRINT Z-REPORT
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT DISCOUNT [F4] */}
+      {isDiscountModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ width: '340px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '20px', boxShadow: 'var(--shadow-dropdown)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                Cart Discount Adjustment
+              </div>
+              <button onClick={() => setIsDiscountModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} /></button>
+            </div>
+
+            {/* Discount Type Toggle */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
+              <button
+                onClick={() => setDiscountType('fixed')}
+                style={{ padding: '6px', fontSize: '11px', fontWeight: 700, backgroundColor: discountType === 'fixed' ? 'var(--color-accent-solid)' : 'var(--color-bg-base)', color: discountType === 'fixed' ? '#ffffff' : 'var(--color-text-primary)', border: '1px solid var(--color-border-default)', cursor: 'pointer' }}
+              >
+                Fixed UGX
+              </button>
+              <button
+                onClick={() => setDiscountType('percent')}
+                style={{ padding: '6px', fontSize: '11px', fontWeight: 700, backgroundColor: discountType === 'percent' ? 'var(--color-accent-solid)' : 'var(--color-bg-base)', color: discountType === 'percent' ? '#ffffff' : 'var(--color-text-primary)', border: '1px solid var(--color-border-default)', cursor: 'pointer' }}
+              >
+                Percentage (%)
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <input
+                type="number"
+                value={discountAmount}
+                onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+                placeholder={discountType === 'percent' ? 'Enter % off...' : 'Enter amount in UGX...'}
+                style={{ width: '100%', height: '36px', padding: '0 12px', fontSize: '14px', fontWeight: 700, backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
+              />
+            </div>
+
+            <button
+              onClick={() => setIsDiscountModalOpen(false)}
+              style={{ width: '100%', height: '36px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+            >
+              APPLY DISCOUNT
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: COMPLETED SALE & THERMAL RECEIPT */}
+      {isCheckoutOpen && completedSale && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ width: '380px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
+            
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <CheckCircle size={40} style={{ color: 'var(--color-success-text)', margin: '0 auto 8px' }} />
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>Transaction Complete</div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{completedSale.invoice_number}</div>
+            </div>
+
+            {/* Hidden Printable Thermal Receipt Template (80mm) */}
+            <div style={{ display: 'none' }}>
+              <div ref={receiptRef}>
+                <div className="text-center bold">{pharmacyName || 'LANGRATIA PHARMACY'}</div>
+                <div className="text-center">Official Sales Receipt</div>
+                <div className="divider"></div>
+                <div>Invoice: {completedSale.invoice_number}</div>
+                <div>Date: {new Date().toLocaleString()}</div>
+                <div>Cashier: {completedSale.username || user?.username}</div>
+                <div>Payment Method: Cash</div>
+                <div className="divider"></div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ textAlign: 'left' }}>Item</th>
+                      <th style={{ textAlign: 'center' }}>Qty</th>
+                      <th style={{ textAlign: 'right' }}>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {completedSale.items?.map((item: any, idx: number) => (
+                      <tr key={idx}>
+                        <td>{item.medicine_name}</td>
+                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right' }}>{formatCurrency(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="divider"></div>
+                {completedSale.discount_amount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Discount:</span>
+                    <span>- UGX {formatCurrency(completedSale.discount_amount)}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px', marginTop: '4px' }}>
+                  <span>NET TOTAL (CASH):</span>
+                  <span>UGX {formatCurrency(completedSale.total_amount)}</span>
+                </div>
+                <div className="divider"></div>
+                <div className="text-center" style={{ marginTop: '8px' }}>Thank you for visiting!</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button
+                onClick={handlePrintReceipt}
+                style={{ flex: 1, height: '38px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Printer size={16} />
+                <span>PRINT RECEIPT (80mm)</span>
+              </button>
+              <button
+                onClick={() => setIsCheckoutOpen(false)}
+                style={{ height: '38px', padding: '0 16px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+              >
+                CLOSE
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Z-REPORT DISPLAY */}
+      {zReport && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ width: '400px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
+            
+            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <Receipt size={36} style={{ color: 'var(--color-accent-solid)', margin: '0 auto 8px' }} />
+              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>Shift Z-Report Summary</div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Shift #{zReport.shift.id} • Cashier: {zReport.shift.username}</div>
+            </div>
+
+            {/* Hidden Printable Z-Report Template (80mm) */}
+            <div style={{ display: 'none' }}>
+              <div ref={zReportRef}>
+                <div className="text-center bold">{pharmacyName || 'LANGRATIA PHARMACY'}</div>
+                <div className="text-center bold">Z-REPORT SHIFT RECONCILIATION</div>
+                <div className="divider"></div>
+                <div>Shift ID: #{zReport.shift.id}</div>
+                <div>Cashier: {zReport.shift.username}</div>
+                <div>Opened: {new Date(zReport.shift.started_at).toLocaleString()}</div>
+                <div>Closed: {zReport.shift.ended_at ? new Date(zReport.shift.ended_at).toLocaleString() : ''}</div>
+                <div className="divider"></div>
+                <div>Opening Float: UGX {formatCurrency(zReport.shift.opening_cash)}</div>
+                <div>Cash Sales: UGX {formatCurrency(zReport.cash_sales_total)}</div>
+                <div className="divider"></div>
+                <div>Gross Sales: UGX {formatCurrency(zReport.gross_sales_total)}</div>
+                <div>Discounts: UGX {formatCurrency(zReport.total_discounts)}</div>
+                <div>NET SALES: UGX {formatCurrency(zReport.net_sales_total)}</div>
+                <div className="divider"></div>
+                <div>Expected Cash in Drawer: UGX {formatCurrency(zReport.expected_drawer)}</div>
+                <div>Actual Cash Counted: UGX {formatCurrency(zReport.actual_drawer)}</div>
+                <div style={{ fontWeight: 'bold' }}>CASH VARIANCE: UGX {formatCurrency(zReport.cash_variance)}</div>
+                <div className="divider"></div>
+                <div className="text-center">End of Shift Reconciliation</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '12px', backgroundColor: 'var(--color-bg-base)', padding: '12px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Opening Cash Float:</span> <strong>UGX {formatCurrency(zReport.shift.opening_cash)}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total Net Cash Sales:</span> <strong>UGX {formatCurrency(zReport.net_sales_total)}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Expected Drawer:</span> <strong>UGX {formatCurrency(zReport.expected_drawer)}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Actual Counted:</span> <strong>UGX {formatCurrency(zReport.actual_drawer)}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: zReport.cash_variance < 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)', fontWeight: 800, borderTop: '1px dashed var(--color-border-subtle)', paddingTop: '4px' }}>
+                <span>CASH VARIANCE:</span>
+                <span>UGX {formatCurrency(zReport.cash_variance)}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handlePrintZReport}
+                style={{ flex: 1, height: '38px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              >
+                <Printer size={16} />
+                <span>PRINT Z-REPORT</span>
+              </button>
+              <button
+                onClick={() => setZReport(null)}
+                style={{ height: '38px', padding: '0 16px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+              >
+                CLOSE
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+    </div>
   );
 };

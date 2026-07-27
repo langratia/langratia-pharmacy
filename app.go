@@ -36,6 +36,7 @@ type App struct {
 	searchService       *services.SearchService
 	permissionService   *services.PermissionService
 	configService       *services.ConfigService
+	shiftService        *services.ShiftService
 }
 
 // Config represents the local application configuration
@@ -149,6 +150,7 @@ func (a *App) startup(ctx context.Context) {
 	a.searchService = services.NewSearchService(database)
 	a.permissionService = services.NewPermissionService(database)
 	a.configService = services.NewConfigService(database)
+	a.shiftService = services.NewShiftService(database)
 
 	// If running in Host mode, start UDP Discovery Listener
 	if customConfig.DBPath == "" {
@@ -525,11 +527,11 @@ func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurch
 }
 
 // Sales / POS API Bindings
-func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string) (*models.Sale, error) {
+func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string, discountAmount float64, discountType string, shiftID *int64) (*models.Sale, error) {
 	if a.salesService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
-	return a.salesService.ProcessSale(userID, username, items, paymentMethod)
+	return a.salesService.ProcessSale(userID, username, items, paymentMethod, discountAmount, discountType, shiftID)
 }
 
 func (a *App) ListRecentSales(limit int) ([]models.Sale, error) {
@@ -537,6 +539,35 @@ func (a *App) ListRecentSales(limit int) ([]models.Sale, error) {
 		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.salesService.ListRecentSales(limit)
+}
+
+// Till Shift Reconciliation Bindings
+func (a *App) GetActiveShift(userID int64) (*models.Shift, error) {
+	if a.shiftService == nil {
+		return nil, fmt.Errorf("shift service not initialized")
+	}
+	return a.shiftService.GetActiveShift(userID)
+}
+
+func (a *App) OpenShift(userID int64, username string, openingCash float64) (*models.Shift, error) {
+	if a.shiftService == nil {
+		return nil, fmt.Errorf("shift service not initialized")
+	}
+	return a.shiftService.OpenShift(userID, username, openingCash)
+}
+
+func (a *App) CloseShift(shiftID int64, actualCash float64, notes string) (*models.ShiftZReport, error) {
+	if a.shiftService == nil {
+		return nil, fmt.Errorf("shift service not initialized")
+	}
+	return a.shiftService.CloseShift(shiftID, actualCash, notes)
+}
+
+func (a *App) GetShiftZReport(shiftID int64) (*models.ShiftZReport, error) {
+	if a.shiftService == nil {
+		return nil, fmt.Errorf("shift service not initialized")
+	}
+	return a.shiftService.GetShiftZReport(shiftID)
 }
 
 // Report & Dashboard API Bindings

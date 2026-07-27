@@ -159,7 +159,6 @@ export namespace models {
 	    name: string;
 	    generic_name: string;
 	    brand_name: string;
-	    barcode: string;
 	    category: string;
 	    dosage_strength: string;
 	    medicine_form: string;
@@ -189,7 +188,6 @@ export namespace models {
 	        this.name = source["name"];
 	        this.generic_name = source["generic_name"];
 	        this.brand_name = source["brand_name"];
-	        this.barcode = source["barcode"];
 	        this.category = source["category"];
 	        this.dosage_strength = source["dosage_strength"];
 	        this.medicine_form = source["medicine_form"];
@@ -620,6 +618,9 @@ export namespace models {
 	    // Go type: time
 	    sale_date: any;
 	    total_amount: number;
+	    discount_amount: number;
+	    discount_type: string;
+	    shift_id?: number;
 	    payment_method: string;
 	    items?: SaleItem[];
 	
@@ -635,6 +636,9 @@ export namespace models {
 	        this.username = source["username"];
 	        this.sale_date = this.convertValues(source["sale_date"], null);
 	        this.total_amount = source["total_amount"];
+	        this.discount_amount = source["discount_amount"];
+	        this.discount_type = source["discount_type"];
+	        this.shift_id = source["shift_id"];
 	        this.payment_method = source["payment_method"];
 	        this.items = this.convertValues(source["items"], SaleItem);
 	    }
@@ -677,6 +681,109 @@ export namespace models {
 	        this.subtitle = source["subtitle"];
 	        this.target_view = source["target_view"];
 	    }
+	}
+	export class Shift {
+	    id: number;
+	    user_id: number;
+	    username: string;
+	    // Go type: time
+	    started_at: any;
+	    // Go type: time
+	    ended_at?: any;
+	    opening_cash: number;
+	    expected_cash: number;
+	    actual_cash: number;
+	    cash_variance: number;
+	    total_sales_count: number;
+	    total_sales_amount: number;
+	    status: string;
+	    notes: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Shift(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.user_id = source["user_id"];
+	        this.username = source["username"];
+	        this.started_at = this.convertValues(source["started_at"], null);
+	        this.ended_at = this.convertValues(source["ended_at"], null);
+	        this.opening_cash = source["opening_cash"];
+	        this.expected_cash = source["expected_cash"];
+	        this.actual_cash = source["actual_cash"];
+	        this.cash_variance = source["cash_variance"];
+	        this.total_sales_count = source["total_sales_count"];
+	        this.total_sales_amount = source["total_sales_amount"];
+	        this.status = source["status"];
+	        this.notes = source["notes"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class ShiftZReport {
+	    shift: Shift;
+	    cash_sales_total: number;
+	    gross_sales_total: number;
+	    total_discounts: number;
+	    net_sales_total: number;
+	    expected_drawer: number;
+	    actual_drawer: number;
+	    cash_variance: number;
+	    // Go type: time
+	    printed_at: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new ShiftZReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.shift = this.convertValues(source["shift"], Shift);
+	        this.cash_sales_total = source["cash_sales_total"];
+	        this.gross_sales_total = source["gross_sales_total"];
+	        this.total_discounts = source["total_discounts"];
+	        this.net_sales_total = source["net_sales_total"];
+	        this.expected_drawer = source["expected_drawer"];
+	        this.actual_drawer = source["actual_drawer"];
+	        this.cash_variance = source["cash_variance"];
+	        this.printed_at = this.convertValues(source["printed_at"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class Supplier {
 	    id: number;
@@ -795,6 +902,7 @@ export namespace services {
 	    medicine_id: number;
 	    quantity: number;
 	    unit_price: number;
+	    prescription_id?: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new CartItemInput(source);
@@ -805,6 +913,7 @@ export namespace services {
 	        this.medicine_id = source["medicine_id"];
 	        this.quantity = source["quantity"];
 	        this.unit_price = source["unit_price"];
+	        this.prescription_id = source["prescription_id"];
 	    }
 	}
 	export class CashierPerformanceMetrics {

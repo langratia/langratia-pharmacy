@@ -657,7 +657,6 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 ))}
               </select>
             </div>
-          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>

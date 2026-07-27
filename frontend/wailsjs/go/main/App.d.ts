@@ -24,6 +24,8 @@ export function BulkImportMedicines(arg1:Array<models.Medicine>,arg2:number,arg3
 
 export function ChangePassword(arg1:number,arg2:string,arg3:string):Promise<void>;
 
+export function CloseShift(arg1:number,arg2:number,arg3:string):Promise<models.ShiftZReport>;
+
 export function CompleteFirstTimeSetup(arg1:string,arg2:string,arg3:string,arg4:string):Promise<models.User>;
 
 export function CreatePrescription(arg1:number,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string,arg7:string,arg8:string,arg9:Array<services.PrescriptionItemInput>):Promise<models.Prescription>;
@@ -37,6 +39,8 @@ export function EnableMainServerMode(arg1:number):Promise<void>;
 export function ExportDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
 
 export function ForceLogout(arg1:number,arg2:number):Promise<void>;
+
+export function GetActiveShift(arg1:number):Promise<models.Shift>;
 
 export function GetAllPermissionDefs():Promise<Array<models.PermissionInfo>>;
 
@@ -63,6 +67,8 @@ export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>
 export function GetRolePermissions(arg1:string):Promise<Array<string>>;
 
 export function GetSalesSummary():Promise<services.SalesSummary>;
+
+export function GetShiftZReport(arg1:number):Promise<models.ShiftZReport>;
 
 export function GetUser(arg1:number,arg2:number):Promise<models.User>;
 
@@ -104,7 +110,9 @@ export function Login(arg1:string,arg2:string,arg3:string):Promise<models.User>;
 
 export function Logout(arg1:number):Promise<void>;
 
-export function ProcessSale(arg1:number,arg2:string,arg3:Array<services.CartItemInput>,arg4:string):Promise<models.Sale>;
+export function OpenShift(arg1:number,arg2:string,arg3:number):Promise<models.Shift>;
+
+export function ProcessSale(arg1:number,arg2:string,arg3:Array<services.CartItemInput>,arg4:string,arg5:number,arg6:string,arg7:any):Promise<models.Sale>;
 
 export function ReactivateUser(arg1:number,arg2:number):Promise<void>;
 
@@ -129,5 +137,7 @@ export function UpdatePrescriptionStatus(arg1:number,arg2:string,arg3:number,arg
 export function UpdateSupplier(arg1:models.Supplier,arg2:number,arg3:string):Promise<void>;
 
 export function UpdateUserInfo(arg1:number,arg2:string,arg3:string,arg4:string,arg5:string,arg6:string,arg7:number):Promise<void>;
+
+export function ValidateSession(arg1:number):Promise<models.User>;
 
 export function VerifyPassword(arg1:number,arg2:string):Promise<boolean>;

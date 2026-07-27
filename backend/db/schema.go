@@ -299,5 +299,32 @@ var Migrations = []Migration{
 			ALTER TABLE medicines ADD COLUMN product_status TEXT NOT NULL DEFAULT 'active';
 		`,
 	},
+	{
+		Version:     8,
+		Description: "Add shifts table for till cash reconciliation and discount/shift tracking in sales",
+		Script: `
+			CREATE TABLE IF NOT EXISTS shifts (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				user_id INTEGER NOT NULL,
+				username TEXT NOT NULL,
+				started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				ended_at DATETIME,
+				opening_cash REAL NOT NULL DEFAULT 0.0,
+				expected_cash REAL NOT NULL DEFAULT 0.0,
+				actual_cash REAL DEFAULT 0.0,
+				cash_variance REAL DEFAULT 0.0,
+				total_sales_count INTEGER DEFAULT 0,
+				total_sales_amount REAL DEFAULT 0.0,
+				status TEXT NOT NULL DEFAULT 'open',
+				notes TEXT,
+				FOREIGN KEY(user_id) REFERENCES users(id)
+			);
+
+			ALTER TABLE sales ADD COLUMN discount_amount REAL NOT NULL DEFAULT 0.0;
+			ALTER TABLE sales ADD COLUMN discount_type TEXT NOT NULL DEFAULT 'fixed';
+			ALTER TABLE sales ADD COLUMN shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL;
+		`,
+	},
 }
+
 

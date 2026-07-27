@@ -100,6 +100,9 @@ type Sale struct {
 	Username      string     `json:"username,omitempty"`
 	SaleDate      time.Time  `json:"sale_date"`
 	TotalAmount   float64    `json:"total_amount"`
+	DiscountAmount float64   `json:"discount_amount"`
+	DiscountType   string    `json:"discount_type"` // "percent" or "fixed"
+	ShiftID        *int64    `json:"shift_id,omitempty"`
 	PaymentMethod string     `json:"payment_method"`
 	Items         []SaleItem `json:"items,omitempty"`
 }
@@ -284,6 +287,34 @@ type AuthConfig struct {
 	LockoutDurationMinutes  int  `json:"lockout_duration_minutes"`
 	SessionIdleTimeoutMinutes int `json:"session_idle_timeout_minutes"`
 	RequireReauthForSensitive bool `json:"require_reauth_for_sensitive"`
+}
+
+type Shift struct {
+	ID               int64      `json:"id"`
+	UserID           int64      `json:"user_id"`
+	Username         string     `json:"username"`
+	StartedAt        time.Time  `json:"started_at"`
+	EndedAt          *time.Time `json:"ended_at,omitempty"`
+	OpeningCash      float64    `json:"opening_cash"`
+	ExpectedCash     float64    `json:"expected_cash"`
+	ActualCash       float64    `json:"actual_cash"`
+	CashVariance     float64    `json:"cash_variance"`
+	TotalSalesCount  int        `json:"total_sales_count"`
+	TotalSalesAmount float64    `json:"total_sales_amount"`
+	Status           string     `json:"status"` // "open" or "closed"
+	Notes            string     `json:"notes"`
+}
+
+type ShiftZReport struct {
+	Shift           Shift     `json:"shift"`
+	CashSalesTotal  float64   `json:"cash_sales_total"`
+	GrossSalesTotal float64   `json:"gross_sales_total"`
+	TotalDiscounts  float64   `json:"total_discounts"`
+	NetSalesTotal   float64   `json:"net_sales_total"`
+	ExpectedDrawer  float64   `json:"expected_drawer"`
+	ActualDrawer    float64   `json:"actual_drawer"`
+	CashVariance    float64   `json:"cash_variance"`
+	PrintedAt       time.Time `json:"printed_at"`
 }
 
 

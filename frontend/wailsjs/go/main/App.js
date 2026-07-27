@@ -42,6 +42,10 @@ export function ChangePassword(arg1, arg2, arg3) {
   return window['go']['main']['App']['ChangePassword'](arg1, arg2, arg3);
 }
 
+export function CloseShift(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CloseShift'](arg1, arg2, arg3);
+}
+
 export function CompleteFirstTimeSetup(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CompleteFirstTimeSetup'](arg1, arg2, arg3, arg4);
 }
@@ -68,6 +72,10 @@ export function ExportDatabase(arg1, arg2, arg3) {
 
 export function ForceLogout(arg1, arg2) {
   return window['go']['main']['App']['ForceLogout'](arg1, arg2);
+}
+
+export function GetActiveShift(arg1) {
+  return window['go']['main']['App']['GetActiveShift'](arg1);
 }
 
 export function GetAllPermissionDefs() {
@@ -120,6 +128,10 @@ export function GetRolePermissions(arg1) {
 
 export function GetSalesSummary() {
   return window['go']['main']['App']['GetSalesSummary']();
+}
+
+export function GetShiftZReport(arg1) {
+  return window['go']['main']['App']['GetShiftZReport'](arg1);
 }
 
 export function GetUser(arg1, arg2) {
@@ -202,8 +214,12 @@ export function Logout(arg1) {
   return window['go']['main']['App']['Logout'](arg1);
 }
 
-export function ProcessSale(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['ProcessSale'](arg1, arg2, arg3, arg4);
+export function OpenShift(arg1, arg2, arg3) {
+  return window['go']['main']['App']['OpenShift'](arg1, arg2, arg3);
+}
+
+export function ProcessSale(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  return window['go']['main']['App']['ProcessSale'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
 }
 
 export function ReactivateUser(arg1, arg2) {
@@ -252,6 +268,10 @@ export function UpdateSupplier(arg1, arg2, arg3) {
 
 export function UpdateUserInfo(arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
   return window['go']['main']['App']['UpdateUserInfo'](arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+}
+
+export function ValidateSession(arg1) {
+  return window['go']['main']['App']['ValidateSession'](arg1);
 }
 
 export function VerifyPassword(arg1, arg2) {
