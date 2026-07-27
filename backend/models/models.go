@@ -37,7 +37,6 @@ type Medicine struct {
 	Name                string    `json:"name"`
 	GenericName         string    `json:"generic_name"`
 	BrandName           string    `json:"brand_name"`
-	Barcode             string    `json:"barcode"`
 	Category            string    `json:"category"`
 	DosageStrength      string    `json:"dosage_strength"`
 	MedicineForm        string    `json:"medicine_form"`

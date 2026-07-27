@@ -24,7 +24,6 @@ export interface Medicine {
   name: string;
   generic_name: string;
   brand_name: string;
-  barcode: string;
   category: string;
   dosage_strength: string;
   medicine_form: string;

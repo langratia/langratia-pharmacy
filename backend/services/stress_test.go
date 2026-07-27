@@ -62,7 +62,6 @@ func TestStressSuite(t *testing.T) {
 			Name:           fmt.Sprintf("Medicine Category Item %d", i),
 			GenericName:    fmt.Sprintf("Generic Compound %d", i%100),
 			BrandName:      fmt.Sprintf("Brand %d", i%50),
-			Barcode:        fmt.Sprintf("BARCODE-8800%d", i),
 			Category:       "General Pharma",
 			BuyingPrice:    100.0 + float64(i%50)*10.0,
 			SellingPrice:   200.0 + float64(i%50)*15.0,

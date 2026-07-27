@@ -33,7 +33,6 @@ const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'cre
   name: '',
   generic_name: '',
   brand_name: '',
-  barcode: '',
   category: 'General',
   dosage_strength: '',
   medicine_form: 'Tablet',
@@ -152,7 +151,6 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       name: med.name,
       generic_name: med.generic_name,
       brand_name: med.brand_name,
-      barcode: med.barcode,
       category: med.category,
       dosage_strength: med.dosage_strength,
       medicine_form: med.medicine_form,
@@ -644,30 +642,16 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Barcode
-              </label>
-              <input
-                type="text"
-                disabled={!canEdit}
-                placeholder="e.g. 8901234567890"
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Category
-              </label>
-              <select
-                disabled={!canEdit}
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-              >
+          <div>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
+              Category
+            </label>
+            <select
+              disabled={!canEdit}
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+            >
                 {categories.filter(c => c !== 'All').map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
