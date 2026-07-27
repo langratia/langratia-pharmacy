@@ -483,16 +483,17 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
                 width: '20px',
                 height: '20px',
                 borderRadius: '50%',
-                overflow: 'hidden',
-                backgroundColor: 'var(--color-bg-base)',
+                backgroundColor: 'var(--color-accent-solid)',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 700,
                 flexShrink: 0
               }}
             >
-              <img
-                src={avatarUrl || getUserAvatarUrl(user)}
-                alt={user?.username || 'User'}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
+              {(user?.username?.[0] || 'U').toUpperCase()}
             </div>
             <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
               {user?.username || 'Pharmacist'}
@@ -500,13 +501,6 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
             <span style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: 'var(--color-bg-hover)', borderRadius: '0px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
               {user?.role}
             </span>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleAvatarFileChange}
-              accept="image/*"
-              style={{ display: 'none' }}
-            />
           </div>
         </div>
       </header>

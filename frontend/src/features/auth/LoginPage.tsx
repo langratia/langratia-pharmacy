@@ -272,11 +272,10 @@ export const LoginPage: React.FC = () => {
         padding: '36px 32px 28px',
         border: '1px solid var(--color-border-default)'
       }}>
-        {/* Header Logo & Title */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          {logoUrl && (
-            <img src={logoUrl} alt="Logo" style={{ width: '48px', height: '48px', objectFit: 'contain', marginBottom: '14px' }} />
-          )}
+          <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: 'var(--color-accent-solid)' }}>
+            <Building2 size={24} />
+          </div>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
             {pharmacyName}
           </h1>

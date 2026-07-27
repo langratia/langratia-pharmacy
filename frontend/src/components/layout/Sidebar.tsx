@@ -118,10 +118,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCo
           backgroundColor: 'transparent'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {logoUrl && (
-            <img src={logoUrl} alt="Logo" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Pill size={18} style={{ color: sidebarActiveColor }} />
           {!isCollapsed && (
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
               <span style={{ fontSize: '13px', fontWeight: 700, color: sidebarTextActive, letterSpacing: '-0.01em' }}>
