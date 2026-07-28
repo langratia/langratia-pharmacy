@@ -51,7 +51,7 @@ jobs:
           npm ci
 
       - name: Build Wails App & NSIS Installer
-        run: wails build -nsis -clean
+        run: wails build -windowsgui -nsis -clean
 
       - name: Prepare Installer and Portable Executables
         shell: powershell
