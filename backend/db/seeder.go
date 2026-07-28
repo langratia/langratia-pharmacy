@@ -77,6 +77,44 @@ func (db *DB) SeedDatabase() error {
 	return nil
 }
 
+// ClearSampleData wipes all operational inventory, sales, purchases, batches, and prescriptions while preserving users and pharmacy configuration.
+func (db *DB) ClearSampleData() error {
+	fmt.Println("Wiping all sample medicines, inventory, sales, and transaction data...")
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec("PRAGMA foreign_keys = OFF;"); err != nil {
+		return err
+	}
+
+	tables := []string{
+		"audit_logs", "stock_adjustments", "sale_items", "sales",
+		"purchase_items", "purchases", "batches", "medicines", "suppliers",
+		"shifts", "prescription_items", "prescriptions", "login_history",
+	}
+
+	for _, table := range tables {
+		if _, err := tx.Exec(fmt.Sprintf("DELETE FROM %s", table)); err != nil {
+			return fmt.Errorf("failed to clear %s: %w", table, err)
+		}
+		tx.Exec("DELETE FROM sqlite_sequence WHERE name=?", table)
+	}
+
+	if _, err := tx.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit wipe transaction: %w", err)
+	}
+
+	fmt.Println("All sample data cleared successfully. System ready for production data!")
+	return nil
+}
+
 func (db *DB) seedUsersTx(tx *sql.Tx) error {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
 	users := []struct {

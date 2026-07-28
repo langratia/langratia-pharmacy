@@ -617,6 +617,16 @@ func (a *App) ListAuditLogs(limit int, userID int64) ([]models.AuditLog, error) 
 }
 
 // ResetAndSeedDatabase drops all table contents and seeds realistic testing records.
+func (a *App) ClearSampleData(userID int64) error {
+	if a.database == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	if err := a.requireAdmin(userID); err != nil {
+		return err
+	}
+	return a.database.ClearSampleData()
+}
+
 func (a *App) ResetAndSeedDatabase(userID int64) error {
 	if a.database == nil {
 		return fmt.Errorf("database not initialized")

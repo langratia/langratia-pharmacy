@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions, SetRolePermissions, GetAllPermissionDefs } from '../../../wailsjs/go/main/App';
+import { ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, ClearSampleData, UpdateDatabaseConfig, AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo, ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions, SetRolePermissions, GetAllPermissionDefs } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
@@ -160,6 +160,26 @@ export const SettingsPage: React.FC = () => {
     if (!user || user.role !== 'admin') return;
     if (!window.confirm('WARNING: Reset & Seed Database will wipe all existing data and create demo records. Continue?')) return;
     requireReauth(doResetSeedDB, 'Confirm identity to reset database');
+  };
+
+  const doClearSampleData = async () => {
+    if (!user || user.role !== 'admin') return;
+    try {
+      setIsLoading(true);
+      await ClearSampleData(user.id);
+      toast.success('All sample medicines and transaction data cleared successfully!');
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || 'Wipe failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearSampleData = () => {
+    if (!user || user.role !== 'admin') return;
+    if (!window.confirm('WARNING: This will permanently delete all sample medicines, batches, sales, and prescriptions so you can start with a clean database. Your user account will be kept. Continue?')) return;
+    requireReauth(doClearSampleData, 'Confirm identity to clear sample data');
   };
 
   const handleDeactivateUser = async (uId: number, username: string) => {
@@ -943,25 +963,49 @@ export const SettingsPage: React.FC = () => {
                 </div>
 
                 {user?.role === 'admin' && (
-                  <div style={{ padding: '12px', border: '1px solid var(--color-danger-border)', borderRadius: '0px', backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' }}>
-                    <strong>System Reset & Demo Data Seeding:</strong> Wipes existing database tables and reinstates demo dataset.
-                    <div style={{ marginTop: '8px' }}>
-                      <button
-                        onClick={handleResetSeedDB}
-                        style={{
-                          height: '28px',
-                          backgroundColor: 'var(--color-danger-text)',
-                          color: 'var(--color-text-inverse)',
-                          border: 'none',
-                          fontWeight: 600,
-                          gap: '6px',
-                          borderRadius: '0px',
-                          cursor: 'pointer',
-                          padding: '0 12px'
-                        }}
-                      >
-                        Reset & Seed Demo Database
-                      </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ padding: '12px', border: '1px solid var(--color-danger-border)', borderRadius: '0px', backgroundColor: 'var(--color-danger-bg)', color: 'var(--color-danger-text)' }}>
+                      <strong>Clear All Sample Data (Start Clean):</strong> Permanently deletes all sample medicines, batches, sales, and prescriptions while preserving your user accounts and pharmacy configuration.
+                      <div style={{ marginTop: '8px' }}>
+                        <button
+                          onClick={handleClearSampleData}
+                          style={{
+                            height: '28px',
+                            backgroundColor: 'var(--color-danger-text)',
+                            color: 'var(--color-text-inverse)',
+                            border: 'none',
+                            fontWeight: 600,
+                            gap: '6px',
+                            borderRadius: '0px',
+                            cursor: 'pointer',
+                            padding: '0 12px'
+                          }}
+                        >
+                          Clear All Sample Medicines & Data
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '12px', border: '1px solid var(--color-border-default)', borderRadius: '0px', backgroundColor: 'var(--color-bg-base)' }}>
+                      <strong>Reset & Seed Demo Database:</strong> Wipes existing database tables and reinstates demo dataset (~100 sample medicines).
+                      <div style={{ marginTop: '8px' }}>
+                        <button
+                          onClick={handleResetSeedDB}
+                          style={{
+                            height: '28px',
+                            backgroundColor: 'var(--color-bg-input)',
+                            color: 'var(--color-text-primary)',
+                            border: '1px solid var(--color-border-strong)',
+                            fontWeight: 600,
+                            gap: '6px',
+                            borderRadius: '0px',
+                            cursor: 'pointer',
+                            padding: '0 12px'
+                          }}
+                        >
+                          Reset & Seed Demo Database
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
