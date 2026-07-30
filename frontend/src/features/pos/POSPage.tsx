@@ -12,6 +12,7 @@ import {
   Banknote,
   Smartphone,
   AlertCircle,
+  List,
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -203,13 +204,13 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   /* ── RENDER ─────────────────────────────────────────────────────── */
   return (
-    <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', gap: '0' }}>
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, height: '100%', maxHeight: '100%', overflow: 'hidden', gap: '0' }}>
 
       {/* ── LEFT: Catalog ─────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', marginRight: '16px' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', minHeight: 0, overflow: 'hidden', marginRight: '16px' }}>
 
         {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', flexShrink: 0 }}>
 
           {/* Row 1: Search + Toggle (same flex line) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
@@ -299,7 +300,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         {/* Product Catalog — Grid or Table */}
         {catalogView === 'grid' ? (
           /* ── Grid View ── */
-          <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: '14px', alignContent: 'start' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: '14px', alignContent: 'start' }}>
             {isLoading ? (
               <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '14px', color: 'var(--muted)' }}>
                 <Loader size={28} className="animate-spin" style={{ color: 'var(--blue)' }} />
@@ -378,7 +379,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           </div>
         ) : (
           /* ── Table View ── */
-          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
             {isLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '14px', color: 'var(--muted)' }}>
                 <Loader size={28} className="animate-spin" style={{ color: 'var(--blue)' }} />
@@ -391,19 +392,18 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 <p>Try a different search term or category.</p>
               </div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: 'var(--surface-soft)', position: 'sticky', top: 0, zIndex: 1 }}>
-                    <th style={{ padding: '11px 16px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '35%' }}>Medicine</th>
-                    <th style={{ padding: '11px 12px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '12%' }}>Form</th>
-                    <th style={{ padding: '11px 12px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '15%' }}>Category</th>
-                    <th style={{ padding: '11px 12px', textAlign: 'center', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '10%' }}>Stock</th>
-                    <th style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '13%' }}>Price (UGX)</th>
-                    <th style={{ padding: '11px 12px', textAlign: 'center', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '15%' }}>Action</th>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ position: 'sticky', top: 0, background: 'var(--surface-soft)', zIndex: 1, borderBottom: '1px solid var(--line-strong)' }}>
+                  <tr>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Name & generic</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Form & Category</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Stock</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {medicines.map((med, idx) => {
+                  {medicines.map(med => {
                     const isOutOfStock = med.current_stock <= 0;
                     const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
                     const inCart = cart.find(c => c.medicine.id === med.id);
@@ -414,77 +414,46 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                         onClick={() => !isOutOfStock && handleAddToCart(med)}
                         style={{
                           borderBottom: '1px solid var(--line)',
-                          background: inCart
-                            ? 'rgba(18,108,255,0.06)'
-                            : idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
+                          background: inCart ? 'var(--overlay-active)' : 'transparent',
                           opacity: isOutOfStock ? 0.45 : 1,
                           cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                          transition: 'background 0.12s ease',
+                          transition: 'background 0.15s ease'
                         }}
-                        onMouseEnter={(e) => {
-                          if (!isOutOfStock) (e.currentTarget as HTMLElement).style.background = 'var(--overlay-hover)';
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLElement).style.background = inCart
-                            ? 'rgba(18,108,255,0.06)'
-                            : idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)';
-                        }}
+                        onMouseEnter={(e) => { if (!inCart && !isOutOfStock) e.currentTarget.style.background = 'var(--surface-hover)'; }}
+                        onMouseLeave={(e) => { if (!inCart && !isOutOfStock) e.currentTarget.style.background = 'transparent'; }}
                       >
-                        {/* Medicine name + generic */}
-                        <td style={{ padding: '10px 16px' }}>
-                          <div style={{ fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{med.name}</div>
-                          {med.generic_name && (
-                            <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '2px' }}>
-                              {med.generic_name}{med.dosage_strength ? ` · ${med.dosage_strength}` : ''}
-                            </div>
-                          )}
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{med.name}</div>
+                          {med.generic_name && <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{med.generic_name} {med.dosage_strength}</div>}
                         </td>
-
-                        {/* Form */}
-                        <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '6px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ fontSize: '12px', padding: '2px 8px', background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '6px', color: 'var(--muted)' }}>
                             {med.medicine_form || 'Tablet'}
                           </span>
                         </td>
-
-                        {/* Category */}
-                        <td style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--muted)' }}>
-                          {med.category || '—'}
-                        </td>
-
-                        {/* Stock */}
-                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <td style={{ padding: '12px 16px' }}>
                           {isOutOfStock ? (
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', padding: '3px 8px', borderRadius: '6px' }}>OUT</span>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)' }}>OUT OF STOCK</span>
                           ) : isLowStock ? (
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--yellow)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', padding: '3px 8px', borderRadius: '6px' }}>LOW · {med.current_stock}</span>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--yellow)' }}>LOW ({med.current_stock})</span>
                           ) : (
-                            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>{med.current_stock}</span>
+                            <span style={{ fontSize: '13px', color: 'var(--ink)' }}>{med.current_stock}</span>
                           )}
                         </td>
-
-                        {/* Price */}
-                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: '14px', color: 'var(--blue)', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: 800, color: 'var(--blue)' }}>
                           {formatCurrency(med.selling_price)}
                         </td>
-
-                        {/* Add button */}
-                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                           <button
                             disabled={isOutOfStock}
                             onClick={(e) => { e.stopPropagation(); handleAddToCart(med); }}
                             style={{
-                              height: '30px', padding: '0 14px', fontSize: '12px', fontWeight: 700,
-                              borderRadius: '8px', border: 'none',
-                              cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                              background: inCart ? 'var(--blue)' : 'var(--surface-soft)',
+                              height: '30px', padding: '0 12px', fontSize: '12px', fontWeight: 700,
+                              borderRadius: '8px', border: '1px solid var(--line)', cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                              background: inCart ? 'var(--blue)' : 'var(--surface)',
                               color: inCart ? '#fff' : 'var(--ink)',
-                              transition: 'all 0.15s cubic-bezier(0.34,1.56,0.64,1)',
-                              minHeight: 'unset', transform: 'none', boxShadow: 'none',
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                              display: 'inline-flex', alignItems: 'center', gap: '6px'
                             }}
-                            onMouseEnter={(e) => { if (!isOutOfStock) { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(18,108,255,0.3)'; } }}
-                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
                           >
                             {inCart ? (
                               <><Plus size={12} />{inCart.quantity} in cart</>
@@ -504,10 +473,10 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       </div>
 
       {/* ── RIGHT: Cart & Checkout Dock ───────────────────────────────── */}
-      <div style={{ width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
+      <div style={{ width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%', maxHeight: '100%', minHeight: 0, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
 
         {/* Cart Header */}
-        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-soft)' }}>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-soft)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ShoppingCart size={18} style={{ color: 'var(--blue)' }} />
             <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>Current Order</span>
@@ -517,19 +486,28 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               </span>
             )}
           </div>
-          {/* Cart Clear — now with confirmation (fix #8) */}
+          {/* Actions: View All & Clear */}
           {cart.length > 0 && (
-            <button
-              onClick={() => setIsClearConfirmOpen(true)}
-              style={{ fontSize: '12px', color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, minHeight: 'unset', height: 'auto', padding: '4px 0', transform: 'none', boxShadow: 'none' }}
-            >
-              Clear
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button
+                onClick={openTender}
+                style={{ fontSize: '12px', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, minHeight: 'unset', height: 'auto', padding: '4px 0', transform: 'none', boxShadow: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                title="View full cart list"
+              >
+                <List size={14} /> View
+              </button>
+              <button
+                onClick={() => setIsClearConfirmOpen(true)}
+                style={{ fontSize: '12px', color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, minHeight: 'unset', height: 'auto', padding: '4px 0', transform: 'none', boxShadow: 'none' }}
+              >
+                Clear
+              </button>
+            </div>
           )}
         </div>
 
         {/* Cart Items */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px' }}>
           {cart.length === 0 ? (
             // Empty state — uses .empty-state class (fix #14)
             <div className="empty-state" style={{ border: 'none', background: 'transparent', boxShadow: 'none', padding: '48px 16px' }}>
@@ -606,7 +584,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         </div>
 
         {/* Financial Summary & Checkout */}
-        <div style={{ borderTop: '1px solid var(--line)', padding: '18px 20px', background: 'var(--surface-soft)' }}>
+        <div style={{ borderTop: '1px solid var(--line)', padding: '18px 20px', background: 'var(--surface-soft)', flexShrink: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
               <span>Subtotal</span>
