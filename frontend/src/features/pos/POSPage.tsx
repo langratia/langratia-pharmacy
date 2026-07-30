@@ -738,7 +738,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             {modalTitle('Order & Payment Confirmation')}
             {!isProcessing && <button onClick={() => setIsTenderOpen(false)} className="win-btn"><X size={16} /></button>}
           </div>
-          {modalSub('Review items being purchased and select payment method.')}
+          {modalSub('Review items being purchased and confirm sale.')}
 
           {/* Itemized Cart List Preview */}
           <div style={{
@@ -761,7 +761,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
               const itemTotal = item.medicine.selling_price * item.quantity;
               return (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', borderBottom: idx < cart.length - 1 ? '1px dashed var(--line)' : 'none', paddingBottom: '6px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', pr: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '8px' }}>
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{item.medicine.name}</span>
                     <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
                       {item.quantity} × UGX {formatCurrency(item.medicine.selling_price)}
@@ -773,30 +773,6 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 </div>
               );
             })}
-          </div>
-
-          {/* Payment method selector */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-            {([
-              { value: 'Cash', label: 'Cash', Icon: Banknote },
-              { value: 'MobileMoney', label: 'Mobile Money', Icon: Smartphone },
-            ] as { value: PaymentMethod; label: string; Icon: any }[]).map(({ value, label, Icon }) => (
-              <button
-                key={value}
-                onClick={() => setPaymentMethod(value)}
-                style={{
-                  padding: '12px 10px', fontSize: '13px', fontWeight: 700, borderRadius: '10px', cursor: 'pointer',
-                  background: paymentMethod === value ? 'rgba(18,108,255,0.12)' : 'var(--surface)',
-                  color: paymentMethod === value ? 'var(--blue)' : 'var(--muted)',
-                  border: paymentMethod === value ? '2px solid var(--blue)' : '1px solid var(--line)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-                  minHeight: 'unset', transform: 'none', boxShadow: 'none', transition: 'all 0.15s ease',
-                }}
-              >
-                <Icon size={20} />
-                {label}
-              </button>
-            ))}
           </div>
 
           {/* Order financial totals summary */}
