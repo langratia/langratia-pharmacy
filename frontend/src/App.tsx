@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -11,15 +11,18 @@ import { NavItemKey } from './components/layout/Sidebar';
 import { CommandPalette } from './components/ui/CommandPalette';
 import { IdleTimer } from './components/ui/IdleTimer';
 import { loadCurrency } from './utils/currency';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { Loader } from 'lucide-react';
 
-import { DashboardPage } from './features/dashboard/DashboardPage';
-import { POSPage } from './features/pos/POSPage';
-import { InventoryPage } from './features/inventory/InventoryPage';
-import { PurchasesPage } from './features/purchases/PurchasesPage';
-import { SuppliersPage } from './features/suppliers/SuppliersPage';
-import { ReportsPage } from './features/reports/ReportsPage';
-import { SettingsPage } from './features/settings/SettingsPage';
-import { PrescriptionsPage } from './features/prescriptions/PrescriptionsPage';
+// Lazy load feature modules for performance
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const POSPage = lazy(() => import('./features/pos/POSPage').then(module => ({ default: module.POSPage })));
+const InventoryPage = lazy(() => import('./features/inventory/InventoryPage').then(module => ({ default: module.InventoryPage })));
+const PurchasesPage = lazy(() => import('./features/purchases/PurchasesPage').then(module => ({ default: module.PurchasesPage })));
+const SuppliersPage = lazy(() => import('./features/suppliers/SuppliersPage').then(module => ({ default: module.SuppliersPage })));
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then(module => ({ default: module.ReportsPage })));
+const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then(module => ({ default: module.SettingsPage })));
+const PrescriptionsPage = lazy(() => import('./features/prescriptions/PrescriptionsPage').then(module => ({ default: module.PrescriptionsPage })));
 
 const SESSION_IDLE_TIMEOUT_MINUTES = 15;
 
@@ -107,7 +110,13 @@ const MainApp: React.FC = () => {
             transition={{ duration: 0.15, ease: 'easeOut' }}
             style={{ height: '100%' }}
           >
-            {renderContent()}
+            <Suspense fallback={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', width: '100%', color: 'var(--muted)' }}>
+                <Loader size={24} className="animate-spin" />
+              </div>
+            }>
+              {renderContent()}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </MainLayout>
@@ -158,7 +167,9 @@ function App() {
                 },
               }}
             />
-            <MainApp />
+            <ErrorBoundary>
+              <MainApp />
+            </ErrorBoundary>
           </PermissionProvider>
         </AuthProvider>
       </PharmacyProvider>

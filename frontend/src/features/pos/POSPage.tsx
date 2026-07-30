@@ -677,6 +677,9 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 if (discountType === 'percent' && val > 100) {
                   setDiscountError('Percentage cannot exceed 100%');
                   setDiscountAmount(100);
+                } else if (val < 0) {
+                  setDiscountError('Cannot be negative');
+                  setDiscountAmount(0);
                 } else {
                   setDiscountError('');
                   setDiscountAmount(val);
