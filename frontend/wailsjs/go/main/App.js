@@ -98,6 +98,10 @@ export function GetCurrencySymbol() {
   return window['go']['main']['App']['GetCurrencySymbol']();
 }
 
+export function GetDBConnectionStatus() {
+  return window['go']['main']['App']['GetDBConnectionStatus']();
+}
+
 export function GetDashboardSummary() {
   return window['go']['main']['App']['GetDashboardSummary']();
 }

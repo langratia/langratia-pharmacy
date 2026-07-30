@@ -5,7 +5,8 @@ import {
   ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, ClearSampleData,
   AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo,
   ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions,
-  SetRolePermissions, GetAllPermissionDefs, DeactivateUser, GetCashierPerformance
+  SetRolePermissions, GetAllPermissionDefs, DeactivateUser, GetCashierPerformance,
+  GetNetworkStatus, UpdateDatabaseConfig, GetDBConnectionStatus, GetWorkstationName
 } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
@@ -16,7 +17,6 @@ import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
 import { ReAuthDialog } from '../../components/ui/ReAuthDialog';
 import { PharmacySetupTab } from './PharmacySetupTab';
-import lanGuide from '../../assets/lan_setup_guide.png';
 
 const menuItemStyle: React.CSSProperties = {
   display: 'flex',
@@ -172,6 +172,10 @@ export const SettingsPage: React.FC = () => {
   // Network State
   const [isScanning, setIsScanning] = useState(false);
   const [isEnablingHost, setIsEnablingHost] = useState(false);
+  const [dbStatus, setDbStatus] = useState<any>(null);
+  const [manualPath, setManualPath] = useState('');
+  const [isSavingPath, setIsSavingPath] = useState(false);
+  const [computerName, setComputerName] = useState('unknown');
 
   // Performance View State
   const [selectedUserPerf, setSelectedUserPerf] = useState<services.CashierPerformance | null>(null);
@@ -211,6 +215,38 @@ export const SettingsPage: React.FC = () => {
   const [loginHistory, setLoginHistory] = useState<models.LoginHistory[]>([]);
   const [userActivity, setUserActivity] = useState<models.AuditLog[]>([]);
 
+  const fetchNetworkStatus = async () => {
+    try {
+      const [status, name] = await Promise.all([
+        GetDBConnectionStatus(),
+        GetWorkstationName()
+      ]);
+      setDbStatus(status);
+      setManualPath(status.configured_path);
+      setComputerName(name);
+    } catch (err: any) {
+      toast.error('Failed to load network status');
+    }
+  };
+
+  const handleSaveDatabasePath = async () => {
+    if (!manualPath.trim()) {
+      toast.error('Database path cannot be empty');
+      return;
+    }
+    setIsSavingPath(true);
+    const loadingToast = toast.loading('Applying database path configuration...');
+    try {
+      await UpdateDatabaseConfig(manualPath.trim());
+      toast.success('Database configuration updated! Please restart the application to apply.', { id: loadingToast, duration: 6000 });
+      fetchNetworkStatus();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update database path', { id: loadingToast });
+    } finally {
+      setIsSavingPath(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
@@ -218,6 +254,8 @@ export const SettingsPage: React.FC = () => {
       fetchAuditLogs();
     } else if (activeTab === 'permissions') {
       fetchPermissions();
+    } else if (activeTab === 'network') {
+      fetchNetworkStatus();
     }
   }, [activeTab]);
 
@@ -811,31 +849,135 @@ export const SettingsPage: React.FC = () => {
         {/* ── TAB: NETWORK SETUP ── */}
         {activeTab === 'network' && (
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            <Panel title="LAN NETWORK SETUP">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center', padding: '20px' }}>
-                <div style={{ maxWidth: '600px', width: '100%' }}>
-                  <img src={lanGuide} alt="LAN Setup Guide" style={{ width: '100%', borderRadius: 'var(--r2)', border: '1px solid var(--line)' }} />
+            <Panel title="LAN NETWORK SETUP & CONDUIT FEEDBACK">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+                
+                {/* 1. Real-time Connection Status Dashboard */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--line-strong)',
+                  background: 'var(--surface-soft)',
+                  boxShadow: 'var(--shadow)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Current System Conduit Status
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--ink)' }}>
+                      {dbStatus ? dbStatus.friendly_message : 'Checking Connection Status...'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 600 }}>Active Database Connection Path:</span>
+                      <code style={{ background: 'var(--surface)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--line)', fontSize: '11px', wordBreak: 'break-all' }}>
+                        {dbStatus ? dbStatus.active_path : '—'}
+                      </code>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: !dbStatus ? 'rgba(100, 116, 139, 0.1)' : dbStatus.is_host ? 'rgba(59, 130, 246, 0.1)' : dbStatus.is_connected ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                    color: !dbStatus ? 'var(--muted)' : dbStatus.is_host ? 'var(--blue)' : dbStatus.is_connected ? 'var(--green)' : 'var(--red)',
+                    fontSize: '20px',
+                    fontWeight: 800
+                  }}>
+                    {!dbStatus ? '●' : dbStatus.is_host ? '🔵' : dbStatus.is_connected ? '🟢' : '🔴'}
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', maxWidth: '600px', width: '100%' }}>
+
+                {/* 2. Device Hostname Identifier card */}
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--line)',
+                  background: 'var(--surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '12px'
+                }}>
+                  <div>
+                    <span style={{ color: 'var(--muted)' }}>This PC's Network Hostname:</span>{' '}
+                    <strong style={{ color: 'var(--ink)', fontSize: '13px', fontFamily: 'monospace' }}>{computerName}</strong>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                    Use this name to configure other terminals on the LAN.
+                  </div>
+                </div>
+
+                {/* 3. Operational Mode Setup Controls */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div style={{ padding: '20px', border: '1px solid var(--line)', borderRadius: 'var(--r2)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Database size={16} style={{ color: 'var(--blue)' }} /> Main Server PC
+                      <Database size={16} style={{ color: 'var(--blue)' }} /> 1. Main Server PC Mode
                     </div>
-                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0, flex: 1 }}>Enable Main Server mode to allow other Cashier PCs to connect over LAN.</p>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0, flex: 1 }}>
+                      Enable Main Server mode to share this computer's database directory over the local network (LAN) for other Cashier PC Terminals.
+                    </p>
                     <button onClick={handleEnableHost} disabled={isEnablingHost} className="btn btn-primary" style={{ padding: '8px 14px', fontSize: '12px' }}>
-                      {isEnablingHost ? 'Configuring...' : 'Enable Server Mode'}
+                      {isEnablingHost ? 'Configuring Server...' : 'Enable Server Mode'}
                     </button>
                   </div>
+
                   <div style={{ padding: '20px', border: '1px solid var(--line)', borderRadius: 'var(--r2)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Users size={16} style={{ color: 'var(--yellow)' }} /> Cashier PC Terminal
+                      <Users size={16} style={{ color: 'var(--yellow)' }} /> 2. Cashier Terminal Mode
                     </div>
-                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0, flex: 1 }}>Auto-detect and connect this PC to the Main Server running on your local network.</p>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0, flex: 1 }}>
+                      Scan the local network (LAN) to automatically detect and connect this terminal with the active Main Server.
+                    </p>
                     <button onClick={handleAutoDetect} disabled={isScanning} className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '12px' }}>
-                      {isScanning ? 'Scanning...' : 'Auto-Detect Server'}
+                      {isScanning ? 'Scanning Network...' : 'Auto-Detect Server'}
                     </button>
                   </div>
                 </div>
+
+                {/* 4. Manual Configuration Panel */}
+                <div style={{
+                  padding: '20px',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r2)',
+                  background: 'var(--surface)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Edit3 size={16} style={{ color: 'var(--blue)' }} /> Manual Database Path Override
+                  </div>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
+                    In case automatic discovery fails, enter the network database UNC share path manually (e.g. <code>\\MAIN-PC-NAME\LangratiaData$\pharmacy.db</code>).
+                  </p>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="e.g. \\DESKTOP-HOST-NAME\LangratiaData$\pharmacy.db"
+                      value={manualPath}
+                      onChange={(e) => setManualPath(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <button
+                      onClick={handleSaveDatabasePath}
+                      disabled={isSavingPath}
+                      className="btn btn-primary"
+                      style={{ padding: '0 16px', fontSize: '12px', whiteSpace: 'nowrap', minHeight: 'unset', height: '34px' }}
+                    >
+                      {isSavingPath ? 'Saving...' : 'Apply Path'}
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </Panel>
           </div>

@@ -1,5 +1,25 @@
 export namespace main {
 	
+	export class ConnectionStatus {
+	    configured_path: string;
+	    active_path: string;
+	    is_connected: boolean;
+	    is_host: boolean;
+	    friendly_message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConnectionStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.configured_path = source["configured_path"];
+	        this.active_path = source["active_path"];
+	        this.is_connected = source["is_connected"];
+	        this.is_host = source["is_host"];
+	        this.friendly_message = source["friendly_message"];
+	    }
+	}
 	export class NetworkStatus {
 	    is_host: boolean;
 	    db_path: string;
@@ -1026,6 +1046,7 @@ export namespace services {
 	export class DashboardSummary {
 	    sales_today: number;
 	    total_medicines: number;
+	    stock_valuation: number;
 	    low_stock_count: number;
 	    out_of_stock_count: number;
 	    expiring_soon_count: number;
@@ -1043,6 +1064,7 @@ export namespace services {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.sales_today = source["sales_today"];
 	        this.total_medicines = source["total_medicines"];
+	        this.stock_valuation = source["stock_valuation"];
 	        this.low_stock_count = source["low_stock_count"];
 	        this.out_of_stock_count = source["out_of_stock_count"];
 	        this.expiring_soon_count = source["expiring_soon_count"];

@@ -52,6 +52,8 @@ export function GetCashierPerformance(arg1:number):Promise<services.CashierPerfo
 
 export function GetCurrencySymbol():Promise<string>;
 
+export function GetDBConnectionStatus():Promise<main.ConnectionStatus>;
+
 export function GetDashboardSummary():Promise<services.DashboardSummary>;
 
 export function GetExpiringBatches(arg1:number):Promise<Array<models.Batch>>;

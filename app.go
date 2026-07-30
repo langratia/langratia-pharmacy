@@ -25,6 +25,8 @@ type App struct {
 	ctx                 context.Context
 	database            *db.DB
 	dbPath              string
+	dbConnectionFailed  bool
+	dbConnectionError   string
 	authService         *services.AuthService
 	medicineService     *services.MedicineService
 	batchService        *services.BatchService
@@ -128,39 +130,55 @@ func (a *App) startup(ctx context.Context) {
 	database, err := db.InitDB(dbPath)
 	if err != nil {
 		logger.Error("Error initializing SQLite database at %s: %v", dbPath, err)
-		// Fallback to local executable directory
-		dbPath = filepath.Join(execDir, "pharmacy.db")
-		database, err = db.InitDB(dbPath)
-		if err != nil {
-			logger.Error("Critical failure: cannot initialize database: %v", err)
-			panic(fmt.Sprintf("Critical failure: cannot initialize database: %v", err))
+		if customConfig.DBPath != "" {
+			// If a custom network database path is explicitly configured, DO NOT silently fall back to local database.
+			a.dbConnectionFailed = true
+			a.dbConnectionError = err.Error()
+			a.dbPath = dbPath
+			a.database = nil
+		} else {
+			// Fallback to local executable directory
+			dbPath = filepath.Join(execDir, "pharmacy.db")
+			database, err = db.InitDB(dbPath)
+			if err != nil {
+				logger.Error("Critical failure: cannot initialize database: %v", err)
+				panic(fmt.Sprintf("Critical failure: cannot initialize database: %v", err))
+			}
+			a.database = database
+			a.dbPath = dbPath
 		}
+	} else {
+		a.database = database
+		a.dbPath = dbPath
 	}
 
-	a.database = database
-	a.dbPath = dbPath
-	a.authService = services.NewAuthService(database)
-	a.medicineService = services.NewMedicineService(database)
-	a.batchService = services.NewBatchService(database)
-	a.supplierService = services.NewSupplierService(database)
-	a.purchaseService = services.NewPurchaseService(database, a.batchService)
-	a.salesService = services.NewSalesService(database, a.batchService)
-	a.reportService = services.NewReportService(database)
-	a.backupService = services.NewBackupService(database, dbPath)
-	a.prescriptionService = services.NewPrescriptionService(database)
-	a.notificationService = services.NewNotificationService(database)
-	a.searchService = services.NewSearchService(database)
-	a.permissionService = services.NewPermissionService(database)
-	a.configService = services.NewConfigService(database)
-	a.shiftService = services.NewShiftService(database)
+	// Only initialize services if we have a valid database connection
+	if a.database != nil {
+		a.authService = services.NewAuthService(a.database)
+		a.medicineService = services.NewMedicineService(a.database)
+		a.batchService = services.NewBatchService(a.database)
+		a.supplierService = services.NewSupplierService(a.database)
+		a.purchaseService = services.NewPurchaseService(a.database, a.batchService)
+		a.salesService = services.NewSalesService(a.database, a.batchService)
+		a.reportService = services.NewReportService(a.database)
+		a.backupService = services.NewBackupService(a.database, a.dbPath)
+		a.prescriptionService = services.NewPrescriptionService(a.database)
+		a.notificationService = services.NewNotificationService(a.database)
+		a.searchService = services.NewSearchService(a.database)
+		a.permissionService = services.NewPermissionService(a.database)
+		a.configService = services.NewConfigService(a.database)
+		a.shiftService = services.NewShiftService(a.database)
 
-	// If running in Host mode, start UDP Discovery Listener
-	if customConfig.DBPath == "" {
-		go network.StartServerListener("LangratiaData$")
+		// If running in Host mode, start UDP Discovery Listener
+		if customConfig.DBPath == "" {
+			go network.StartServerListener("LangratiaData$")
+		}
+
+		// Start Automated Backup Scheduler
+		a.startBackupScheduler()
+	} else {
+		logger.Warn("Services initialization skipped due to missing database connection.")
 	}
-
-	// Start Automated Backup Scheduler
-	a.startBackupScheduler()
 }
 
 // shutdown is called when the app is terminating.
@@ -606,6 +624,9 @@ func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurch
 
 // Sales / POS API Bindings
 func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string, discountAmount float64, discountType string, shiftID *int64) (*models.Sale, error) {
+	if a.dbConnectionFailed || a.database == nil {
+		return nil, fmt.Errorf("Cannot complete sale: Connection to the main computer is currently offline. Please check your network cables or make sure the main computer is powered on.")
+	}
 	if a.salesService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -826,6 +847,40 @@ func (a *App) GetNetworkStatus() NetworkStatus {
 	return NetworkStatus{
 		IsHost: isHost,
 		DBPath: a.dbPath,
+	}
+}
+
+type ConnectionStatus struct {
+	ConfiguredPath  string `json:"configured_path"`
+	ActivePath      string `json:"active_path"`
+	IsConnected     bool   `json:"is_connected"`
+	IsHost          bool   `json:"is_host"`
+	FriendlyMessage string `json:"friendly_message"`
+}
+
+func (a *App) GetDBConnectionStatus() ConnectionStatus {
+	isHost := true
+	if strings.HasPrefix(a.dbPath, "\\\\") || strings.HasPrefix(a.dbPath, "//") {
+		isHost = false
+	}
+
+	isConnected := !a.dbConnectionFailed && a.database != nil
+
+	var friendlyMsg string
+	if isHost {
+		friendlyMsg = "Running as Main Server"
+	} else if isConnected {
+		friendlyMsg = "Connected to Main Computer"
+	} else {
+		friendlyMsg = "Main Computer Offline (Sales Disabled)"
+	}
+
+	return ConnectionStatus{
+		ConfiguredPath:  a.dbPath,
+		ActivePath:      a.dbPath,
+		IsConnected:     isConnected,
+		IsHost:          isHost,
+		FriendlyMessage: friendlyMsg,
 	}
 }
 
