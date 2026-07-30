@@ -538,7 +538,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                       {user?.full_name || user?.username}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'capitalize', marginTop: '2px' }}>
-                      {user?.role} {user?.branch ? `· ${user.branch}` : ''}
+                      {user?.role} {(user as any)?.branch ? `· ${(user as any).branch}` : ''}
                     </div>
                   </div>
                 </div>
