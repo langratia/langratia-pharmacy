@@ -147,7 +147,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '16px' }}>
 
+      {/* ── Top Header Strip with Stock Valuation Pill ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
+        <div>
+          <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.3px' }}>Dashboard Overview</h1>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>Real-time pharmacy metrics & inventory performance</div>
+        </div>
 
+        {/* Business Stock Valuation Pill */}
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--line)',
+          borderRadius: '24px',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+        }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--blue)' }} />
+          <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>Business Stock Valuation:</span>
+          <span className="tabular-nums" style={{ color: 'var(--blue)', fontWeight: 800, fontSize: '14px' }}>
+            {loading ? '—' : `UGX ${formatCurrency(summary.stock_valuation || 0)}`}
+          </span>
+        </div>
+      </div>
 
       {/* ── Error banner ── */}
       {hasError && !loading && (

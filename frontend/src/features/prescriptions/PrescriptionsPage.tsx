@@ -106,11 +106,14 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
     fetchPrescriptions(statusFilter, debouncedSearch);
   }, [statusFilter, debouncedSearch, fetchPrescriptions]);
 
+  const [isInspectModalOpen, setIsInspectModalOpen] = useState<boolean>(false);
+
   const handleSelectRx = async (rxId: number) => {
     try {
       const details = await GetPrescriptionDetails(rxId);
       if (details) {
         setSelectedRx(details);
+        setIsInspectModalOpen(true);
       }
     } catch (err: any) {
       console.error('Failed to load prescription details', err);

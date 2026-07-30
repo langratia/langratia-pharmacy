@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2 } from 'lucide-react';
+import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2, BarChart2, Trash2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, ClearSampleData,
@@ -17,6 +17,144 @@ import { SplitPane } from '../../components/ui/SplitPane';
 import { ReAuthDialog } from '../../components/ui/ReAuthDialog';
 import { PharmacySetupTab } from './PharmacySetupTab';
 import lanGuide from '../../assets/lan_setup_guide.png';
+
+const menuItemStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  width: '100%',
+  padding: '8px 12px',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: 'var(--ink)',
+  background: 'none',
+  border: 'none',
+  borderRadius: '6px',
+  cursor: 'pointer',
+  textAlign: 'left',
+  minHeight: 'unset'
+};
+
+const UserActionsMenu: React.FC<{
+  u: models.User;
+  currentUser: any;
+  onEdit: (u: models.User) => void;
+  onActivity: (id: number) => void;
+  onStats: (id: number, username: string) => void;
+  onResetPw: (u: models.User) => void;
+  onDeactivate: (id: number, username: string) => void;
+  onReactivate: (id: number, username: string) => void;
+}> = ({ u, currentUser, onEdit, onActivity, onStats, onResetPw, onDeactivate, onReactivate }) => {
+  const [open, setOpen] = useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          onClick={() => onEdit(u)}
+          className="btn"
+          style={{ height: '30px', padding: '0 10px', fontSize: '12px', gap: '4px', minHeight: 'unset' }}
+        >
+          <Edit3 size={13} /> Edit
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="btn"
+          style={{ height: '30px', padding: '0 8px', fontSize: '13px', minHeight: 'unset', fontWeight: 700 }}
+          title="More Actions"
+        >
+          •••
+        </button>
+      </div>
+
+      {open && (
+        <div style={{
+          position: 'absolute',
+          right: 0,
+          top: '34px',
+          width: '185px',
+          background: 'var(--surface)',
+          border: '1px solid var(--line-strong)',
+          borderRadius: '8px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          zIndex: 100,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '4px'
+        }}>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onStats(u.id, u.username); }}
+            style={menuItemStyle}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-soft)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            <BarChart2 size={14} style={{ color: 'var(--blue)' }} /> View Sales Stats
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onActivity(u.id); }}
+            style={menuItemStyle}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-soft)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            <Activity size={14} style={{ color: '#06b6d4' }} /> Activity Logs
+          </button>
+
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onResetPw(u); }}
+            style={menuItemStyle}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-soft)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+          >
+            <Key size={14} style={{ color: '#eab308' }} /> Reset Password
+          </button>
+
+          <div style={{ height: '1px', background: 'var(--line)', margin: '4px 0' }} />
+
+          {!u.active ? (
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onReactivate(u.id, u.username); }}
+              style={{ ...menuItemStyle, color: 'var(--green)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <RefreshCw size={14} /> Reactivate User
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onDeactivate(u.id, u.username); }}
+              disabled={u.username === currentUser?.username}
+              style={{ ...menuItemStyle, color: 'var(--red)', opacity: u.username === currentUser?.username ? 0.4 : 1 }}
+              onMouseEnter={e => { if (u.username !== currentUser?.username) e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            >
+              <Trash2 size={14} /> Deactivate User
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
@@ -441,19 +579,18 @@ export const SettingsPage: React.FC = () => {
       accessor: (u) => <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never'}</span>
     },
     {
-      key: 'actions', header: 'Actions', width: '30%', align: 'right' as const,
+      key: 'actions', header: 'Actions', width: '25%', align: 'right' as const,
       accessor: (u) => (
-        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => handleEditUser(u)} title="Edit Details" style={actionBtnStyle}><Edit3 size={12} /></button>
-          <button type="button" onClick={() => handleViewUserDetail(u.id)} title="User Activity" style={actionBtnStyle}><Activity size={12} /></button>
-          <button type="button" onClick={() => handleViewPerformance(u.id, u.username)} title="Sales Stats" style={actionBtnStyle}>Stats</button>
-          <button type="button" onClick={() => requireReauth(() => { setResetTargetUserId(u.id); setResetTargetUsername(u.username); setShowResetPwInput(true); }, 'Confirm identity to reset password')} title="Reset Password" style={actionBtnStyle}><Key size={12} /></button>
-          {!u.active ? (
-            <button type="button" onClick={() => handleReactivateUser(u.id, u.username)} title="Reactivate" style={{ ...actionBtnStyle, color: 'var(--green)', borderColor: 'rgba(16,185,129,0.3)' }}><RefreshCw size={12} /></button>
-          ) : (
-            <button type="button" onClick={() => handleDeactivateUser(u.id, u.username)} disabled={u.username === user?.username} title="Deactivate" style={{ ...actionBtnStyle, color: 'var(--red)', opacity: u.username === user?.username ? 0.4 : 1 }}>Deactivate</button>
-          )}
-        </div>
+        <UserActionsMenu
+          u={u}
+          currentUser={user}
+          onEdit={handleEditUser}
+          onActivity={handleViewUserDetail}
+          onStats={handleViewPerformance}
+          onResetPw={(target) => requireReauth(() => { setResetTargetUserId(target.id); setResetTargetUsername(target.username); setShowResetPwInput(true); }, 'Confirm identity to reset password')}
+          onDeactivate={handleDeactivateUser}
+          onReactivate={handleReactivateUser}
+        />
       )
     }
   ];
@@ -629,27 +766,7 @@ export const SettingsPage: React.FC = () => {
                 </form>
               )}
 
-              {/* Edit User drawer */}
-              {editTarget && (
-                <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '12px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>Edit: {editTarget.username}</div>
-                  <div>
-                    <label style={labelStyle}>Full Name</label>
-                    <input type="text" required value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>Role</label>
-                    <select value={editForm.role} onChange={e => setEditForm({ ...editForm, role: e.target.value })} style={inputStyle}>
-                      <option value="cashier">Cashier</option>
-                      <option value="admin">Administrator</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="submit" disabled={isEditing} className="btn btn-primary" style={{ flex: 1, padding: '6px 12px', fontSize: '12px' }}>Save</button>
-                    <button type="button" onClick={() => setEditTarget(null)} className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }}>Cancel</button>
-                  </div>
-                </form>
-              )}
+
 
               {/* Password change block */}
               <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', marginTop: '12px' }}>
@@ -816,6 +933,109 @@ export const SettingsPage: React.FC = () => {
         )}
 
       </div>
+
+      {/* ── MODAL: Edit User Details ──────────────────────────── */}
+      {editTarget && (
+        <div className="modal-overlay" onClick={() => setEditTarget(null)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 'var(--r2)',
+              width: '480px',
+              maxWidth: '90vw',
+              padding: '24px',
+              boxShadow: 'var(--shadow-dropdown)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(18,108,255,0.12)', border: '1px solid rgba(18,108,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--blue)' }}>
+                  <Users size={18} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+                    Edit User: {editTarget.username}
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Update staff account details & access privileges</div>
+                </div>
+              </div>
+              <button type="button" onClick={() => setEditTarget(null)} className="btn" style={{ padding: '4px 8px', minHeight: 'unset' }}><X size={16} /></button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
+              <div>
+                <label style={labelStyle}>Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editForm.full_name}
+                  onChange={e => setEditForm({ ...editForm, full_name: e.target.value })}
+                  style={{ ...inputStyle, height: '38px' }}
+                />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Role Privilege</label>
+                <select
+                  value={editForm.role}
+                  onChange={e => setEditForm({ ...editForm, role: e.target.value })}
+                  style={{ ...inputStyle, height: '38px' }}
+                >
+                  <option value="cashier">Cashier</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={labelStyle}>Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +256 700 000000"
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    style={{ ...inputStyle, height: '38px' }}
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Branch Location</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Main Branch"
+                    value={editForm.branch}
+                    onChange={e => setEditForm({ ...editForm, branch: e.target.value })}
+                    style={{ ...inputStyle, height: '38px' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Email Address</label>
+                <input
+                  type="email"
+                  placeholder="e.g. staff@pharmacy.com"
+                  value={editForm.email}
+                  onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                  style={{ ...inputStyle, height: '38px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '14px' }}>
+                <button type="button" onClick={() => setEditTarget(null)} className="btn">Cancel</button>
+                <button type="submit" disabled={isEditing} className="btn btn-primary" style={{ gap: '6px' }}>
+                  <Save size={14} />
+                  <span>{isEditing ? 'Saving…' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ReAuth Dialog Modal */}
       <ReAuthDialog

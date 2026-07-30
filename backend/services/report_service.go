@@ -59,6 +59,7 @@ type TopProductSummary struct {
 type DashboardSummary struct {
 	SalesToday        float64               `json:"sales_today"`
 	TotalMedicines    int                   `json:"total_medicines"`
+	StockValuation    float64               `json:"stock_valuation"`
 	LowStockCount     int                   `json:"low_stock_count"`
 	OutOfStockCount   int                   `json:"out_of_stock_count"`
 	ExpiringSoonCount int                   `json:"expiring_soon_count"`
@@ -96,6 +97,9 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 	if err := s.db.QueryRow(`SELECT COUNT(*) FROM medicines WHERE is_archived = 0`).Scan(&summary.TotalMedicines); err != nil {
 		return nil, err
 	}
+
+	// Stock Valuation (buying price * current stock)
+	_ = s.db.QueryRow(`SELECT COALESCE(SUM(current_stock * buying_price), 0.0) FROM medicines WHERE is_archived = 0`).Scan(&summary.StockValuation)
 
 	// 3. Low stock count (current_stock > 0 AND current_stock <= reorder_level)
 	if err := s.db.QueryRow(`SELECT COUNT(*) FROM medicines WHERE is_archived = 0 AND current_stock > 0 AND current_stock <= reorder_level`).Scan(&summary.LowStockCount); err != nil {
