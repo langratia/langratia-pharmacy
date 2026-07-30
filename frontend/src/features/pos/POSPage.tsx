@@ -711,7 +711,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
       {/* ── MODAL: Tender / Checkout Confirmation ────────── */}
       {isTenderOpen && (
-        <Modal onClose={() => !isProcessing && setIsTenderOpen(false)} width={460}>
+        <Modal onClose={() => !isProcessing && setIsTenderOpen(false)} width={600}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             {modalTitle('Order & Payment Confirmation')}
             {!isProcessing && <button onClick={() => setIsTenderOpen(false)} className="win-btn"><X size={16} /></button>}
@@ -725,7 +725,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             borderRadius: '10px',
             padding: '12px 14px',
             marginBottom: '16px',
-            maxHeight: '180px',
+            maxHeight: '400px',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
