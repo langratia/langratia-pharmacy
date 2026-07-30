@@ -9,7 +9,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"time"
 
 	"app/backend/db"
 	"app/backend/logger"
@@ -156,6 +158,9 @@ func (a *App) startup(ctx context.Context) {
 	if customConfig.DBPath == "" {
 		go network.StartServerListener("LangratiaData$")
 	}
+
+	// Start Automated Backup Scheduler
+	a.startBackupScheduler()
 }
 
 // shutdown is called when the app is terminating.
@@ -167,6 +172,79 @@ func (a *App) shutdown(ctx context.Context) {
 		}
 	}
 	logger.Info("Shutdown complete.")
+}
+
+// startBackupScheduler initiates a background goroutine that performs periodic SQLite backups.
+func (a *App) startBackupScheduler() {
+	go func() {
+		// Run a backup once on startup to ensure we always get a snapshot if the app is opened
+		a.performAutomatedBackup()
+		
+		// Then run every 12 hours
+		ticker := time.NewTicker(12 * time.Hour)
+		defer ticker.Stop()
+		
+		for {
+			select {
+			case <-a.ctx.Done():
+				return
+			case <-ticker.C:
+				a.performAutomatedBackup()
+			}
+		}
+	}()
+}
+
+func (a *App) performAutomatedBackup() {
+	backupDir := filepath.Join(filepath.Dir(a.dbPath), "backups")
+	if err := os.MkdirAll(backupDir, platformFileMode()); err != nil {
+		logger.Error("Failed to create backup directory: %v", err)
+		return
+	}
+
+	// Create backup filename with timestamp
+	fileName := fmt.Sprintf("pharmacy_backup_%s.db", time.Now().Format("20060102_150405"))
+	destPath := filepath.Join(backupDir, fileName)
+
+	// Call ExportDatabase with system user ID (0)
+	if err := a.backupService.ExportDatabase(destPath, 0, "SYSTEM_AUTOMATED_BACKUP"); err != nil {
+		logger.Error("Automated backup failed: %v", err)
+		return
+	}
+	logger.Info("Automated backup completed successfully: %s", fileName)
+
+	// Cleanup old backups (keep last 14 backups - approx 7 days)
+	a.cleanupOldBackups(backupDir, 14)
+}
+
+func (a *App) cleanupOldBackups(backupDir string, keepCount int) {
+	entries, err := os.ReadDir(backupDir)
+	if err != nil {
+		return
+	}
+
+	var backupFiles []string
+	for _, f := range entries {
+		if !f.IsDir() && strings.HasPrefix(f.Name(), "pharmacy_backup_") && strings.HasSuffix(f.Name(), ".db") {
+			backupFiles = append(backupFiles, filepath.Join(backupDir, f.Name()))
+		}
+	}
+
+	if len(backupFiles) <= keepCount {
+		return
+	}
+
+	sort.Strings(backupFiles)
+
+	// Delete the oldest ones
+	for i := 0; i < len(backupFiles)-keepCount; i++ {
+		err := os.Remove(backupFiles[i])
+		if err != nil {
+			logger.Error("Failed to delete old backup %s: %v", backupFiles[i], err)
+		} else {
+			logger.Info("Deleted old backup: %s", backupFiles[i])
+		}
+	}
 }
 
 // Auth API Bindings
