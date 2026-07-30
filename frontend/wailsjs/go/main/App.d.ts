@@ -24,6 +24,8 @@ export function BulkImportMedicines(arg1:Array<models.Medicine>,arg2:number,arg3
 
 export function ChangePassword(arg1:number,arg2:string,arg3:string):Promise<void>;
 
+export function ClearSampleData(arg1:number):Promise<void>;
+
 export function CloseShift(arg1:number,arg2:number,arg3:string):Promise<models.ShiftZReport>;
 
 export function CompleteFirstTimeSetup(arg1:string,arg2:string,arg3:string,arg4:string):Promise<models.User>;

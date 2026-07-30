@@ -342,13 +342,13 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       accessor: (med) => (
         <span
           style={{
-            padding: '1px 6px',
-            backgroundColor: 'var(--color-bg-base)',
-            border: '1px solid var(--color-border-default)',
-            borderRadius: '0px',
-            fontSize: '10px',
+            padding: '2px 8px',
+            background: 'rgba(18,108,255,0.08)',
+            border: '1px solid rgba(18,108,255,0.2)',
+            borderRadius: '20px',
+            fontSize: '11px',
             fontWeight: 600,
-            color: 'var(--color-text-secondary)'
+            color: 'var(--muted)'
           }}
         >
           {med.category}
@@ -361,7 +361,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       width: '12%',
       align: 'right' as const,
       accessor: (med: Medicine) => (
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>
+        <span style={{ color: 'var(--muted-dark)', fontSize: '12px' }}>
           {formatCurrency(med.buying_price)}
         </span>
       )
@@ -372,7 +372,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       width: '13%',
       align: 'right' as const,
       accessor: (med) => (
-        <span style={{ fontWeight: 700, color: 'var(--color-text-accent)', fontSize: '11px' }}>
+        <span style={{ fontWeight: 700, color: 'var(--blue)', fontSize: '12px' }}>
           {formatCurrency(med.selling_price)}
         </span>
       )
@@ -387,7 +387,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
         const isLow = med.current_stock > 0 && med.current_stock <= med.reorder_level;
 
         return (
-          <span style={{ fontWeight: 700, color: isOut ? 'var(--color-danger-text)' : isLow ? 'var(--color-warning-text)' : 'var(--color-success-text)' }}>
+          <span style={{ fontWeight: 700, color: isOut ? 'var(--red)' : isLow ? 'var(--yellow)' : 'var(--green)' }}>
             {med.current_stock}
           </span>
         );
@@ -415,99 +415,66 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
   // Master Primary Pane Content
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', padding: '0', backgroundColor: 'var(--color-bg-base)' }}>
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".csv"
-        onChange={handleCSVImport}
-        style={{ display: 'none' }}
-      />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+      <input type="file" ref={fileInputRef} accept=".csv" onChange={handleCSVImport} style={{ display: 'none' }} />
 
-      {/* 1-Line Compact Application Command Toolbar */}
-      <Panel noPadding style={{ padding: '0 16px', height: '44px', minHeight: '44px', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>Inventory Management</span>
-            {stockFilter !== 'all' && (
-              <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'var(--color-accent-subtle)', color: 'var(--color-accent-base)', border: '1px solid var(--color-accent-base)' }}>
-                FILTER: {stockFilter.replace('_', ' ').toUpperCase()}
-              </span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end' }}>
-            <SearchBar
-              value={search}
-              onChange={setSearch}
-              placeholder="Search medicine, generic, brand..."
-              width="220px"
-              showShortcut={false}
-            />
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Filter size={14} style={{ color: 'var(--color-text-muted)' }} />
-              <select
-                value={stockFilter}
-                onChange={(e) => {
-                  setStockFilter(e.target.value);
-                  if (onFilterChange) onFilterChange(e.target.value);
-                }}
-                style={{ height: '28px', fontSize: '12px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', outline: 'none' }}
-              >
-                <option value="all">All Stock Statuses</option>
-                <option value="low_stock">Low Stock Only</option>
-                <option value="out_of_stock">Out of Stock Only</option>
-                <option value="expiring">Expiring Batches</option>
-              </select>
-
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                style={{ height: '28px', fontSize: '12px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', outline: 'none' }}
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-
-              {canEdit && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  <input
-                    type="checkbox"
-                    checked={includeArchived}
-                    onChange={(e) => setIncludeArchived(e.target.checked)}
-                    style={{ margin: 0, width: '14px', height: '14px', cursor: 'pointer' }}
-                  />
-                  Archived
-                </label>
-              )}
-            </div>
-
-            {canEdit && (
-              <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={csvLoading}
-                  className="desktop-btn-secondary"
-                  style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px', opacity: csvLoading ? 0.6 : 1 }}
-                >
-                  <Upload size={14} />
-                  <span>{csvLoading ? 'Importing...' : 'Import CSV'}</span>
-                </button>
-                <button
-                  onClick={handleCreateNewRecord}
-                  className="desktop-btn-primary"
-                  style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}
-                >
-                  <Plus size={14} />
-                  <span>Add Medicine</span>
-                </button>
-              </>
-            )}
-          </div>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
+          Inventory
+          {stockFilter !== 'all' && (
+            <span style={{ fontSize: '11px', padding: '3px 10px', background: 'rgba(18,108,255,0.12)', color: 'var(--blue)', border: '1px solid rgba(18,108,255,0.25)', borderRadius: '20px', fontWeight: 700 }}>
+              {stockFilter.replace('_', ' ')}
+            </span>
+          )}
         </div>
-      </Panel>
+
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search medicine, generic, brand…"
+          width="220px"
+          showShortcut={false}
+        />
+
+        <select
+          value={stockFilter}
+          onChange={(e) => { setStockFilter(e.target.value); if (onFilterChange) onFilterChange(e.target.value); }}
+          style={{ height: '38px', fontSize: '13px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset' }}
+        >
+          <option value="all">All Stock</option>
+          <option value="low_stock">Low Stock</option>
+          <option value="out_of_stock">Out of Stock</option>
+          <option value="expiring">Expiring</option>
+        </select>
+
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          style={{ height: '38px', fontSize: '13px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset' }}
+        >
+          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+        </select>
+
+        {canEdit && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <input type="checkbox" checked={includeArchived} onChange={(e) => setIncludeArchived(e.target.checked)} style={{ cursor: 'pointer' }} />
+            Show Archived
+          </label>
+        )}
+
+        {canEdit && (
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <button onClick={() => fileInputRef.current?.click()} disabled={csvLoading} className="btn" style={{ gap: '6px' }}>
+              <Upload size={14} />
+              {csvLoading ? 'Importing…' : 'Import CSV'}
+            </button>
+            <button onClick={handleCreateNewRecord} className="btn btn-primary" style={{ gap: '6px' }}>
+              <Plus size={14} /> Add Medicine
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Master DataGrid */}
       <DataGrid
@@ -520,38 +487,23 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
         onRowClick={(row) => handleSelectMedicine(row)}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 170px)"
         style={{ flex: 1 }}
       />
 
       {/* Bottom Summary Strip */}
-      <div
-        style={{
-          height: '24px',
-          backgroundColor: 'var(--color-bg-panel)',
-          border: '1px solid var(--color-border-default)',
-          borderRadius: '0px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 10px',
-          fontSize: '11px',
-          color: 'var(--color-text-secondary)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <Boxes size={12} style={{ color: 'var(--color-accent-base)' }} /> Showing SKUs: <strong>{filteredMedicines.length} / {medicines.length}</strong>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px', padding: '0 14px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px', color: 'var(--muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Boxes size={13} style={{ color: 'var(--blue)' }} />
+            <strong style={{ color: 'var(--ink)' }}>{filteredMedicines.length}</strong> / {medicines.length} SKUs
           </span>
-          <span>•</span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: lowStockCount > 0 ? 'var(--color-warning-text)' : 'var(--color-text-secondary)' }}>
-            <AlertTriangle size={12} /> Low Stock Warnings: <strong>{lowStockCount}</strong>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: lowStockCount > 0 ? 'var(--yellow)' : 'var(--muted)' }}>
+            <AlertTriangle size={13} />
+            <strong>{lowStockCount}</strong> low stock
           </span>
         </div>
         {canEdit && (
-          <div>
-            Inventory Valuation: <strong style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(totalStockValuation)}</strong>
-          </div>
+          <span>Valuation: <strong style={{ color: 'var(--blue)' }}>UGX {formatCurrency(totalStockValuation)}</strong></span>
         )}
       </div>
     </div>
@@ -559,28 +511,28 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
   // Inspector Docked Panel Content
   const inspectorContent = (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', boxSizing: 'border-box', overflowY: 'auto' }}>
       {inspectorError && (
-        <div style={{ padding: '8px 12px', borderRadius: '0px', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', color: 'var(--color-danger-text)', fontSize: '12px' }}>
+        <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', color: 'var(--color-danger-text)', fontSize: '13px' }}>
           {inspectorError}
         </div>
       )}
 
       {(!selectedMedicine && !isNewRecord) ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-          <Package size={36} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-          Select a medicine from the data grid to inspect details and edit stock records.
+        <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <Package size={40} style={{ opacity: 0.25 }} />
+          <div style={{ fontSize: '14px', color: 'var(--muted)' }}>Select a medicine to inspect</div>
         </div>
       ) : (
         <form onSubmit={handleSaveMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {selectedMedicine && (
-                <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', color: 'var(--color-accent-solid)' }}>
+                <div style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(18,108,255,0.12)', border: '1px solid rgba(18,108,255,0.25)', borderRadius: '8px', color: 'var(--blue)' }}>
                   <Pill size={16} />
                 </div>
               )}
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
                 {isNewRecord ? 'NEW MEDICINE ENTRY' : selectedMedicine?.name}
               </span>
             </div>
@@ -605,7 +557,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               placeholder="e.g. Amoxicillin Trihydrate"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                        style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
             />
           </div>
 
@@ -620,7 +572,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 placeholder="e.g. Amoxicillin"
                 value={formData.generic_name}
                 onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
             <div>
@@ -633,7 +585,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 placeholder="e.g. Amoxil"
                 value={formData.brand_name}
                 onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
           </div>
@@ -646,7 +598,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
               disabled={!canEdit}
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                        style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
             >
                 {categories.filter(c => c !== 'All').map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -663,7 +615,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 disabled={!canEdit}
                 value={formData.medicine_form}
                 onChange={(e) => setFormData({ ...formData, medicine_form: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               >
                 {medicineForms.map(form => (
                   <option key={form} value={form}>{form}</option>
@@ -680,7 +632,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 placeholder="e.g. 500mg"
                 value={formData.dosage_strength}
                 onChange={(e) => setFormData({ ...formData, dosage_strength: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
           </div>
@@ -696,7 +648,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 placeholder="e.g. 10x10"
                 value={formData.pack_size}
                 onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
             <div>
@@ -710,7 +662,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 step="0.01"
                 value={formData.tax_rate}
                 onChange={(e) => setFormData({ ...formData, tax_rate: parseFloat(e.target.value) || 0 })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
           </div>
@@ -727,7 +679,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 step="0.01"
                 value={formData.buying_price}
                 onChange={(e) => setFormData({ ...formData, buying_price: sanitizePriceInput(e.target.value) })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
             <div>
@@ -741,7 +693,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 step="0.01"
                 value={formData.selling_price}
                 onChange={(e) => setFormData({ ...formData, selling_price: sanitizePriceInput(e.target.value) })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-accent)', fontWeight: 700, boxSizing: 'border-box' }}
+                            style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--blue)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px', fontWeight: 700 }}
               />
             </div>
           </div>
@@ -755,7 +707,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 disabled={!canEdit}
                 value={formData.product_status}
                 onChange={(e) => setFormData({ ...formData, product_status: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               >
                 <option value="active">Active</option>
                 <option value="discontinued">Discontinued</option>
@@ -801,7 +753,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 min="0"
                 value={formData.reorder_level}
                 onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
           </div>
@@ -817,7 +769,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 placeholder="e.g. Rene Industries"
                 value={formData.manufacturer}
                 onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               />
             </div>
             <div>
@@ -828,7 +780,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 disabled={!canEdit}
                 value={formData.supplier_id ?? ''}
                 onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value ? parseInt(e.target.value) : undefined })}
-                style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
+                          style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', minHeight: 'unset', fontSize: '13px' }}
               >
                 <option value="">-- No Supplier --</option>
                 {suppliers.map(s => (
@@ -853,13 +805,14 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
           </div>
 
           {canEdit && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', gap: '8px' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {selectedMedicine && (
                   <button
                     type="button"
                     onClick={() => handleToggleArchive(selectedMedicine)}
-                    style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid', borderColor: selectedMedicine.is_archived ? 'var(--color-info-border)' : 'var(--color-danger-border)', color: selectedMedicine.is_archived ? 'var(--color-info-text)' : 'var(--color-danger-text)', backgroundColor: 'transparent', cursor: 'pointer' }}
+                    className={selectedMedicine.is_archived ? 'btn' : 'btn btn-danger'}
+                    style={{ gap: '6px', height: '36px', fontSize: '13px' }}
                   >
                     {selectedMedicine.is_archived ? <RotateCcw size={14} /> : <Archive size={14} />}
                     <span>{selectedMedicine.is_archived ? 'Restore' : 'Archive'}</span>
@@ -868,25 +821,17 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 {(isNewRecord || isEditingMode) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsNewRecord(false);
-                      setIsEditingMode(false);
-                      setSelectedMedicine(null);
-                      setInspectorError(null);
-                    }}
-                    style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent', cursor: 'pointer' }}
+                    onClick={() => { setIsNewRecord(false); setIsEditingMode(false); setSelectedMedicine(null); setInspectorError(null); }}
+                    className="btn"
+                    style={{ height: '36px', fontSize: '13px' }}
                   >
                     Cancel
                   </button>
                 )}
               </div>
-              <button
-                type="submit"
-                className="desktop-btn-primary"
-                style={{ height: '32px', fontSize: '13px', marginLeft: 'auto', gap: '6px', borderRadius: '0px', padding: '0 16px' }}
-              >
+              <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '13px', marginLeft: 'auto', gap: '6px' }}>
                 <Save size={14} />
-                <span>{isNewRecord ? 'Save Record' : 'Update Record'}</span>
+                <span>{isNewRecord ? 'Save Record' : 'Update'}</span>
               </button>
             </div>
           )}
@@ -899,7 +844,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     <SplitPane
       primaryPane={primaryContent}
       inspectorPane={inspectorContent}
-      inspectorTitle={isNewRecord ? 'ADD NEW MEDICINE' : 'MEDICINE INSPECTOR'}
+      inspectorTitle={isNewRecord ? 'Add Medicine' : 'Medicine Inspector'}
       inspectorWidth="340px"
     />
   );

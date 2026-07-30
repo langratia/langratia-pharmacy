@@ -5,8 +5,7 @@ import {
   ShoppingCart,
   FileText,
   User,
-  Stethoscope,
-  Filter
+  Stethoscope
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -295,7 +294,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       header: 'RX Number',
       width: '25%',
       accessor: (rx) => (
-        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
           {rx.prescription_number}
         </span>
       )
@@ -306,8 +305,8 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       width: '30%',
       accessor: (rx) => (
         <div>
-          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{rx.patient_name}</span>
-          <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginLeft: '4px' }}>({rx.patient_age}y)</span>
+          <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{rx.patient_name}</span>
+          <span style={{ fontSize: '10px', color: 'var(--muted)', marginLeft: '4px' }}>({rx.patient_age}y)</span>
         </div>
       )
     },
@@ -316,7 +315,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       header: 'Prescribing Doctor',
       width: '25%',
       accessor: (rx) => (
-        <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
           Dr. {rx.doctor_name}
         </span>
       )
@@ -333,45 +332,31 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   ];
 
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', padding: '0', backgroundColor: 'var(--color-bg-base)' }}>
-      <Panel noPadding style={{ padding: '0 16px', height: '44px', minHeight: '44px', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-            Prescription Processing
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search RX number, patient, doctor..."
-              width="240px"
-              showShortcut={false}
-            />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Filter size={14} style={{ color: 'var(--color-text-muted)' }} />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ height: '28px', fontSize: '12px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', outline: 'none' }}
-              >
-                <option value="All">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Dispensed">Dispensed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            </div>
-            <button
-              onClick={handleOpenNewModal}
-              className="desktop-btn-primary"
-              style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}
-            >
-              <Plus size={14} />
-              <span>New Prescription</span>
-            </button>
-          </div>
-        </div>
-      </Panel>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>Prescriptions</div>
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search RX, patient, doctor…"
+          width="240px"
+          showShortcut={false}
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{ height: '38px', fontSize: '13px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset' }}
+        >
+          <option value="All">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Dispensed">Dispensed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <button onClick={handleOpenNewModal} className="btn btn-primary" style={{ marginLeft: 'auto', gap: '6px' }}>
+          <Plus size={14} /> New Prescription
+        </button>
+      </div>
 
       <DataGrid
         columns={columns}
@@ -383,103 +368,75 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
         onRowClick={(rx) => handleSelectRx(rx.id)}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 165px)"
         style={{ flex: 1 }}
       />
     </div>
   );
 
   const inspectorContent = (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', boxSizing: 'border-box', overflowY: 'auto' }}>
       {!selectedRx ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '11px' }}>
-          <FileText size={28} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-          Select a prescription to inspect details and dispense.
+        <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <FileText size={40} style={{ opacity: 0.25 }} />
+          <div style={{ fontSize: '14px' }}>Select a prescription to inspect</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '10px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', paddingBottom: '12px' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
               RX #{selectedRx.prescription_number}
             </span>
             <StatusBadge status={mapRxStatus(selectedRx.status)} />
           </div>
 
-          <div style={{ padding: '12px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-subtle)', borderRadius: '0px', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-primary)', fontWeight: 600 }}>
-              <User size={14} style={{ color: 'var(--color-accent-base)' }} /> {selectedRx.patient_name} ({selectedRx.patient_age} yrs)
+          <div style={{ padding: '14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--ink)', fontWeight: 600 }}>
+              <User size={14} style={{ color: 'var(--blue)' }} /> {selectedRx.patient_name} ({selectedRx.patient_age} yrs)
             </div>
-            <div style={{ color: 'var(--color-text-secondary)', fontSize: '11px' }}>
+            <div style={{ color: 'var(--muted)', fontSize: '12px' }}>
               Phone: {selectedRx.patient_phone || 'N/A'}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-              <Stethoscope size={14} style={{ color: 'var(--color-info-text)' }} /> Dr. {selectedRx.doctor_name}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--muted)', marginTop: '2px' }}>
+              <Stethoscope size={14} style={{ color: 'var(--cyan)' }} /> Dr. {selectedRx.doctor_name}
             </div>
           </div>
 
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>
-            PRESCRIBED MEDICATIONS ({selectedRx.items?.length || 0})
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Medications ({selectedRx.items?.length || 0})
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--color-border-default)', borderRadius: '0px', backgroundColor: 'var(--color-bg-panel)', padding: '4px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: '8px', background: 'var(--surface)', padding: '4px' }}>
             {selectedRx.items?.map((item) => (
-              <div key={item.id} style={{ padding: '8px 10px', borderBottom: '1px solid var(--color-border-subtle)', fontSize: '12px' }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '2px' }}>{item.medicine_name}</div>
-                <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
-                  {item.dosage} | {item.frequency} | {item.duration_days} day(s) | Qty: <strong>{item.quantity_prescribed}</strong>
+              <div key={item.id} style={{ padding: '10px 12px', borderBottom: '1px solid var(--line)', fontSize: '13px' }}>
+                <div style={{ fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>{item.medicine_name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                  {item.dosage} · {item.frequency} · {item.duration_days}d · Qty: <strong style={{ color: 'var(--ink)' }}>{item.quantity_prescribed}</strong>
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
             <div style={{ display: 'flex', gap: '8px' }}>
               {selectedRx.status !== 'Pending' && (
-                <button
-                  onClick={() => handleStatusChange(selectedRx.id, 'Pending')}
-                  className="desktop-btn-secondary"
-                  style={{ flex: 1, height: '32px', fontSize: '12px', borderRadius: '0px', fontWeight: 600 }}
-                >
-                  Mark Pending
-                </button>
+                <button onClick={() => handleStatusChange(selectedRx.id, 'Pending')} className="btn" style={{ flex: 1 }}>Mark Pending</button>
               )}
               {selectedRx.status !== 'Dispensed' && (
                 <button
                   onClick={() => handleStatusChange(selectedRx.id, 'Dispensed')}
-                  style={{
-                    flex: 1,
-                    height: '32px',
-                    fontSize: '12px',
-                    borderRadius: '0px',
-                    backgroundColor: 'var(--color-success-bg)',
-                    border: '1px solid var(--color-success-border)',
-                    color: 'var(--color-success-text)',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                  style={{ flex: 1, height: '40px', fontSize: '13px', borderRadius: 'var(--r)', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', color: 'var(--green)', fontWeight: 600, cursor: 'pointer', minHeight: 'unset', transition: 'all 0.15s ease' }}
                 >
                   Mark Dispensed
                 </button>
               )}
               {selectedRx.status !== 'Cancelled' && (
-                <button
-                  onClick={() => handleStatusChange(selectedRx.id, 'Cancelled')}
-                  className="desktop-btn-secondary"
-                  style={{ flex: 1, height: '32px', fontSize: '12px', borderRadius: '0px', fontWeight: 600, color: 'var(--color-danger-text)' }}
-                >
-                  Cancel
-                </button>
+                <button onClick={() => handleStatusChange(selectedRx.id, 'Cancelled')} className="btn btn-danger" style={{ flex: 1 }}>Cancel</button>
               )}
             </div>
-
             {selectedRx.status !== 'Dispensed' && selectedRx.status !== 'Cancelled' && (
-              <button
-                onClick={() => handleDispenseToPOS(selectedRx)}
-                className="desktop-btn-primary"
-                style={{ height: '36px', fontSize: '13px', width: '100%', gap: '6px', borderRadius: '0px' }}
-              >
+              <button onClick={() => handleDispenseToPOS(selectedRx)} className="btn btn-primary" style={{ width: '100%', gap: '8px', height: '46px', fontSize: '14px' }}>
                 <ShoppingCart size={16} />
-                <span>Transfer & Dispense in POS</span>
+                Transfer & Dispense in POS
               </button>
             )}
           </div>
@@ -488,55 +445,52 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
 
       {showNewModal && (
         <div className="modal-overlay" onClick={handleCloseNewModal}>
-          <div className="animate-popup" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-default)', borderRadius: '0px', width: '520px', padding: '20px', boxShadow: 'var(--shadow-dropdown)' }}>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '12px', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
-              CREATE NEW DOCTOR PRESCRIPTION
-            </div>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface-soft)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r2)', width: '540px', padding: '28px', boxShadow: 'var(--shadow-dropdown)', animation: 'popupEnter 0.2s cubic-bezier(0.16,1,0.3,1) forwards' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px', letterSpacing: '-0.2px' }}>New Prescription</h2>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>Fill in patient and doctor details, then add medication line items.</p>
 
             <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input placeholder="Patient Name *" required value={patientName} onChange={e => setPatientName(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-                <input type="number" placeholder="Age *" value={patientAge} onChange={e => setPatientAge(parseInt(e.target.value, 10) || 0)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <input placeholder="Patient Name *" required value={patientName} onChange={e => setPatientName(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input type="number" placeholder="Age *" value={patientAge} onChange={e => setPatientAge(parseInt(e.target.value, 10) || 0)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input placeholder="Patient Phone" value={patientPhone} onChange={e => setPatientPhone(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-                <input placeholder="Doctor Name *" required value={doctorName} onChange={e => setDoctorName(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <input placeholder="Patient Phone" value={patientPhone} onChange={e => setPatientPhone(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input placeholder="Doctor Name *" required value={doctorName} onChange={e => setDoctorName(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input placeholder="Doctor Contact" value={doctorContact} onChange={e => setDoctorContact(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-                <textarea placeholder="Notes (optional)" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ padding: '4px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', resize: 'none' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <input placeholder="Doctor Contact" value={doctorContact} onChange={e => setDoctorContact(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <textarea placeholder="Notes (optional)" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', resize: 'none', outline: 'none', fontSize: '13px' }} />
               </div>
 
-              <div style={{ borderTop: '1px solid var(--color-border-default)', paddingTop: '12px', fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>ADD PRESCRIPTION LINE ITEM</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }}>
-                  <option value="">Select Medicine...</option>
-                  {availableMedicines.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: '14px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>Add Medication Line Item</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }}>
+                  <option value="">Select Medicine…</option>
+                  {availableMedicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
-                <input type="number" placeholder="Quantity" value={qtyPrescribed} onChange={e => setQtyPrescribed(parseInt(e.target.value, 10) || 0)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+                <input type="number" placeholder="Quantity" value={qtyPrescribed} onChange={e => setQtyPrescribed(parseInt(e.target.value, 10) || 0)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                <input placeholder="Dosage (e.g. 1 tablet)" value={dosage} onChange={e => setDosage(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-                <input placeholder="Frequency (e.g. 3x daily)" value={frequency} onChange={e => setFrequency(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-                <input type="number" placeholder="Duration (days)" value={durationDays} onChange={e => setDurationDays(parseInt(e.target.value, 10) || 1)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <input placeholder="Dosage (e.g. 1 tablet)" value={dosage} onChange={e => setDosage(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input placeholder="Frequency (e.g. 3x daily)" value={frequency} onChange={e => setFrequency(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input type="number" placeholder="Days" value={durationDays} onChange={e => setDurationDays(parseInt(e.target.value, 10) || 1)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
-              <button type="button" onClick={handleAddItemToRx} className="desktop-btn-secondary" style={{ height: '28px', fontSize: '12px', borderRadius: '0px' }}>Add Line Item</button>
+              <button type="button" onClick={handleAddItemToRx} className="btn" style={{ gap: '6px' }}><Plus size={14} /> Add Line Item</button>
 
-              <div style={{ maxHeight: '160px', overflowY: 'auto', border: '1px solid var(--color-border-default)', padding: '8px', borderRadius: '0px', backgroundColor: 'var(--color-bg-panel)' }}>
+              <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--line)', padding: '8px', borderRadius: '8px', background: 'var(--surface)' }}>
                 {rxItems.map((item, idx) => (
-                  <div key={`${item.medicine_id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-text-primary)' }}>
-                    <span>{item.medicine_name} — {item.dosage} {item.frequency} {item.duration_days}d x{item.quantity_prescribed}</span>
-                    <button type="button" onClick={() => setRxItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: 'var(--color-danger-text)', background: 'transparent', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                  <div key={`${item.medicine_id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '6px 4px', borderBottom: '1px solid var(--line)', color: 'var(--ink)' }}>
+                    <span>{item.medicine_name} — {item.dosage} {item.frequency} {item.duration_days}d ×{item.quantity_prescribed}</span>
+                    <button type="button" onClick={() => setRxItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: 'var(--red)', background: 'transparent', cursor: 'pointer', minHeight: 'unset', padding: '0' }}><Trash2 size={14} /></button>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
-                <button type="button" onClick={handleCloseNewModal} className="desktop-btn-secondary" style={{ height: '28px', padding: '0 14px', borderRadius: '0px' }} disabled={isSubmitting}>Cancel</button>
-                <button type="submit" className="desktop-btn-primary" style={{ height: '28px', padding: '0 14px', borderRadius: '0px' }} disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Prescription'}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>
+                <button type="button" onClick={handleCloseNewModal} className="btn" disabled={isSubmitting}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ gap: '6px' }}>
+                  {isSubmitting ? 'Saving…' : 'Save Prescription'}
                 </button>
               </div>
             </form>
@@ -550,7 +504,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
     <SplitPane
       primaryPane={primaryContent}
       inspectorPane={inspectorContent}
-      inspectorTitle="PRESCRIPTION INSPECTOR"
+      inspectorTitle="Prescription Inspector"
       inspectorWidth="340px"
     />
   );

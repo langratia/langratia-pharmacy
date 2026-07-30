@@ -158,7 +158,7 @@ export const SuppliersPage: React.FC = () => {
       header: 'Supplier Name',
       width: '35%',
       accessor: (sup) => (
-        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{sup.name}</span>
+        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{sup.name}</span>
       )
     },
     {
@@ -166,7 +166,7 @@ export const SuppliersPage: React.FC = () => {
       header: 'Contact Person',
       width: '30%',
       accessor: (sup) => (
-        <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{sup.contact_person || '-'}</span>
+        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{sup.contact_person || '-'}</span>
       )
     },
     {
@@ -174,49 +174,34 @@ export const SuppliersPage: React.FC = () => {
       header: 'Telephone',
       width: '35%',
       accessor: (sup) => (
-        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{sup.phone || '-'}</span>
+        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{sup.phone || '-'}</span>
       )
     }
   ];
 
   // Primary Workspace Pane
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', padding: '0', backgroundColor: 'var(--color-bg-base)' }}>
-      <Panel noPadding style={{ padding: '0 16px', height: '44px', minHeight: '44px', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-            Supplier Registry
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact..." width="240px" showShortcut={false} />
-            {canManage && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                <input
-                  type="checkbox"
-                  checked={includeArchived}
-                  onChange={(e) => setIncludeArchived(e.target.checked)}
-                  style={{ margin: 0, width: '14px', height: '14px', cursor: 'pointer' }}
-                />
-                Archived
-              </label>
-            )}
-            {canManage && (
-              <button onClick={handleOpenAdd} className="desktop-btn-primary" style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}>
-                <Plus size={14} />
-                <span>Add Supplier</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </Panel>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>Suppliers</div>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search supplier or contact…" width="240px" showShortcut={false} />
+        {canManage && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            <input type="checkbox" checked={includeArchived} onChange={(e) => setIncludeArchived(e.target.checked)} style={{ cursor: 'pointer' }} />
+            Show Archived
+          </label>
+        )}
+        {canManage && (
+          <button onClick={handleOpenAdd} className="btn btn-primary" style={{ marginLeft: 'auto', gap: '6px' }}>
+            <Plus size={14} /> Add Supplier
+          </button>
+        )}
+      </div>
 
       {fetchError && (
-        <div style={{ margin: '0 16px', padding: '8px 12px', fontSize: '12px', color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--red)', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{fetchError}</span>
-          <button onClick={fetchSuppliers} style={{ fontSize: '11px', cursor: 'pointer', background: 'none', border: '1px solid var(--color-danger-border)', padding: '2px 8px', borderRadius: '0px', color: 'var(--color-danger-text)' }}>
-            Retry
-          </button>
+          <button onClick={fetchSuppliers} className="btn" style={{ fontSize: '12px' }}>Retry</button>
         </div>
       )}
 
@@ -230,7 +215,6 @@ export const SuppliersPage: React.FC = () => {
         onRowClick={(sup) => handleSelectSupplier(sup)}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 165px)"
         style={{ flex: 1 }}
       />
     </div>
@@ -238,77 +222,67 @@ export const SuppliersPage: React.FC = () => {
 
   // Inspector Docked Pane
   const inspectorContent = (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
-      {error && <div style={{ color: 'var(--color-danger-text)', fontSize: '12px' }}>{error}</div>}
+    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', boxSizing: 'border-box', overflowY: 'auto' }}>
+      {error && <div style={{ color: 'var(--red)', fontSize: '13px', padding: '8px 12px', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: '8px' }}>{error}</div>}
 
       {(!selectedSupplier && !isNewSupplier) ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-          <Users size={36} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-          Select a supplier to view details and edit contact directory.
+        <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <Users size={40} style={{ opacity: 0.25 }} />
+          <div style={{ fontSize: '14px' }}>Select a supplier to view details</div>
         </div>
       ) : (
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
-            {isNewSupplier ? 'NEW SUPPLIER ENTRY' : selectedSupplier?.name}
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)', paddingBottom: '10px', margin: 0 }}>
+            {isNewSupplier ? 'New Supplier' : selectedSupplier?.name}
+          </h3>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Supplier Company Name *</label>
+            <input ref={nameInputRef} type="text" required disabled={!canManage} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Supplier Company Name *</label>
-            <input ref={nameInputRef} type="text" required disabled={!canManage} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Contact Person</label>
-            <input type="text" disabled={!canManage} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Contact Person</label>
+            <input type="text" disabled={!canManage} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Telephone</label>
-              <input type="text" disabled={!canManage} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Telephone</label>
+              <input type="text" disabled={!canManage} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Email</label>
-              <input type="email" disabled={!canManage} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} style={{ width: '100%', height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Email</label>
+              <input type="email" disabled={!canManage} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>Physical Office Address</label>
-            <textarea rows={3} disabled={!canManage} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} style={{ width: '100%', padding: '6px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }} />
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Physical Office Address</label>
+            <textarea rows={3} disabled={!canManage} value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}             style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
           </div>
 
           {canManage && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {selectedSupplier && !isNewSupplier && (
-                  <button
+            <button
                     type="button"
                     onClick={() => handleToggleArchive(selectedSupplier)}
-                    style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid', borderColor: selectedSupplier.is_archived ? 'var(--color-info-border)' : 'var(--color-danger-border)', color: selectedSupplier.is_archived ? 'var(--color-info-text)' : 'var(--color-danger-text)', backgroundColor: 'transparent', cursor: 'pointer' }}
+                    className={selectedSupplier.is_archived ? 'btn' : 'btn btn-danger'}
+                    style={{ gap: '6px' }}
                   >
                     {selectedSupplier.is_archived ? <RotateCcw size={14} /> : <Archive size={14} />}
                     <span>{selectedSupplier.is_archived ? 'Restore' : 'Archive'}</span>
                   </button>
                 )}
                 {(isNewSupplier || selectedSupplier) && (
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    style={{ height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '0px', border: '1px solid var(--color-border-default)', color: 'var(--color-text-secondary)', backgroundColor: 'transparent', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
+                  <button type="button" onClick={handleCancel} className="btn" style={{ gap: '6px' }}>Cancel</button>
                 )}
               </div>
-              <button
-                type="submit"
-                disabled={saveLoading}
-                className="desktop-btn-primary"
-                style={{ height: '32px', fontSize: '13px', gap: '6px', borderRadius: '0px', opacity: saveLoading ? 0.6 : 1 }}
-              >
+              <button type="submit" disabled={saveLoading} className="btn btn-primary" style={{ gap: '6px', opacity: saveLoading ? 0.6 : 1 }}>
                 <Save size={14} />
-                <span>{saveLoading ? 'Saving...' : (isNewSupplier ? 'Save Supplier' : 'Update Record')}</span>
+                <span>{saveLoading ? 'Saving…' : (isNewSupplier ? 'Save Supplier' : 'Update')}</span>
               </button>
             </div>
           )}
@@ -321,7 +295,7 @@ export const SuppliersPage: React.FC = () => {
     <SplitPane
       primaryPane={primaryContent}
       inspectorPane={inspectorContent}
-      inspectorTitle={isNewSupplier ? 'ADD NEW SUPPLIER' : 'SUPPLIER INSPECTOR'}
+      inspectorTitle={isNewSupplier ? 'Add Supplier' : 'Supplier Inspector'}
       inspectorWidth="340px"
     />
   );

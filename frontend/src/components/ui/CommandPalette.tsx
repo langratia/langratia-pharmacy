@@ -9,7 +9,8 @@ import {
   BarChart3,
   Settings,
   FileText,
-  ChevronRight
+  ChevronRight,
+  Command,
 } from 'lucide-react';
 import { NavItemKey } from '../layout/Sidebar';
 import { GlobalSearch } from '../../../wailsjs/go/main/App';
@@ -26,27 +27,23 @@ interface CommandItem {
   id: string;
   title: string;
   subtitle?: string;
-  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  icon: React.ComponentType<{ size?: number }>;
   category: 'Navigation' | 'Database Result';
   targetView: NavItemKey;
 }
 
 const navCommands: CommandItem[] = [
-  { id: 'nav-pos', title: 'Point of Sale (POS)', subtitle: 'Open direct checkout workstation', icon: ShoppingCart, category: 'Navigation', targetView: 'pos' },
-  { id: 'nav-inventory', title: 'Medicine Inventory', subtitle: 'View master medicine registry & stock', icon: Pill, category: 'Navigation', targetView: 'inventory' },
-  { id: 'nav-prescriptions', title: 'Prescriptions', subtitle: 'View doctor orders & dosages', icon: FileText, category: 'Navigation', targetView: 'prescriptions' },
-  { id: 'nav-purchases', title: 'Purchases & Receiving', subtitle: 'Record incoming supplier shipments', icon: Truck, category: 'Navigation', targetView: 'purchases' },
-  { id: 'nav-suppliers', title: 'Suppliers Directory', subtitle: 'Manage distributors & contacts', icon: Users, category: 'Navigation', targetView: 'suppliers' },
-  { id: 'nav-reports', title: 'Reports & Analytics', subtitle: 'Export inventory & sales audits', icon: BarChart3, category: 'Navigation', targetView: 'reports' },
-  { id: 'nav-settings', title: 'System Settings', subtitle: 'Manage users, backups & audit logs', icon: Settings, category: 'Navigation', targetView: 'settings' },
-  { id: 'nav-dashboard', title: 'Dashboard', subtitle: 'Real-time sales & operational metrics', icon: LayoutDashboard, category: 'Navigation', targetView: 'dashboard' }
+  { id: 'nav-pos',           title: 'Point of Sale (POS)',      subtitle: 'Open direct checkout workstation',        icon: ShoppingCart,    category: 'Navigation', targetView: 'pos' },
+  { id: 'nav-inventory',     title: 'Medicine Inventory',       subtitle: 'View master medicine registry & stock',   icon: Pill,            category: 'Navigation', targetView: 'inventory' },
+  { id: 'nav-prescriptions', title: 'Prescriptions',            subtitle: 'View doctor orders & dosages',            icon: FileText,        category: 'Navigation', targetView: 'prescriptions' },
+  { id: 'nav-purchases',     title: 'Purchases & Receiving',    subtitle: 'Record incoming supplier shipments',      icon: Truck,           category: 'Navigation', targetView: 'purchases' },
+  { id: 'nav-suppliers',     title: 'Suppliers Directory',      subtitle: 'Manage distributors & contacts',          icon: Users,           category: 'Navigation', targetView: 'suppliers' },
+  { id: 'nav-reports',       title: 'Reports & Analytics',      subtitle: 'Export inventory & sales audits',         icon: BarChart3,       category: 'Navigation', targetView: 'reports' },
+  { id: 'nav-settings',      title: 'System Settings',          subtitle: 'Manage users, backups & audit logs',      icon: Settings,        category: 'Navigation', targetView: 'settings' },
+  { id: 'nav-dashboard',     title: 'Dashboard',                subtitle: 'Real-time sales & operational metrics',   icon: LayoutDashboard, category: 'Navigation', targetView: 'dashboard' },
 ];
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({
-  isOpen,
-  onClose,
-  onSelectView
-}) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelectView }) => {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<CommandItem[]>([]);
@@ -68,7 +65,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       setSelectedIndex(0);
       return;
     }
-
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
@@ -78,27 +74,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           title: r.title,
           subtitle: `${r.category} • ${r.subtitle}`,
           icon: r.category === 'Medicine' ? Pill : r.category === 'Prescription' ? FileText : ShoppingCart,
-          category: 'Database Result',
-          targetView: r.target_view as NavItemKey
+          category: 'Database Result' as const,
+          targetView: r.target_view as NavItemKey,
         }));
         setSearchResults(formatted);
         setSelectedIndex(0);
-      } catch (err) {
-        console.error('Command palette search error:', err);
-      } finally {
-        setIsSearching(false);
-      }
+      } catch {}
+      finally { setIsSearching(false); }
     }, 150);
-
     return () => clearTimeout(timer);
   }, [query, user]);
 
-  const filteredNav = navCommands.filter(cmd => {
-    if ((cmd.targetView === 'suppliers' || cmd.targetView === 'reports' || cmd.targetView === 'settings') && user?.role !== 'admin') {
-      return false;
-    }
+  const filteredNav = navCommands.filter((cmd) => {
+    if (
+      (cmd.targetView === 'suppliers' || cmd.targetView === 'reports' || cmd.targetView === 'settings') &&
+      user?.role !== 'admin'
+    ) return false;
     if (!query.trim()) return true;
-    return cmd.title.toLowerCase().includes(query.toLowerCase()) || (cmd.subtitle && cmd.subtitle.toLowerCase().includes(query.toLowerCase()));
+    return (
+      cmd.title.toLowerCase().includes(query.toLowerCase()) ||
+      (cmd.subtitle && cmd.subtitle.toLowerCase().includes(query.toLowerCase()))
+    );
   });
 
   const allItems = [...filteredNav, ...searchResults];
@@ -112,9 +108,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       setSelectedIndex((prev) => (allItems.length > 0 ? (prev - 1 + allItems.length) % allItems.length : 0));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (allItems[selectedIndex]) {
-        handleSelectItem(allItems[selectedIndex]);
-      }
+      if (allItems[selectedIndex]) handleSelectItem(allItems[selectedIndex]);
     } else if (e.key === 'Escape') {
       onClose();
     }
@@ -130,114 +124,172 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   return (
     <div
       onClick={onClose}
-      className="modal-overlay"
-      style={{ alignItems: 'flex-start', paddingTop: '10vh' }}
+      style={{
+        position: 'fixed',
+        top: 0, left: 0, right: 0, bottom: 0,
+        background: 'rgba(3, 5, 8, 0.75)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: '10vh',
+        zIndex: 9999,
+        padding: '10vh 24px 24px',
+      }}
     >
       <div
         className="animate-popup"
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '560px',
-          backgroundColor: 'var(--color-bg-elevated)',
-          borderRadius: '0px',
-          border: '1px solid var(--color-border-default)',
+          maxWidth: '580px',
+          background: 'var(--surface-soft)',
+          borderRadius: 'var(--r2)',
+          border: '1px solid var(--line-strong)',
           boxShadow: 'var(--shadow-dropdown)',
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
         }}
       >
-        {/* Input Bar */}
+        {/* Input */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '10px 14px',
-            borderBottom: '1px solid var(--color-border-default)',
-            gap: '8px'
+            padding: '16px 18px',
+            borderBottom: '1px solid var(--line)',
+            gap: '12px',
           }}
         >
-          <Search size={16} style={{ color: 'var(--color-accent-base)' }} />
+          <Command size={18} style={{ color: 'var(--blue)', flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a command or search database (e.g. POS, Amoxicillin)..."
+            placeholder="Navigate or search records…"
             style={{
               border: 'none',
               outline: 'none',
-              fontSize: '13px',
+              fontSize: '15px',
               width: '100%',
-              color: 'var(--color-text-primary)',
-              backgroundColor: 'transparent'
+              color: 'var(--ink)',
+              background: 'transparent',
+              padding: 0,
+              minHeight: 'unset',
+              height: 'auto',
+              boxShadow: 'none',
             }}
           />
           <kbd
             style={{
-              fontSize: '10px',
-              color: 'var(--color-text-muted)',
-              backgroundColor: 'var(--color-bg-hover)',
-              border: '1px solid var(--color-border-default)',
-              borderRadius: '0px',
-              padding: '2px 5px',
-              lineHeight: 1
+              fontSize: '11px',
+              color: 'var(--muted-dark)',
+              background: 'var(--overlay-hover)',
+              border: '1px solid var(--line)',
+              borderRadius: '5px',
+              padding: '3px 7px',
+              lineHeight: 1,
+              flexShrink: 0,
             }}
           >
             ESC
           </kbd>
         </div>
 
-        {/* Results List */}
-        <div style={{ maxHeight: '320px', overflowY: 'auto', padding: '4px 0' }}>
+        {/* Results */}
+        <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '6px 0' }}>
           {isSearching ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-              Searching database records...
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>
+              Searching records…
             </div>
-          ) : allItems.length === 0 ? (
-            <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-              No commands or database records found for "{query}"
+          ) : allItems.length === 0 && query.trim() ? (
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>
+              No results for "{query}"
             </div>
           ) : (
             allItems.map((item, index) => {
               const Icon = item.icon;
               const isSelected = selectedIndex === index;
-
               return (
                 <div
                   key={item.id}
                   onClick={() => handleSelectItem(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   style={{
-                    padding: '8px 14px',
+                    padding: '11px 18px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: isSelected ? 'var(--color-bg-hover)' : 'transparent',
+                    background: isSelected ? 'rgba(18, 108, 255, 0.1)' : 'transparent',
+                    borderLeft: isSelected ? '3px solid var(--blue)' : '3px solid transparent',
                     cursor: 'pointer',
-                    transition: 'background-color 100ms'
+                    transition: 'background 0.1s ease, border-color 0.1s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Icon size={15} style={{ color: isSelected ? 'var(--color-accent-base)' : 'var(--color-text-muted)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div
+                      style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '8px',
+                        background: isSelected ? 'rgba(18, 108, 255, 0.15)' : 'var(--surface)',
+                        border: '1px solid var(--line)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        color: isSelected ? 'var(--blue)' : 'var(--muted)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Icon size={15} />
+                    </div>
                     <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: isSelected ? 'var(--color-text-accent)' : 'var(--color-text-primary)' }}>
+                      <div
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: isSelected ? 'var(--blue)' : 'var(--ink)',
+                        }}
+                      >
                         {item.title}
                       </div>
                       {item.subtitle && (
-                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                           {item.subtitle}
                         </div>
                       )}
                     </div>
                   </div>
-                  <ChevronRight size={14} style={{ color: isSelected ? 'var(--color-accent-base)' : 'var(--color-text-muted)' }} />
+                  <ChevronRight
+                    size={15}
+                    style={{ color: isSelected ? 'var(--blue)' : 'var(--muted-dark)', flexShrink: 0 }}
+                  />
                 </div>
               );
             })
           )}
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            padding: '10px 18px',
+            background: 'var(--bg)',
+            borderTop: '1px solid var(--line)',
+            display: 'flex',
+            gap: '16px',
+            fontSize: '12px',
+            color: 'var(--muted-dark)',
+          }}
+        >
+          <span>↑↓ navigate</span>
+          <span>↵ select</span>
+          <span>ESC close</span>
         </div>
       </div>
     </div>

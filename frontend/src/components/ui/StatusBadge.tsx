@@ -31,7 +31,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status = 'active', lab
           color: 'var(--color-success-text)',
           border: 'var(--color-success-border)',
           dot: 'var(--color-success-text)',
-          text: label || (normStatus === 'in_stock' ? 'In Stock' : normStatus === 'active' ? 'Active' : 'Paid')
+          text: label || (normStatus === 'in_stock' ? 'In Stock' : normStatus === 'active' ? 'Active' : 'Paid'),
         };
       case 'low_stock':
       case 'low stock':
@@ -41,7 +41,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status = 'active', lab
           color: 'var(--color-warning-text)',
           border: 'var(--color-warning-border)',
           dot: 'var(--color-warning-text)',
-          text: label || (normStatus === 'low_stock' ? 'Low Stock' : 'Pending')
+          text: label || (normStatus === 'low_stock' ? 'Low Stock' : 'Pending'),
         };
       case 'out_of_stock':
       case 'out of stock':
@@ -50,7 +50,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status = 'active', lab
           color: 'var(--color-danger-text)',
           border: 'var(--color-danger-border)',
           dot: 'var(--color-danger-text)',
-          text: label || 'Out of Stock'
+          text: label || 'Out of Stock',
         };
       case 'expired':
         return {
@@ -58,16 +58,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status = 'active', lab
           color: 'var(--color-warning-text)',
           border: 'var(--color-warning-border)',
           dot: 'var(--color-warning-text)',
-          text: label || 'Expired'
+          text: label || 'Expired',
         };
       case 'archived':
       default:
         return {
-          bg: 'var(--color-bg-hover)',
-          color: 'var(--color-text-secondary)',
-          border: 'var(--color-border-default)',
-          dot: 'var(--color-text-muted)',
-          text: label || status || 'Archived'
+          bg: 'var(--overlay-hover)',
+          color: 'var(--muted)',
+          border: 'var(--line)',
+          dot: 'var(--muted-dark)',
+          text: label || status || 'Archived',
         };
     }
   };
@@ -79,10 +79,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status = 'active', lab
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '5px',
-        padding: '2px 7px',
-        borderRadius: '2px',
-        fontSize: '11px',
+        gap: '6px',
+        padding: '3px 10px',
+        borderRadius: '20px',
+        fontSize: '12px',
         fontWeight: 600,
         backgroundColor: config.bg,
         color: config.color,
@@ -90,17 +90,18 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status = 'active', lab
         lineHeight: '1.4',
         whiteSpace: 'nowrap',
         userSelect: 'none',
-        ...style
+        ...style,
       }}
     >
       <span
         style={{
-          width: '5px',
-          height: '5px',
+          width: '6px',
+          height: '6px',
           borderRadius: '50%',
           backgroundColor: config.dot,
           display: 'inline-block',
-          flexShrink: 0
+          flexShrink: 0,
+          boxShadow: `0 0 5px ${config.dot}`,
         }}
       />
       {config.text}

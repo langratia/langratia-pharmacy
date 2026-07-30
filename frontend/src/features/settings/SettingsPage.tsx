@@ -1150,7 +1150,7 @@ export const SettingsPage: React.FC = () => {
       <SplitPane
         primaryPane={primaryContent}
         inspectorPane={inspectorContent}
-        inspectorTitle="ADMIN INSPECTOR"
+        inspectorTitle="Admin Inspector"
         inspectorWidth="320px"
       />
       <ReAuthDialog

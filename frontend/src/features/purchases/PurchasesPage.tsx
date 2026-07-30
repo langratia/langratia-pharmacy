@@ -186,7 +186,7 @@ export const PurchasesPage: React.FC = () => {
       header: 'Invoice #',
       width: '25%',
       accessor: (pur) => (
-        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
           {pur.invoice_number}
         </span>
       )
@@ -196,7 +196,7 @@ export const PurchasesPage: React.FC = () => {
       header: 'Supplier',
       width: '30%',
       accessor: (pur) => (
-        <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
           {pur.supplier_name || 'Generic Supplier'}
         </span>
       )
@@ -207,7 +207,7 @@ export const PurchasesPage: React.FC = () => {
       width: '25%',
       align: 'right' as const,
       accessor: (pur) => (
-        <span style={{ fontWeight: 700, color: 'var(--color-text-accent)' }}>
+        <span style={{ fontWeight: 700, color: 'var(--blue)' }}>
           {formatCurrency(pur.total_amount)}
         </span>
       )
@@ -217,7 +217,7 @@ export const PurchasesPage: React.FC = () => {
       header: 'Received Date',
       width: '20%',
       accessor: (pur) => (
-        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+        <span style={{ fontSize: '10px', color: 'var(--muted-dark)' }}>
           {new Date(pur.purchase_date).toLocaleDateString()}
         </span>
       )
@@ -225,24 +225,13 @@ export const PurchasesPage: React.FC = () => {
   ];
 
   const primaryContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', padding: '0', backgroundColor: 'var(--color-bg-base)' }}>
-      <Panel noPadding style={{ padding: '0 16px', height: '44px', minHeight: '44px', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', height: '100%' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
-            Procurement & Purchase Orders
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={handleStartCreatingPO}
-              className="desktop-btn-primary"
-              style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 14px', borderRadius: '0px' }}
-            >
-              <Plus size={14} />
-              <span>New Purchase Order</span>
-            </button>
-          </div>
-        </div>
-      </Panel>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>Purchases</div>
+        <button onClick={handleStartCreatingPO} className="btn btn-primary" style={{ marginLeft: 'auto', gap: '6px' }}>
+          <Plus size={14} /> New Purchase Order
+        </button>
+      </div>
 
       <DataGrid
         columns={columns}
@@ -258,104 +247,99 @@ export const PurchasesPage: React.FC = () => {
         }}
         compactRows={true}
         zebraStriping={true}
-        maxHeight="calc(100vh - 130px)"
         style={{ flex: 1 }}
       />
     </div>
   );
 
   const inspectorContent = (
-    <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', boxSizing: 'border-box' }}>
+    <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', boxSizing: 'border-box', overflowY: 'auto' }}>
       {isCreatingPO ? (
         <form onSubmit={handleSavePurchase} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
-            NEW PURCHASE ORDER ENTRY
-          </div>
-          {error && <div style={{ color: 'var(--color-danger-text)', fontSize: '12px' }}>{error}</div>}
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)', paddingBottom: '10px', margin: 0 }}>New Purchase Order</h3>
+          {error && <div style={{ color: 'var(--red)', fontSize: '13px', padding: '8px 12px', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: '8px' }}>{error}</div>}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <input placeholder="Invoice Number *" value={invoiceNumber} onChange={e => { setInvoiceNumber(e.target.value); clearError(); }} required style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-            <select value={supplierId} onChange={e => { setSupplierId(Number(e.target.value)); clearError(); }} required style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }}>
+            <input placeholder="Invoice Number *" value={invoiceNumber} onChange={e => { setInvoiceNumber(e.target.value); clearError(); }} required style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+            <select value={supplierId} onChange={e => { setSupplierId(Number(e.target.value)); clearError(); }} required style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }}>
               <option value="">Select Supplier...</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+            <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
             <textarea placeholder="Notes (optional)" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ height: '28px', padding: '4px 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', resize: 'none' }} />
           </div>
 
-          <div style={{ borderTop: '1px solid var(--color-border-default)', paddingTop: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>ADD BATCH ITEM</div>
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: '12px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>Add Batch Item</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <select value={selectedMedId} onChange={e => { setSelectedMedId(Number(e.target.value)); clearError(); }} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }}>
+            <select value={selectedMedId} onChange={e => { setSelectedMedId(Number(e.target.value)); clearError(); }} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }}>
               <option value="">Select Medicine...</option>
               {medicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <input placeholder="Batch #" value={batchNum} onChange={e => setBatchNum(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-              <input type="number" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value ? Number(e.target.value) : '')} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-              <input type="date" placeholder="Mfg" value={mfgDate} onChange={e => setMfgDate(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+              <input placeholder="Batch #" value={batchNum} onChange={e => setBatchNum(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+              <input type="number" placeholder="Qty" value={qty} onChange={e => setQty(e.target.value ? Number(e.target.value) : '')} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+              <input type="date" placeholder="Mfg" value={mfgDate} onChange={e => setMfgDate(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <input type="number" step="0.01" placeholder="Buy Price" value={buyPrice} onChange={e => setBuyPrice(e.target.value ? Number(e.target.value) : '')} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
-              <input type="date" placeholder="Expiry" value={expiry} onChange={e => setExpiry(e.target.value)} style={{ height: '28px', padding: '0 8px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)' }} />
+              <input type="number" step="0.01" placeholder="Buy Price" value={buyPrice} onChange={e => setBuyPrice(e.target.value ? Number(e.target.value) : '')} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+              <input type="date" placeholder="Expiry" value={expiry} onChange={e => setExpiry(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
             </div>
             <button type="button" onClick={handleAddItem} className="desktop-btn-secondary" style={{ height: '28px', fontSize: '12px', borderRadius: '0px' }}>Add Line Item</button>
           </div>
 
-          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-            Items: {items.length} | Total: {formatCurrency(totalPreview)}
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)' }}>
+            {items.length} items · Total: <strong style={{ color: 'var(--blue)' }}>UGX {formatCurrency(totalPreview)}</strong>
           </div>
 
-          <div style={{ flex: 1, maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--color-border-default)', padding: '6px', borderRadius: '0px', backgroundColor: 'var(--color-bg-panel)' }}>
+          <div style={{ flex: 1, maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--line)', padding: '6px', borderRadius: '8px', background: 'var(--surface)' }}>
             {items.map((it, idx) => (
-              <div key={`${it.medicine_id}-${it.batch_number}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-text-primary)' }}>
-                <span>{it.medicine_name} (Batch: {it.batch_number}) x{it.quantity}</span>
-                <button type="button" onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: 'var(--color-danger-text)', background: 'transparent', cursor: 'pointer' }}><Trash2 size={14} /></button>
+              <div key={`${it.medicine_id}-${it.batch_number}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '6px', borderBottom: '1px solid var(--line)', color: 'var(--ink)' }}>
+                <span>{it.medicine_name} (Batch: {it.batch_number}) ×{it.quantity}</span>
+                <button type="button" onClick={() => setItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: 'var(--red)', background: 'transparent', cursor: 'pointer', minHeight: 'unset', padding: '0' }}><Trash2 size={14} /></button>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: 'auto' }}>
-            <button type="button" onClick={handleCancel} className="desktop-btn-secondary" style={{ height: '28px', padding: '0 14px', borderRadius: '0px' }} disabled={submitting}>Cancel</button>
-            <button type="submit" className="desktop-btn-primary" style={{ height: '28px', padding: '0 14px', borderRadius: '0px' }} disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save Order'}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: 'auto', paddingTop: '4px' }}>
+            <button type="button" onClick={handleCancel} className="btn" disabled={submitting}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={submitting} style={{ gap: '6px' }}>
+              {submitting ? 'Saving…' : 'Save Order'}
             </button>
           </div>
         </form>
       ) : !selectedPurchase ? (
-        <div style={{ padding: '40px 10px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-          <Truck size={36} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-          Select a purchase order to inspect invoice breakdown.
+        <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <Truck size={40} style={{ opacity: 0.25 }} />
+          <div style={{ fontSize: '14px' }}>Select a purchase order to inspect</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)', borderBottom: '1px solid var(--color-border-default)', paddingBottom: '8px' }}>
-            INVOICE #{selectedPurchase.invoice_number}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div>Supplier: <strong style={{ color: 'var(--color-text-primary)' }}>{selectedPurchase.supplier_name || 'Generic Supplier'}</strong></div>
-            <div>Date Received: {new Date(selectedPurchase.purchase_date).toLocaleDateString()}</div>
-            <div>Total Cost: <strong style={{ color: 'var(--color-text-accent)' }}>UGX {formatCurrency(selectedPurchase.total_amount)}</strong></div>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)', paddingBottom: '10px', margin: 0 }}>
+            #{selectedPurchase.invoice_number}
+          </h3>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div>Supplier: <strong style={{ color: 'var(--ink)' }}>{selectedPurchase.supplier_name || 'Generic Supplier'}</strong></div>
+            <div style={{ color: 'var(--muted)' }}>Date: {new Date(selectedPurchase.purchase_date).toLocaleDateString()}</div>
+            <div>Total Cost: <strong style={{ color: 'var(--blue)' }}>UGX {formatCurrency(selectedPurchase.total_amount)}</strong></div>
           </div>
           {selectedPurchase.notes && (
-            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-base)', padding: '6px', border: '1px solid var(--color-border-subtle)' }}>
-              Notes: {selectedPurchase.notes}
+            <div style={{ fontSize: '12px', color: 'var(--muted)', background: 'var(--surface)', padding: '10px 12px', border: '1px solid var(--line)', borderRadius: '8px' }}>
+              {selectedPurchase.notes}
             </div>
           )}
-          <div style={{ borderTop: '1px solid var(--color-border-default)', paddingTop: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            LINE ITEMS ({selectedItems.length})
-          </div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Line Items ({selectedItems.length})</div>
           <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {isLoadingItems ? (
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', padding: '8px' }}>Loading items...</div>
+              <div style={{ fontSize: '13px', color: 'var(--muted)', padding: '8px' }}>Loading items…</div>
             ) : selectedItems.length === 0 ? (
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', padding: '8px' }}>No line items.</div>
+              <div style={{ fontSize: '13px', color: 'var(--muted)', padding: '8px' }}>No line items.</div>
             ) : selectedItems.map(item => (
-              <div key={item.id} style={{ fontSize: '11px', padding: '6px', border: '1px solid var(--color-border-subtle)', backgroundColor: 'var(--color-bg-base)' }}>
-                <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{item.medicine_name || `Medicine #${item.medicine_id}`}</div>
-                <div style={{ color: 'var(--color-text-secondary)' }}>
-                  Batch: {item.batch_number || 'N/A'} | Qty: {item.quantity} | Unit: {formatCurrency(item.buying_price)} | Subtotal: {formatCurrency(item.buying_price * item.quantity)}
+              <div key={item.id} style={{ fontSize: '13px', padding: '10px 12px', border: '1px solid var(--line)', background: 'var(--surface)', borderRadius: '8px' }}>
+                <div style={{ fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>{item.medicine_name || `Medicine #${item.medicine_id}`}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '12px' }}>
+                  Batch: {item.batch_number || 'N/A'} · Qty: {item.quantity} · Unit: {formatCurrency(item.buying_price)} · Sub: {formatCurrency(item.buying_price * item.quantity)}
                 </div>
               </div>
             ))}
@@ -369,7 +353,7 @@ export const PurchasesPage: React.FC = () => {
     <SplitPane
       primaryPane={primaryContent}
       inspectorPane={inspectorContent}
-      inspectorTitle={isCreatingPO ? 'CREATE PURCHASE ORDER' : 'PROCUREMENT INSPECTOR'}
+      inspectorTitle={isCreatingPO ? 'New Purchase Order' : 'Procurement Inspector'}
       inspectorWidth="340px"
     />
   );

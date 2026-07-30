@@ -7,7 +7,6 @@ import {
   Clock,
   ShieldAlert,
   RefreshCw,
-  ArrowUpRight,
   ChevronRight
 } from 'lucide-react';
 import { GetDashboardSummary } from '../../../wailsjs/go/main/App';
@@ -88,8 +87,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       value: `UGX ${formatCurrency(summary.sales_today || 0)}`,
       subtitle: "POS Terminal Sales",
       icon: TrendingUp,
-      borderColor: 'var(--color-accent-base)',
-      color: 'var(--color-text-accent)',
+      accentColor: 'var(--blue)',
+      topBorder: 'var(--blue)',
       targetView: 'reports' as NavItemKey,
       filter: undefined,
       hasSparkline: true
@@ -100,8 +99,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       value: formatNumber(summary.total_medicines || 0),
       subtitle: "Master Catalog Items",
       icon: Pill,
-      borderColor: 'var(--color-border-default)',
-      color: 'var(--color-text-primary)',
+      accentColor: 'var(--cyan)',
+      topBorder: 'var(--cyan)',
       targetView: 'inventory' as NavItemKey,
       filter: 'all'
     },
@@ -111,8 +110,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       value: formatNumber(summary.low_stock_count || 0),
       subtitle: "Reorder Threshold",
       icon: AlertTriangle,
-      borderColor: 'var(--color-warning-border)',
-      color: 'var(--color-warning-text)',
+      accentColor: 'var(--yellow)',
+      topBorder: 'var(--yellow)',
       targetView: 'inventory' as NavItemKey,
       filter: 'low_stock'
     },
@@ -122,8 +121,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       value: formatNumber(summary.out_of_stock_count || 0),
       subtitle: "Zero Quantity Count",
       icon: ShieldAlert,
-      borderColor: 'var(--color-danger-border)',
-      color: 'var(--color-danger-text)',
+      accentColor: 'var(--red)',
+      topBorder: 'var(--red)',
       targetView: 'inventory' as NavItemKey,
       filter: 'out_of_stock'
     },
@@ -133,8 +132,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       value: formatNumber(summary.expiring_soon_count || 0),
       subtitle: "Within 90 Days",
       icon: Clock,
-      borderColor: 'var(--color-warning-border)',
-      color: 'var(--color-warning-text)',
+      accentColor: 'var(--yellow)',
+      topBorder: 'var(--yellow)',
       targetView: 'reports' as NavItemKey,
       filter: 'expiring'
     }
@@ -231,13 +230,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       key: 'invoice_number',
       header: 'Invoice #',
       width: '30%',
-      accessor: (s) => <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{s.invoice_number}</span>
+      accessor: (s) => <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{s.invoice_number}</span>
     },
     {
       key: 'username',
       header: 'Operator',
       width: '25%',
-      accessor: (s) => <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{s.username}</span>
+      accessor: (s) => <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{s.username}</span>
     },
     {
       key: 'payment_method',
@@ -250,7 +249,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       header: 'Total (UGX)',
       width: '25%',
       align: 'right' as const,
-      accessor: (s) => <span style={{ fontWeight: 700, color: 'var(--color-text-accent)' }}>{formatCurrency(s.total_amount)}</span>
+      accessor: (s) => <span style={{ fontWeight: 700, color: 'var(--blue)' }}>{formatCurrency(s.total_amount)}</span>
     }
   ];
 
@@ -259,20 +258,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       key: 'invoice_number',
       header: 'Supplier Invoice',
       width: '35%',
-      accessor: (p) => <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{p.invoice_number}</span>
+      accessor: (p) => <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{p.invoice_number}</span>
     },
     {
       key: 'supplier_name',
       header: 'Supplier',
       width: '35%',
-      accessor: (p) => <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{p.supplier_name || 'Generic'}</span>
+      accessor: (p) => <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{p.supplier_name || 'Generic'}</span>
     },
     {
       key: 'total_amount',
       header: 'Amount (UGX)',
       width: '30%',
       align: 'right' as const,
-      accessor: (p) => <span style={{ fontWeight: 700, color: 'var(--color-info-text)' }}>{formatCurrency(p.total_amount)}</span>
+      accessor: (p) => <span style={{ fontWeight: 700, color: 'var(--cyan)' }}>{formatCurrency(p.total_amount)}</span>
     }
   ];
 
@@ -282,7 +281,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       header: 'Pharmaceutical Item',
       width: '40%',
       accessor: (item) => (
-        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
           {item.medicine_name}
         </span>
       )
@@ -292,7 +291,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       header: 'Batch #',
       width: '25%',
       accessor: (item) => (
-        <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--color-text-secondary)' }}>
+        <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--muted)' }}>
           {item.batch_number}
         </span>
       )
@@ -303,7 +302,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       width: '15%',
       align: 'center' as const,
       accessor: (item) => (
-        <span style={{ fontWeight: 700, color: 'var(--color-danger-text)' }}>
+        <span style={{ fontWeight: 700, color: 'var(--red)' }}>
           {item.quantity_remaining}
         </span>
       )
@@ -317,7 +316,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
         <span style={{
           fontSize: '11px',
           fontWeight: 600,
-          color: item.days_until_expiry <= 30 ? 'var(--color-danger-text)' : 'var(--color-warning-text)'
+          color: item.days_until_expiry <= 30 ? 'var(--red)' : 'var(--yellow)'
         }}>
           {item.days_until_expiry < 0 ? 'EXPIRED' : item.days_until_expiry === 0 ? 'Expiring today' : `${item.days_until_expiry} days left`}
         </span>
@@ -331,7 +330,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       header: 'Medicine Item',
       width: '45%',
       accessor: (item) => (
-        <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+        <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
           {item.medicine_name || item.name}
         </span>
       )
@@ -342,7 +341,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       width: '25%',
       align: 'center' as const,
       accessor: (item) => (
-        <span style={{ fontWeight: 700, color: 'var(--color-warning-text)' }}>
+        <span style={{ fontWeight: 700, color: 'var(--yellow)' }}>
           {item.current_stock}
         </span>
       )
@@ -353,7 +352,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       width: '30%',
       align: 'right' as const,
       accessor: (item) => (
-        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+        <span style={{ fontSize: '11px', color: 'var(--muted-dark)' }}>
           Threshold: {item.reorder_level}
         </span>
       )
@@ -361,44 +360,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', padding: '0', overflowY: 'auto', backgroundColor: 'var(--color-bg-base)', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, minHeight: 0, overflowY: 'auto', padding: '0', boxSizing: 'border-box' }}>
       
       {/* Header Bar with Live Refresh Ticker */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Pharmacy Operational Dashboard
-          </span>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 8px', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: '0px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--color-success-text)', boxShadow: '0 0 6px var(--color-success-text)' }} />
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-success-text)', letterSpacing: '0.04em' }}>LIVE</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '5px 14px', background: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', borderRadius: '20px' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 8px var(--green)', animation: 'pulse-glow 2s infinite', display: 'inline-block' }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--green)', letterSpacing: '0.04em' }}>LIVE</span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {lastUpdated && (
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
               Updated {secondsAgo}s ago
             </span>
           )}
           <button
             onClick={fetchDashboardData}
-            title="Refresh Live Dashboard Metrics"
-            style={{
-              width: '24px',
-              height: '24px',
-              padding: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: 'var(--color-bg-panel)',
-              border: '1px solid var(--color-border-default)',
-              color: 'var(--color-text-secondary)',
-              cursor: 'pointer',
-              borderRadius: '0px'
-            }}
+            title="Refresh"
+            className="win-btn"
+            style={{ width: '36px', height: '36px' }}
           >
-            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
@@ -406,107 +391,94 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       {/* Error Banner */}
       {hasError && !loading && (
         <div style={{
-          padding: '8px 12px',
-          backgroundColor: 'var(--color-danger-bg)',
+          padding: '14px 18px',
+          background: 'var(--color-danger-bg)',
           border: '1px solid var(--color-danger-border)',
           color: 'var(--color-danger-text)',
-          fontSize: '12px',
+          fontSize: '13px',
           fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          gap: '10px',
+          borderRadius: 'var(--r)',
         }}>
-          <AlertTriangle size={14} />
-          <span>Could not load dashboard data. Check the backend connection and try again.</span>
-          <button onClick={fetchDashboardData} style={{
-            marginLeft: 'auto',
-            height: '22px',
-            fontSize: '11px',
-            padding: '0 10px',
-            backgroundColor: 'var(--color-danger-text)',
-            color: 'var(--color-text-inverse)',
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600
-          }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span>Could not load dashboard data. Check the backend connection.</span>
+          <button onClick={fetchDashboardData} className="btn btn-danger" style={{ marginLeft: 'auto', padding: '6px 14px', minHeight: 'unset', height: 'auto', fontSize: '12px' }}>
             Retry
           </button>
         </div>
       )}
 
-      {/* KPI Metric Strip (All Cards Clickable) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px' }}>
+      {/* KPI Metric Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
         {kpiCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Panel
+            <div
               key={card.id}
-              noPadding
-              style={{
-                padding: '12px 14px',
-                borderLeft: `3px solid ${card.borderColor}`,
-                cursor: 'pointer',
-                transition: 'transform 0.1s ease, border-color 0.1s ease',
-                position: 'relative'
-              }}
               className="dashboard-kpi-card"
               onClick={() => onSelectView?.(card.targetView, card.filter)}
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                borderTop: `3px solid ${card.topBorder}`,
+                borderRadius: 'var(--r2)',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                boxShadow: 'var(--shadow)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = 'var(--shadow-dropdown)'; e.currentTarget.style.borderColor = card.topBorder; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow)'; e.currentTarget.style.borderTopColor = card.topBorder; e.currentTarget.style.borderRightColor = 'var(--line)'; e.currentTarget.style.borderBottomColor = 'var(--line)'; e.currentTarget.style.borderLeftColor = 'var(--line)'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', letterSpacing: '0.02em' }}>
                   {card.title}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Icon size={15} style={{ color: card.color }} />
-                  <ArrowUpRight size={12} style={{ color: 'var(--color-text-muted)', opacity: 0.7 }} />
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '8px',
+                  background: `${card.accentColor}18`,
+                  border: `1px solid ${card.accentColor}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: card.accentColor,
+                }}>
+                  <Icon size={16} />
                 </div>
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: '6px' }}>
-                <div>
-                  <div style={{ fontSize: '19px', fontWeight: 700, color: card.color, marginBottom: '2px' }}>
-                    {card.value}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                    {card.subtitle}
-                  </div>
+              <div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: card.accentColor, letterSpacing: '-0.5px', lineHeight: 1 }}>
+                  {card.value}
                 </div>
-
-                {/* 7-Day Sparkline embedded in Sales Card */}
-                {card.hasSparkline && (
-                  <SparklineChart data={summary.sales_trend || []} />
-                )}
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px' }}>
+                  {card.subtitle}
+                </div>
               </div>
-            </Panel>
+              {card.hasSparkline && (
+                <SparklineChart data={summary.sales_trend || []} />
+              )}
+            </div>
           );
         })}
       </div>
 
-      {/* Primary Activity Grids (POS Logs & Procurement GRNs) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', height: '240px', minHeight: '240px' }}>
+      {/* Primary Activity Grids */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', minHeight: '260px' }}>
         <Panel
           noPadding
           style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
           headerRight={
             <button
               onClick={() => onSelectView?.('reports')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-accent-base)',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                padding: '0'
-              }}
+              style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', padding: '0', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
             >
-              View all <ChevronRight size={12} />
+              View all <ChevronRight size={13} />
             </button>
           }
-          title="LIVE POS TRANSACTIONS LOG"
+          title="Live POS Transactions"
         >
           <DataGrid
             columns={salesColumns}
@@ -526,23 +498,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           headerRight={
             <button
               onClick={() => onSelectView?.('purchases')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-accent-base)',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                padding: '0'
-              }}
+              style={{ background: 'none', border: 'none', color: 'var(--blue)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', padding: '0', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
             >
-              View all <ChevronRight size={12} />
+              View all <ChevronRight size={13} />
             </button>
           }
-          title="RECENT PROCUREMENT GRNs RECEIVED"
+          title="Recent Procurement GRNs"
         >
           <DataGrid
             columns={purchaseColumns}
@@ -557,8 +518,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
         </Panel>
       </div>
 
-      {/* Secondary Operational Exception Panels (Eliminates dead empty space) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', height: '220px', minHeight: '220px', marginBottom: '8px' }}>
+      {/* Secondary Panels */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', minHeight: '240px', marginBottom: '8px' }}>
         {/* Expiring Soon Details Panel */}
         <Panel
           noPadding
@@ -566,23 +527,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           headerRight={
             <button
               onClick={() => onSelectView?.('reports', 'expiring')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-warning-text)',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                padding: '0'
-              }}
+              style={{ background: 'none', border: 'none', color: 'var(--yellow)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', padding: '0', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
             >
-              Audit Expiry <ChevronRight size={12} />
+              Audit Expiry <ChevronRight size={13} />
             </button>
           }
-          title="EXPIRING BATCHES INVENTORY (WITHIN 90 DAYS)"
+          title="Expiring Batches (90 days)"
         >
           <DataGrid
             columns={expiringColumns}
@@ -603,23 +553,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           headerRight={
             <button
               onClick={() => onSelectView?.('inventory', 'low_stock')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--color-warning-text)',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '2px',
-                padding: '0'
-              }}
+              style={{ background: 'none', border: 'none', color: 'var(--yellow)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', padding: '0', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
             >
-              Reorder All <ChevronRight size={12} />
+              Reorder All <ChevronRight size={13} />
             </button>
           }
-          title="LOW STOCK ITEMS (REORDER THRESHOLD REACHED)"
+          title="Low Stock Items"
         >
           <DataGrid
             columns={lowStockColumns}

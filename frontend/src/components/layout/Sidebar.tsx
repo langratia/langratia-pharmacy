@@ -7,276 +7,299 @@ import {
   Users,
   BarChart3,
   Settings,
-  Cross,
-  LogOut,
   FileText,
-  ChevronLeft,
-  ChevronRight
+  LogOut,
+  Activity,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
 import { usePharmacy } from '../../context/PharmacyContext';
 
-export type NavItemKey = 'dashboard' | 'pos' | 'prescriptions' | 'inventory' | 'purchases' | 'suppliers' | 'reports' | 'settings';
-
-interface SidebarProps {
-  activeView: NavItemKey;
-  onSelectView: (view: NavItemKey) => void;
-  isCollapsed: boolean;
-  onToggleCollapse: () => void;
-}
+export type NavItemKey =
+  | 'dashboard'
+  | 'pos'
+  | 'prescriptions'
+  | 'inventory'
+  | 'purchases'
+  | 'suppliers'
+  | 'reports'
+  | 'settings';
 
 interface NavItem {
   key: NavItemKey;
   label: string;
-  icon: React.ComponentType<{ size?: number; color?: string; className?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   permission?: string;
 }
 
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
-
-const navGroups: NavGroup[] = [
-  {
-    title: 'MAIN',
-    items: [
-      { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' }
-    ]
-  },
-  {
-    title: 'SALES',
-    items: [
-      { key: 'pos', label: 'Point of Sale', icon: ShoppingCart, permission: 'create_sale' },
-      { key: 'prescriptions', label: 'Prescriptions', icon: FileText, permission: 'manage_prescriptions' }
-    ]
-  },
-  {
-    title: 'INVENTORY',
-    items: [
-      { key: 'inventory', label: 'Medicines', icon: Pill, permission: 'view_inventory' },
-      { key: 'suppliers', label: 'Suppliers', icon: Users, permission: 'manage_suppliers' }
-    ]
-  },
-  {
-    title: 'OPERATIONS',
-    items: [
-      { key: 'purchases', label: 'Purchases', icon: Truck, permission: 'stock_receiving' },
-      { key: 'reports', label: 'Reports', icon: BarChart3, permission: 'view_reports' }
-    ]
-  },
-  {
-    title: 'ADMINISTRATION',
-    items: [
-      { key: 'settings', label: 'Settings', icon: Settings, permission: 'access_settings' }
-    ]
-  }
+const navItems: NavItem[] = [
+  { key: 'dashboard',     label: 'Dashboard',     icon: LayoutDashboard, permission: 'view_dashboard' },
+  { key: 'pos',           label: 'Point of Sale',  icon: ShoppingCart,    permission: 'create_sale' },
+  { key: 'prescriptions', label: 'Prescriptions',  icon: FileText,        permission: 'manage_prescriptions' },
+  { key: 'inventory',     label: 'Medicines',      icon: Pill,            permission: 'view_inventory' },
+  { key: 'suppliers',     label: 'Suppliers',      icon: Users,           permission: 'manage_suppliers' },
+  { key: 'purchases',     label: 'Purchases',      icon: Truck,           permission: 'stock_receiving' },
+  { key: 'reports',       label: 'Reports',        icon: BarChart3,       permission: 'view_reports' },
+  { key: 'settings',      label: 'Settings',       icon: Settings,        permission: 'access_settings' },
 ];
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView, isCollapsed, onToggleCollapse }) => {
+interface SidebarProps {
+  activeView: NavItemKey;
+  onSelectView: (view: NavItemKey) => void;
+  // Legacy props — kept for compatibility but collapse is removed per design
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView }) => {
   const { user, logout } = useAuth();
   const { can } = usePermissions();
-  const { pharmacyName, logoUrl } = usePharmacy();
+  const { pharmacyName } = usePharmacy();
 
-  // Sidebar uses its own deep navy surface, independent of the light/dark panel tokens
-  // so that it always reads as a distinct navigation layer.
-  const sidebarBg = 'var(--color-slate-9)';
-  const sidebarBorder = 'var(--color-slate-8)';
-  const sidebarTextMuted = 'var(--color-slate-4)';
-  const sidebarTextActive = 'var(--color-slate-0)';
-  const sidebarHoverBg = 'var(--color-slate-8)';
-  const sidebarActiveBg = 'rgba(75, 134, 194, 0.18)'; // accent-base at low opacity
-  const sidebarActiveColor = 'var(--color-accent-base)';
+  const visibleItems = navItems.filter(
+    (item) => !item.permission || can(item.permission)
+  );
 
   return (
     <aside
       style={{
-        width: isCollapsed ? '60px' : '220px',
-        height: '100%',
-        backgroundColor: sidebarBg,
-        borderRight: `1px solid ${sidebarBorder}`,
         display: 'flex',
         flexDirection: 'column',
+        width: 'var(--sidebar-w)',
+        height: '100vh',
+        background: 'var(--bg)',
+        borderRight: '1px solid var(--line)',
+        overflow: 'hidden',
+        padding: '24px 16px',
+        justifyContent: 'space-between',
         flexShrink: 0,
+        /* Subtle radial accent at top */
+        backgroundImage:
+          'radial-gradient(circle at 50% 0%, var(--card-accent) 0%, transparent 60%), ' +
+          'radial-gradient(circle, var(--overlay-line) 1px, transparent 1px)',
+        backgroundSize: '100% 100%, 24px 24px',
         position: 'relative',
         zIndex: 100,
-        transition: 'width 150ms ease-out',
-        color: sidebarTextActive,
-        userSelect: 'none'
       }}
     >
-      {/* Brand & Collapse Header */}
-      <div
-        style={{
-          height: '48px',
-          padding: isCollapsed ? '0 10px' : '0 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: isCollapsed ? 'center' : 'space-between',
-          borderBottom: `1px solid ${sidebarBorder}`,
-          backgroundColor: 'transparent'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Pill size={18} style={{ color: sidebarActiveColor }} />
-          {!isCollapsed && (
-            <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: sidebarTextActive, letterSpacing: '-0.01em' }}>
-                {pharmacyName}
-              </span>
-            </div>
-          )}
-        </div>
+      {/* Top section: Brand + Nav */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-        {/* Collapse Toggle Button */}
-        <button
-          onClick={onToggleCollapse}
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+        {/* Brand */}
+        <div
           style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '0px',
-            color: sidebarTextMuted,
-            backgroundColor: 'transparent',
-            border: 'none',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = sidebarHoverBg;
-            e.currentTarget.style.color = sidebarTextActive;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = sidebarTextMuted;
+            gap: '12px',
+            padding: '4px 6px',
+            color: 'var(--ink)',
           }}
         >
-          {isCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-        </button>
-      </div>
+          <div
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '9999px',
+              background: 'rgba(18, 108, 255, 0.15)',
+              border: '1px solid rgba(18, 108, 255, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--blue)',
+              flexShrink: 0,
+            }}
+          >
+            <Pill size={16} />
+          </div>
+          <span
+            style={{
+              fontSize: '17px',
+              fontWeight: 700,
+              letterSpacing: '-0.2px',
+              color: 'var(--ink)',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {pharmacyName}
+          </span>
+        </div>
 
-      {/* Navigation Group List */}
-      <nav
-        style={{
-          flex: 1,
-          padding: isCollapsed ? '12px 8px' : '12px 10px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          overflowY: 'auto'
-        }}
-      >
-        {navGroups.map((group) => {
-          const visibleItems = group.items.filter(
-            (item) => !item.permission || can(item.permission)
-          );
+        {/* Navigation */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {visibleItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.key;
 
-          if (visibleItems.length === 0) return null;
+            return (
+              <button
+                key={item.key}
+                onClick={() => onSelectView(item.key)}
+                title={item.label}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '11px 14px',
+                  borderRadius: '8px',
+                  color: isActive ? 'var(--ink)' : 'var(--muted)',
+                  fontSize: '14px',
+                  fontWeight: isActive ? 600 : 500,
+                  background: isActive ? 'rgba(18, 108, 255, 0.15)' : 'transparent',
+                  border: isActive
+                    ? '1px solid rgba(18, 108, 255, 0.3)'
+                    : '1px solid transparent',
+                  textAlign: 'left',
+                  width: '100%',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  transform: 'none',
+                  boxShadow: 'none',
+                  minHeight: 'unset',
+                  height: 'auto',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = 'var(--ink)';
+                    e.currentTarget.style.background = 'var(--overlay-hover)';
+                    e.currentTarget.style.transform = 'translateX(5px)';
+                    e.currentTarget.style.borderColor = 'var(--overlay-strong)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = 'var(--muted)';
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.borderColor = 'transparent';
+                  }
+                }}
+              >
+                {/* Active left indicator bar */}
+                {isActive && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: '-8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '3px',
+                      height: '20px',
+                      background: 'var(--blue)',
+                      borderRadius: '0 3px 3px 0',
+                      boxShadow: '0 0 8px rgba(18, 108, 255, 0.6)',
+                      animation: 'active-indicator-in 0.25s ease-out',
+                    }}
+                  />
+                )}
 
-          return (
-            <div key={group.title} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-              {!isCollapsed && (
                 <div
                   style={{
-                    padding: '10px 8px 4px 8px',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: sidebarTextMuted,
-                    letterSpacing: '0.08em'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
                   }}
                 >
-                  {group.title}
+                  <span style={{ flexShrink: 0, color: isActive ? 'var(--blue)' : 'inherit', display: 'flex' }}>
+                    <Icon size={18} />
+                  </span>
+                  <span>{item.label}</span>
                 </div>
-              )}
-              {visibleItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeView === item.key;
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => onSelectView(item.key)}
-                    title={isCollapsed ? item.label : undefined}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      gap: '10px',
-                      padding: isCollapsed ? '10px' : '9px 12px',
-                      borderRadius: '0px',
-                      fontSize: '13px',
-                      fontWeight: isActive ? 600 : 400,
-                      color: isActive ? sidebarActiveColor : sidebarTextMuted,
-                      backgroundColor: isActive ? sidebarActiveBg : 'transparent',
-                      border: isActive ? `1px solid rgba(75, 134, 194, 0.25)` : '1px solid transparent',
-                      textAlign: 'left',
-                      width: '100%',
-                      minHeight: '36px',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = sidebarHoverBg;
-                        e.currentTarget.style.color = sidebarTextActive;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                        e.currentTarget.style.color = sidebarTextMuted;
-                      }
-                    }}
-                  >
-                    <Icon size={16} color={isActive ? 'var(--color-accent-base)' : sidebarTextMuted} />
-                    {!isCollapsed && <span>{item.label}</span>}
-                  </button>
-                );
-              })}
+      {/* Bottom section: user status card + logout */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+        {/* User / connection status card */}
+        {user && (
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: '12px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '9px',
+                  height: '9px',
+                  borderRadius: '50%',
+                  background: 'var(--green)',
+                  boxShadow: '0 0 8px var(--green)',
+                  flexShrink: 0,
+                  animation: 'pulse-glow 2s infinite',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: 'var(--ink)',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {user.full_name || user.username}
+              </span>
             </div>
-          );
-        })}
-      </nav>
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'var(--muted-dark)',
+                textTransform: 'capitalize',
+              }}
+            >
+              {user.role}
+            </span>
+          </div>
+        )}
 
-      {/* Footer / Sign Out */}
-      <div
-        style={{
-          padding: isCollapsed ? '12px 8px' : '12px 10px',
-          borderTop: `1px solid ${sidebarBorder}`
-        }}
-      >
+        {/* Logout button */}
         <button
           onClick={logout}
-          title="Sign out of system"
+          title="Sign out"
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'flex-start',
             gap: '10px',
-            width: '100%',
-            padding: isCollapsed ? '10px' : '9px 12px',
-            borderRadius: '0px',
-            backgroundColor: 'transparent',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            background: 'transparent',
             border: '1px solid transparent',
-            color: 'var(--color-danger-text)',
+            color: 'var(--red)',
             fontWeight: 500,
-            fontSize: '13px',
-            minHeight: '36px',
-            cursor: 'pointer'
+            fontSize: '14px',
+            width: '100%',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            minHeight: 'unset',
+            height: 'auto',
+            transform: 'none',
+            boxShadow: 'none',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--color-danger-bg)';
-            e.currentTarget.style.borderColor = 'var(--color-danger-border)';
+            e.currentTarget.style.background = 'rgba(255, 56, 96, 0.08)';
+            e.currentTarget.style.borderColor = 'rgba(255, 56, 96, 0.3)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.borderColor = 'transparent';
           }}
         >
           <LogOut size={16} />
-          {!isCollapsed && <span>Sign Out</span>}
+          <span>Sign Out</span>
         </button>
       </div>
     </aside>

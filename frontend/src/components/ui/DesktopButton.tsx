@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface DesktopButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline' | 'success';
   size?: 'sm' | 'md' | 'lg';
   icon?: React.ReactNode;
   children?: React.ReactNode;
@@ -20,34 +20,40 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
     switch (variant) {
       case 'primary':
         return {
-          backgroundColor: 'var(--color-accent-solid)',
-          color: 'var(--color-text-inverse)',
-          border: '1px solid var(--color-accent-solid-hover)',
+          background: 'var(--blue)',
+          color: '#fff',
+          border: '1px solid var(--blue)',
         };
       case 'danger':
         return {
-          backgroundColor: 'var(--color-danger-text)',
-          color: 'var(--color-text-inverse)',
+          background: 'var(--color-danger-bg)',
+          color: 'var(--color-danger-text)',
           border: '1px solid var(--color-danger-border)',
+        };
+      case 'success':
+        return {
+          background: 'var(--color-success-bg)',
+          color: 'var(--color-success-text)',
+          border: '1px solid var(--color-success-border)',
         };
       case 'outline':
         return {
-          backgroundColor: 'var(--color-bg-panel)',
-          color: 'var(--color-text-primary)',
-          border: '1px solid var(--color-border-strong)',
+          background: 'transparent',
+          color: 'var(--ink)',
+          border: '1px solid var(--line-strong)',
         };
       case 'ghost':
         return {
-          backgroundColor: 'transparent',
-          color: 'var(--color-text-secondary)',
+          background: 'transparent',
+          color: 'var(--muted)',
           border: '1px solid transparent',
         };
       case 'secondary':
       default:
         return {
-          backgroundColor: 'var(--color-bg-hover)',
-          color: 'var(--color-text-primary)',
-          border: '1px solid var(--color-border-default)',
+          background: 'var(--surface-soft)',
+          color: 'var(--ink)',
+          border: '1px solid var(--line)',
         };
     }
   };
@@ -55,25 +61,16 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
   const getSizeStyles = (): React.CSSProperties => {
     switch (size) {
       case 'sm':
-        return { height: '32px', padding: '0 10px', fontSize: '12px' };
+        return { padding: '6px 12px', fontSize: '12px', borderRadius: '8px', gap: '5px' };
       case 'lg':
-        return { height: '42px', padding: '0 18px', fontSize: '14px' };
+        return { padding: '12px 24px', fontSize: '15px', borderRadius: 'var(--r)', gap: '10px' };
       case 'md':
       default:
-        return { height: '36px', padding: '0 14px', fontSize: '13px' };
+        return { padding: '9px 18px', fontSize: '14px', borderRadius: 'var(--r)', gap: '8px' };
     }
   };
 
-  const getHoverBg = () => {
-    switch (variant) {
-      case 'primary': return 'var(--color-accent-solid-hover)';
-      case 'danger': return 'var(--color-danger-bg)';
-      case 'secondary': return 'var(--color-bg-active)';
-      case 'outline': return 'var(--color-bg-hover)';
-      case 'ghost': return 'var(--color-bg-hover)';
-      default: return 'var(--color-bg-active)';
-    }
-  };
+  const variantStyles = getVariantStyles();
 
   return (
     <button
@@ -82,24 +79,35 @@ export const DesktopButton: React.FC<DesktopButtonProps> = ({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '6px',
-        fontWeight: 500,
-        borderRadius: '2px',
+        fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.6 : 1,
-        transition: 'all 150ms ease-out',
-        ...getVariantStyles(),
+        opacity: disabled ? 0.4 : 1,
+        transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        ...variantStyles,
         ...getSizeStyles(),
-        ...style
+        ...style,
       }}
       onMouseEnter={(e) => {
         if (disabled) return;
-        e.currentTarget.style.backgroundColor = getHoverBg();
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow =
+          variant === 'primary' ? 'var(--shadow-blue)' :
+          variant === 'danger' ? '0 8px 24px rgba(255,56,96,0.25)' :
+          '0 6px 20px rgba(0,0,0,0.4)';
       }}
       onMouseLeave={(e) => {
         if (disabled) return;
-        const vs = getVariantStyles();
-        if (vs.backgroundColor) e.currentTarget.style.backgroundColor = vs.backgroundColor as string;
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+      onMouseDown={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.transform = 'translateY(1px) scale(0.97)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+      onMouseUp={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.transform = 'none';
       }}
       {...props}
     >

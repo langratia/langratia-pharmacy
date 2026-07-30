@@ -12,9 +12,8 @@ import {
   Sun,
   Moon,
   Search,
-  Building2,
   Server,
-  Monitor
+  Monitor,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -26,35 +25,43 @@ import {
   GetUserTodaySalesTotal,
   GetNotificationsSummary,
   GlobalSearch,
-  GetNetworkStatus
+  GetNetworkStatus,
 } from '../../../wailsjs/go/main/App';
 import { models, main } from '../../../wailsjs/go/models';
 
+// Page title/subtitle map per view
+const PAGE_META: Record<NavItemKey, { title: string; subtitle: string }> = {
+  dashboard:     { title: 'Dashboard',     subtitle: 'Overview of pharmacy operations' },
+  pos:           { title: 'Point of Sale', subtitle: 'Process transactions and sales' },
+  prescriptions: { title: 'Prescriptions', subtitle: 'Manage and dispense prescriptions' },
+  inventory:     { title: 'Medicines',     subtitle: 'Track stock and manage medicines' },
+  purchases:     { title: 'Purchases',     subtitle: 'Manage purchase orders and suppliers' },
+  suppliers:     { title: 'Suppliers',     subtitle: 'Manage your supplier directory' },
+  reports:       { title: 'Reports',       subtitle: 'Analytics and financial reports' },
+  settings:      { title: 'Settings',      subtitle: 'Configure your pharmacy system' },
+};
+
 interface HeaderProps {
   onSelectView: (view: NavItemKey) => void;
+  activeView: NavItemKey;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
+export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [todaySales, setTodaySales] = useState<number>(0);
 
-  // Notification State
   const [notifications, setNotifications] = useState<models.NotificationSummary | null>(null);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Search State
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<models.SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
-  
-  // Network Status State
+
   const [networkStatus, setNetworkStatus] = useState<main.NetworkStatus | null>(null);
-
   const searchRef = useRef<HTMLDivElement>(null);
-
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,22 +88,17 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
     }
   };
 
-  // Fetch today's sales & notifications
   const fetchHeaderData = async () => {
     if (!user) return;
     try {
       const sales = await GetUserTodaySalesTotal(user.id);
       setTodaySales(sales || 0);
-
       const notifs = await GetNotificationsSummary();
       setNotifications(notifs);
-
       try {
         const netStatus = await GetNetworkStatus();
         setNetworkStatus(netStatus);
-      } catch (netErr) {
-        console.error('Failed to get network status:', netErr);
-      }
+      } catch {}
     } catch (err) {
       console.error('Failed to load header metrics:', err);
     }
@@ -134,291 +136,266 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
     };
   }, [user]);
 
-  // Handle Search Input Change
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
       return;
     }
-
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
         const results = await GlobalSearch(searchQuery.trim(), user?.role || 'cashier');
         setSearchResults(results || []);
-      } catch (err) {
-        console.error('Search error:', err);
-      } finally {
-        setIsSearching(false);
-      }
+      } catch {}
+      finally { setIsSearching(false); }
     }, 200);
-
     return () => clearTimeout(timer);
   }, [searchQuery, user]);
 
   const handleSearchResultClick = (item: models.SearchResultItem) => {
     setShowSearchModal(false);
     setSearchQuery('');
-
     if ((item.target_view === 'suppliers' || item.target_view === 'reports') && user?.role !== 'admin') {
       alert('Access Restricted: You need Administrator privileges to view this section.');
       return;
     }
-
     onSelectView(item.target_view as NavItemKey);
   };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'Medicine':
-        return <Pill size={13} style={{ color: 'var(--color-accent-base)' }} />;
-      case 'Prescription':
-        return <FileText size={13} style={{ color: 'var(--color-info-text)' }} />;
-      case 'Sale Invoice':
-        return <ShoppingCart size={13} style={{ color: 'var(--color-accent-base)' }} />;
-      case 'Supplier':
-        return <Users size={13} style={{ color: 'var(--color-warning-text)' }} />;
-      default:
-        return <Pill size={13} />;
+      case 'Medicine':     return <Pill size={14} style={{ color: 'var(--blue)' }} />;
+      case 'Prescription': return <FileText size={14} style={{ color: 'var(--cyan)' }} />;
+      case 'Sale Invoice': return <ShoppingCart size={14} style={{ color: 'var(--blue)' }} />;
+      case 'Supplier':     return <Users size={14} style={{ color: 'var(--yellow)' }} />;
+      default:             return <Pill size={14} />;
     }
   };
 
+  const pageMeta = PAGE_META[activeView] ?? { title: 'Dashboard', subtitle: '' };
+  const hasNotifications = notifications && notifications.total_count > 0;
+
   return (
     <>
+      {/* Hidden avatar file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleAvatarFileChange}
+      />
+
+      {/* ── Topbar ──────────────────────────────────────────────────────── */}
       <header
         style={{
-          height: '48px',
-          maxHeight: '48px',
-          flexShrink: 0,
-          backgroundColor: 'var(--color-bg-panel)',
-          borderBottom: '1px solid var(--color-border-subtle)',
+          height: 'var(--topbar-h)',
+          padding: '0 28px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 16px',
-          position: 'relative',
-          zIndex: 90,
-          boxShadow: 'none'
+          borderBottom: '1px solid var(--line)',
+          background: 'var(--topbar-bg)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          flexShrink: 0,
+          zIndex: 10,
+          /* Wails drag region on the title area */
+          // @ts-ignore
+          '--wails-draggable': 'drag',
         }}
       >
-        {/* Left Quick Desktop Actions & Branch Context */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => onSelectView('pos')}
-            className="desktop-btn-primary"
-            style={{ height: '28px', fontSize: '12px', gap: '6px', padding: '0 12px', borderRadius: '0px' }}
-          >
-            <Plus size={12} />
-            <span>New Sale (F1)</span>
-          </button>
-
-          <button
-            onClick={() => setShowSearchModal(true)}
+        {/* Left: Page title */}
+        <div style={{ '--wails-draggable': 'drag' } as React.CSSProperties}>
+          <h1
             style={{
-              width: '28px',
-              height: '28px',
-              padding: 0,
-              borderRadius: '0px',
-              backgroundColor: 'var(--color-bg-panel)',
-              border: '1px solid var(--color-border-default)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--color-text-secondary)'
+              fontSize: '19px',
+              fontWeight: 700,
+              letterSpacing: '-0.2px',
+              color: 'var(--ink)',
+              lineHeight: 1,
             }}
-            title="Global Search (Ctrl+K)"
           >
-            <Search size={14} />
-          </button>
-
-          {/* Branch Badge & Shift Status Indicator */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '4px' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                height: '24px',
-                padding: '0 8px',
-                backgroundColor: 'var(--color-bg-base)',
-                border: '1px solid var(--color-border-default)',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'var(--color-text-secondary)',
-                borderRadius: '0px'
-              }}
-              title="Current Pharmacy Branch Location"
-            >
-              <Building2 size={12} style={{ color: 'var(--color-accent-base)' }} />
-              <span>Main Branch</span>
-            </div>
-
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                height: '24px',
-                padding: '0 8px',
-                backgroundColor: 'var(--color-success-bg, rgba(46, 125, 50, 0.12))',
-                border: '1px solid var(--color-success-border, rgba(46, 125, 50, 0.3))',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'var(--color-success-text, #4caf50)',
-                borderRadius: '0px'
-              }}
-              title="Workstation Shift Status"
-            >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--color-success-text, #4caf50)',
-                  boxShadow: '0 0 6px var(--color-success-text, #4caf50)'
-                }}
-              />
-              <span>Shift: Active (Day)</span>
-            </div>
-          </div>
+            {pageMeta.title}
+          </h1>
+          <p
+            style={{
+              fontSize: '13px',
+              color: 'var(--muted)',
+              marginTop: '3px',
+              lineHeight: 1,
+            }}
+          >
+            {pageMeta.subtitle}
+          </p>
         </div>
 
-        {/* Center Empty Space */}
-        <div style={{ flex: 1 }}></div>
+        {/* Right: Actions */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            // prevent drag on interactive controls
+            // @ts-ignore
+            '--wails-draggable': 'no-drag',
+          }}
+        >
+          {/* New Sale shortcut */}
+          <button
+            onClick={() => onSelectView('pos')}
+            className="btn btn-primary"
+            style={{ padding: '8px 16px', fontSize: '13px', gap: '6px', minHeight: 'unset', height: '36px' }}
+          >
+            <Plus size={14} />
+            <span>New Sale</span>
+          </button>
 
-        {/* Right Toolbar Controls & User Profile Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Network Status Badge */}
+          {/* Search button */}
+          <button
+            onClick={() => setShowSearchModal(true)}
+            className="win-btn"
+            title="Global Search (Ctrl+K)"
+          >
+            <Search size={16} />
+          </button>
+
+          {/* Network status */}
           {networkStatus && (
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                height: '24px',
-                padding: '0 10px',
-                backgroundColor: networkStatus.is_host ? 'rgba(46, 125, 50, 0.1)' : 'rgba(2, 136, 209, 0.1)',
-                border: `1px solid ${networkStatus.is_host ? 'rgba(46, 125, 50, 0.5)' : 'rgba(2, 136, 209, 0.5)'}`,
-                color: networkStatus.is_host ? '#4caf50' : '#0288d1',
-                borderRadius: '12px',
-                fontSize: '11px',
+                padding: '5px 12px',
+                background: networkStatus.is_host
+                  ? 'rgba(20, 240, 109, 0.08)'
+                  : 'rgba(18, 108, 255, 0.08)',
+                border: `1px solid ${networkStatus.is_host ? 'rgba(20, 240, 109, 0.25)' : 'rgba(18, 108, 255, 0.25)'}`,
+                borderRadius: '20px',
+                color: networkStatus.is_host ? 'var(--green)' : 'var(--blue)',
+                fontSize: '12px',
                 fontWeight: 600,
-                letterSpacing: '0.02em',
-                marginRight: '8px'
               }}
-              title={networkStatus.is_host ? 'Local Database Connection' : `Connected via LAN: ${networkStatus.db_path}`}
+              title={networkStatus.is_host ? 'Local Database' : `Connected: ${networkStatus.db_path}`}
             >
-              {networkStatus.is_host ? <Server size={12} /> : <Monitor size={12} />}
-              {networkStatus.is_host ? 'Main Server' : 'Connected to Server'}
+              {networkStatus.is_host ? <Server size={13} /> : <Monitor size={13} />}
+              <span>{networkStatus.is_host ? 'Main Server' : 'Connected'}</span>
             </div>
           )}
 
-          {/* Dark / Light Mode Toggle */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light Workstation Mode' : 'Switch to Dark Workstation Mode'}
-            style={{
-              width: '28px',
-              height: '28px',
-              padding: 0,
-              borderRadius: '0px',
-              border: '1px solid var(--color-border-default)',
-              backgroundColor: 'var(--color-bg-panel)',
-              color: 'var(--color-text-primary)'
-            }}
-          >
-            {theme === 'dark' ? <Sun size={14} style={{ color: 'var(--color-warning-text)' }} /> : <Moon size={14} style={{ color: 'var(--color-accent-base)' }} />}
-          </button>
-
-          {/* Today's Sales Counter */}
+          {/* Today's sales */}
           <div
             style={{
-              backgroundColor: 'var(--color-accent-subtle)',
-              color: 'var(--color-accent-base)',
-              border: '1px solid var(--color-accent-base)',
-              padding: '0 10px',
-              borderRadius: '0px',
-              fontWeight: 600,
-              fontSize: '12px',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              height: '28px'
+              padding: '5px 14px',
+              background: 'rgba(18, 108, 255, 0.08)',
+              border: '1px solid rgba(18, 108, 255, 0.25)',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'var(--blue)',
             }}
           >
-            <span style={{ color: 'var(--color-text-muted)', fontSize: '10px' }}>UGX</span>
+            <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)' }}>Today</span>
             <span>{formatCurrency(todaySales)}</span>
           </div>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="win-btn"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {theme === 'dark'
+              ? <Sun size={16} style={{ color: 'var(--yellow)' }} />
+              : <Moon size={16} style={{ color: 'var(--blue)' }} />
+            }
+          </button>
 
           {/* Notifications */}
           <div ref={notifRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
+              className="win-btn"
               title="Notifications"
-              style={{
-                width: '28px',
-                height: '28px',
-                padding: 0,
-                borderRadius: '0px',
-                border: '1px solid var(--color-border-default)',
-                backgroundColor: 'var(--color-bg-panel)',
-                color: 'var(--color-text-primary)',
-                position: 'relative'
-              }}
+              style={{ position: 'relative' }}
             >
-              <Bell size={14} />
-              {notifications && notifications.total_count > 0 && (
+              <Bell size={16} />
+              {hasNotifications && (
                 <span
                   style={{
                     position: 'absolute',
-                    top: '3px',
-                    right: '3px',
-                    width: '6px',
-                    height: '6px',
-                    backgroundColor: 'var(--color-danger-text)',
-                    borderRadius: '50%'
+                    top: '6px',
+                    right: '6px',
+                    width: '7px',
+                    height: '7px',
+                    background: 'var(--red)',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 6px var(--red)',
                   }}
                 />
               )}
             </button>
 
-            {/* Notifications Dropdown */}
+            {/* Notifications dropdown */}
             {showNotifications && (
               <div
-                className="solid-modal"
                 style={{
                   position: 'absolute',
-                  top: 'calc(100% + 4px)',
+                  top: 'calc(100% + 8px)',
                   right: 0,
-                  width: '300px',
-                  borderRadius: '0px',
-                  zIndex: 100
+                  width: '320px',
+                  background: 'var(--surface-soft)',
+                  border: '1px solid var(--line-strong)',
+                  borderRadius: 'var(--r2)',
+                  boxShadow: 'var(--shadow-dropdown)',
+                  zIndex: 200,
+                  overflow: 'hidden',
+                  animation: 'popupEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                 }}
               >
                 <div
                   style={{
-                    padding: '8px 12px',
-                    borderBottom: '1px solid var(--color-border-default)',
+                    padding: '14px 18px',
+                    borderBottom: '1px solid var(--line)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    backgroundColor: 'var(--color-bg-base)'
                   }}
                 >
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>
                     System Alerts
                   </span>
-                  {notifications && (
-                    <span style={{ fontSize: '11px', fontWeight: 600, backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success-text)', border: '1px solid var(--color-success-border)', padding: '1px 6px', borderRadius: '0px' }}>
-                      {notifications.total_count} New
+                  {hasNotifications && (
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        background: 'rgba(255, 56, 96, 0.12)',
+                        color: 'var(--red)',
+                        border: '1px solid rgba(255, 56, 96, 0.25)',
+                        padding: '2px 8px',
+                        borderRadius: '20px',
+                      }}
+                    >
+                      {notifications!.total_count} New
                     </span>
                   )}
                 </div>
 
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
                   {!notifications || notifications.items.length === 0 ? (
-                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                    <div
+                      style={{
+                        padding: '24px',
+                        textAlign: 'center',
+                        color: 'var(--muted)',
+                        fontSize: '13px',
+                      }}
+                    >
                       No alerts pending.
                     </div>
                   ) : (
@@ -430,27 +407,27 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
                           onSelectView(item.target as NavItemKey);
                         }}
                         style={{
-                          padding: '10px 12px',
-                          borderBottom: '1px solid var(--color-border-subtle)',
+                          padding: '12px 18px',
+                          borderBottom: '1px solid var(--line)',
                           cursor: 'pointer',
                           display: 'flex',
-                          gap: '10px'
+                          gap: '12px',
+                          transition: 'background 0.15s ease',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--overlay-hover)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
-                        <div style={{ marginTop: '2px' }}>
-                          {item.severity === 'danger' ? (
-                            <AlertTriangle size={15} style={{ color: 'var(--color-danger-text)' }} />
-                          ) : (
-                            <Clock size={15} style={{ color: 'var(--color-warning-text)' }} />
-                          )}
+                        <div style={{ marginTop: '2px', flexShrink: 0 }}>
+                          {item.severity === 'danger'
+                            ? <AlertTriangle size={15} style={{ color: 'var(--red)' }} />
+                            : <Clock size={15} style={{ color: 'var(--yellow)' }} />
+                          }
                         </div>
                         <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
                             {item.title}
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                             {item.message}
                           </div>
                         </div>
@@ -462,93 +439,139 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
             )}
           </div>
 
-          {/* User Profile Desktop Status Item */}
+          {/* User avatar badge */}
           <div
             onClick={() => fileInputRef.current?.click()}
             title="Click to change avatar"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '0 8px 0 4px',
-              border: '1px solid var(--color-border-default)',
-              borderRadius: '0px',
-              backgroundColor: 'var(--color-bg-panel)',
+              gap: '10px',
+              padding: '6px 12px 6px 6px',
+              background: 'var(--overlay-hover)',
+              border: '1px solid var(--line)',
+              borderRadius: '9999px',
               cursor: 'pointer',
-              height: '28px'
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--overlay-active)';
+              e.currentTarget.style.borderColor = 'var(--line-strong)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--overlay-hover)';
+              e.currentTarget.style.borderColor = 'var(--line)';
             }}
           >
-            <div
-              style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--color-accent-solid)',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '10px',
-                fontWeight: 700,
-                flexShrink: 0
-              }}
-            >
-              {(user?.username?.[0] || 'U').toUpperCase()}
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  background: 'var(--blue)',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {(user?.username?.[0] || 'U').toUpperCase()}
+              </div>
+            )}
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1 }}>
+                {user?.username || 'User'}
+              </div>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--muted)',
+                  textTransform: 'capitalize',
+                  lineHeight: 1,
+                  marginTop: '2px',
+                }}
+              >
+                {user?.role}
+              </div>
             </div>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-              {user?.username || 'Pharmacist'}
-            </span>
-            <span style={{ fontSize: '9px', padding: '1px 4px', backgroundColor: 'var(--color-bg-hover)', borderRadius: '0px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-text-secondary)' }}>
-              {user?.role}
-            </span>
           </div>
         </div>
       </header>
 
-      {/* Global Search Modal Overlay */}
+      {/* ── Global Search Modal ──────────────────────────────────────────── */}
       {showSearchModal && (
         <div
           className="modal-overlay"
-          style={{
-            alignItems: 'flex-start',
-            paddingTop: '10vh'
-          }}
+          style={{ alignItems: 'flex-start', paddingTop: '10vh' }}
           onClick={() => setShowSearchModal(false)}
         >
           <div
             ref={searchRef}
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: '560px',
+              width: '580px',
               maxWidth: '90vw',
-              backgroundColor: 'var(--color-bg-elevated)',
-              borderRadius: '0px',
+              background: 'var(--surface-soft)',
+              borderRadius: 'var(--r2)',
               boxShadow: 'var(--shadow-dropdown)',
-              border: '1px solid var(--color-border-default)',
+              border: '1px solid var(--line-strong)',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              animation: 'popupEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             }}
           >
-            <div style={{ padding: '12px', borderBottom: '1px solid var(--color-border-default)' }}>
-              <SearchBar
+            {/* Search input */}
+            <div
+              style={{
+                padding: '16px 18px',
+                borderBottom: '1px solid var(--line)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+              }}
+            >
+              <Search size={18} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+              <input
+                autoFocus
+                type="text"
                 value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Search anything (Ctrl+K)..."
-                width="100%"
-                autoFocus={true}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search medicines, invoices, suppliers…"
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '15px',
+                  color: 'var(--ink)',
+                  padding: 0,
+                  height: 'auto',
+                  minHeight: 'unset',
+                }}
               />
             </div>
 
+            {/* Results */}
             {searchQuery.trim() && (
-              <div style={{ maxHeight: '360px', overflowY: 'auto', padding: '4px 0' }}>
+              <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '6px 0' }}>
                 {isSearching ? (
-                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                    Searching database...
+                  <div style={{ padding: '28px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>
+                    Searching…
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-                    No results found for "{searchQuery}"
+                  <div style={{ padding: '28px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>
+                    No results for "{searchQuery}"
                   </div>
                 ) : (
                   searchResults.map((item) => (
@@ -556,49 +579,76 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView }) => {
                       key={`${item.category}_${item.id}`}
                       onClick={() => handleSearchResultClick(item)}
                       style={{
-                        padding: '10px 16px',
+                        padding: '12px 18px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         cursor: 'pointer',
-                        borderBottom: '1px solid var(--color-border-subtle)'
+                        borderBottom: '1px solid var(--line)',
+                        transition: 'background 0.15s ease',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--overlay-hover)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div
                           style={{
-                            padding: '6px',
-                            borderRadius: '0px',
-                            backgroundColor: 'var(--color-bg-base)',
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '8px',
+                            background: 'var(--surface)',
+                            border: '1px solid var(--line)',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            flexShrink: 0,
                           }}
                         >
                           {getCategoryIcon(item.category)}
                         </div>
                         <div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>
                             {item.title}
                           </div>
-                          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                             {item.subtitle}
                           </div>
                         </div>
                       </div>
-                      <ChevronRight size={16} style={{ color: 'var(--color-text-muted)' }} />
+                      <ChevronRight size={16} style={{ color: 'var(--muted-dark)' }} />
                     </div>
                   ))
                 )}
               </div>
             )}
 
-            {/* Modal Footer helper */}
-            <div style={{ padding: '8px 16px', backgroundColor: 'var(--color-bg-base)', borderTop: '1px solid var(--color-border-default)', fontSize: '11px', color: 'var(--color-text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Search Medicines, Invoices, Suppliers...</span>
-              <span><kbd style={{ padding: '1px 4px', backgroundColor: 'var(--color-bg-panel)', borderRadius: '0px', border: '1px solid var(--color-border-default)' }}>ESC</kbd> to close</span>
+            {/* Footer hint */}
+            <div
+              style={{
+                padding: '10px 18px',
+                background: 'var(--bg)',
+                borderTop: '1px solid var(--line)',
+                fontSize: '12px',
+                color: 'var(--muted-dark)',
+                display: 'flex',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span>Search across medicines, invoices, suppliers…</span>
+              <span>
+                <kbd
+                  style={{
+                    padding: '2px 6px',
+                    background: 'var(--surface-soft)',
+                    border: '1px solid var(--line)',
+                    borderRadius: '5px',
+                    fontSize: '11px',
+                  }}
+                >
+                  ESC
+                </kbd>{' '}
+                to close
+              </span>
             </div>
           </div>
         </div>

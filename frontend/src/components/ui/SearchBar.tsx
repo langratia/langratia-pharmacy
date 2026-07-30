@@ -15,12 +15,12 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChange,
-  placeholder = 'Search...',
+  placeholder = 'Search…',
   onFocus,
   onBlur,
-  width = '320px',
+  width = '280px',
   showShortcut = true,
-  autoFocus = false
+  autoFocus = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -28,41 +28,42 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <div
       style={{
         position: 'relative',
-        width: width,
+        width,
         display: 'flex',
         alignItems: 'center',
-        backgroundColor: 'var(--color-bg-input)',
-        border: `1px solid ${isFocused ? 'var(--color-accent-base)' : 'var(--color-border-strong)'}`,
-        borderRadius: '2px',
-        padding: '0 10px',
-        height: '32px',
-        boxShadow: isFocused ? '0 0 0 2px var(--color-accent-subtle)' : 'none',
-        transition: 'all 150ms ease-out'
+        background: 'var(--surface-soft)',
+        border: `1px solid ${isFocused ? 'var(--blue)' : 'var(--line)'}`,
+        borderRadius: '8px',
+        padding: '0 12px',
+        height: '38px',
+        boxShadow: isFocused ? '0 0 0 3px rgba(18, 108, 255, 0.2)' : 'none',
+        transition: 'all 0.2s ease',
+        gap: '8px',
       }}
     >
-      <Search size={14} style={{ color: isFocused ? 'var(--color-accent-base)' : 'var(--color-text-muted)', marginRight: '6px', flexShrink: 0 }} />
+      <Search
+        size={15}
+        style={{ color: isFocused ? 'var(--blue)' : 'var(--muted-dark)', flexShrink: 0 }}
+      />
       <input
         type="text"
         autoFocus={autoFocus}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        onFocus={() => {
-          setIsFocused(true);
-          onFocus?.();
-        }}
-        onBlur={() => {
-          setIsFocused(false);
-          onBlur?.();
-        }}
+        onFocus={() => { setIsFocused(true); onFocus?.(); }}
+        onBlur={() => { setIsFocused(false); onBlur?.(); }}
         style={{
           border: 'none',
           outline: 'none',
           background: 'transparent',
-          fontSize: '12px',
+          fontSize: '14px',
           width: '100%',
-          color: 'var(--color-text-primary)',
-          height: '100%'
+          color: 'var(--ink)',
+          height: '100%',
+          minHeight: 'unset',
+          padding: 0,
+          boxShadow: 'none',
         }}
       />
       {value ? (
@@ -71,28 +72,36 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--color-text-muted)',
+            color: 'var(--muted)',
             cursor: 'pointer',
-            padding: 0,
+            padding: '2px',
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            borderRadius: '4px',
+            minHeight: 'unset',
+            height: 'auto',
+            transform: 'none',
+            boxShadow: 'none',
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; }}
         >
           <X size={13} />
         </button>
       ) : showShortcut ? (
         <kbd
           style={{
-            fontSize: '10px',
+            fontSize: '11px',
             fontWeight: 600,
-            color: 'var(--color-text-muted)',
-            backgroundColor: 'var(--color-bg-hover)',
-            border: '1px solid var(--color-border-default)',
-            borderRadius: '2px',
-            padding: '1px 4px',
+            color: 'var(--muted-dark)',
+            background: 'var(--overlay-hover)',
+            border: '1px solid var(--line)',
+            borderRadius: '5px',
+            padding: '2px 6px',
             userSelect: 'none',
             lineHeight: '1',
-            flexShrink: 0
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
           }}
         >
           ⌘K

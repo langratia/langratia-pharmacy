@@ -23,64 +23,81 @@ export const Panel: React.FC<PanelProps> = ({
   className = '',
   style,
   noPadding = false,
-  onClick
+  onClick,
 }) => {
   return (
     <div
       id={id}
-      className={`solid-panel ${className}`}
+      className={className}
       onClick={onClick}
       style={{
-        backgroundColor: 'var(--color-bg-panel)',
-        border: '1px solid var(--color-border-subtle)',
-        borderRadius: '0px',
-        boxShadow: 'none',
+        background: 'var(--surface)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--r2)',
+        boxShadow: 'var(--shadow)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         cursor: onClick ? 'pointer' : undefined,
-        ...style
+        transition: 'border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease',
+        ...style,
       }}
     >
       {(title || subtitle || actions || headerRight) && (
         <div
           style={{
-            height: '36px',
-            maxHeight: '36px',
-            padding: '0 12px',
-            borderBottom: '1px solid var(--color-border-default)',
+            padding: '16px 20px 14px',
+            borderBottom: '1px solid var(--line)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: 'var(--color-bg-base)',
             flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', overflow: 'hidden' }}>
             {title && (
-              <h3 style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  fontWeight: 700,
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.1px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {title}
               </h3>
             )}
             {subtitle && (
-              <>
-                {title && <span style={{ color: 'var(--color-border-default)' }}>|</span>}
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {subtitle}
-                </span>
-              </>
+              <span
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--muted)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {subtitle}
+              </span>
             )}
           </div>
-          {(actions || headerRight) && <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>{actions}{headerRight}</div>}
+          {(actions || headerRight) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              {actions}
+              {headerRight}
+            </div>
+          )}
         </div>
       )}
       <div
         style={{
-          padding: noPadding ? '0' : '4px',
+          padding: noPadding ? '0' : '20px',
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto'
+          overflow: 'auto',
         }}
       >
         {children}

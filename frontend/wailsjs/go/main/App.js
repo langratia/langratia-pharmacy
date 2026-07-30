@@ -42,6 +42,10 @@ export function ChangePassword(arg1, arg2, arg3) {
   return window['go']['main']['App']['ChangePassword'](arg1, arg2, arg3);
 }
 
+export function ClearSampleData(arg1) {
+  return window['go']['main']['App']['ClearSampleData'](arg1);
+}
+
 export function CloseShift(arg1, arg2, arg3) {
   return window['go']['main']['App']['CloseShift'](arg1, arg2, arg3);
 }

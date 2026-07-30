@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { Sidebar, NavItemKey } from './Sidebar';
+import React from 'react';
+import { Sidebar } from './Sidebar';
 import { Header } from './Header';
-import { TitleBar } from './TitleBar';
-import { StatusBar } from './StatusBar';
+import { NavItemKey } from './Sidebar';
 
 interface MainLayoutProps {
   activeView: NavItemKey;
@@ -11,55 +10,40 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ activeView, onSelectView, children }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--color-desktop-bg)' }}>
-      {/* Tier 1: Window TitleBar */}
-      <TitleBar />
+    <div className="shell">
+      {/* Left navigation column */}
+      <Sidebar activeView={activeView} onSelectView={onSelectView} />
 
-      {/* Tier 2: Middle Workstation Canvas (Sidebar + Right Content Column) */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {/* Collapsible Navigation Sidebar */}
-        <Sidebar
-          activeView={activeView}
-          onSelectView={onSelectView}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
-        />
+      {/* Right main column: topbar + content */}
+      <main
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          overflow: 'hidden',
+          minWidth: 0,
+        }}
+      >
+        <Header onSelectView={onSelectView} activeView={activeView} />
 
-        {/* Right Workspace Column */}
-        <div
+        <section
+          className="content content-enter"
           style={{
             flex: 1,
+            overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            height: '100%',
-            overflow: 'hidden',
-            backgroundColor: 'var(--color-desktop-bg)'
+            minHeight: 0,
+            padding: '24px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'var(--overlay-active) transparent',
+            backgroundImage: 'radial-gradient(ellipse at 20% 50%, var(--card-accent) 0%, transparent 60%)',
           }}
         >
-          {/* App Toolbar Header */}
-          <Header onSelectView={onSelectView} />
-
-          {/* Main Desktop Screen Workspace Canvas */}
-          <main
-            style={{
-              flex: 1,
-              overflow: 'hidden',
-              padding: '16px',
-              boxSizing: 'border-box',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {children}
-          </main>
-        </div>
-      </div>
-
-      {/* Tier 3: Persistent Bottom Desktop Status Bar */}
-      <StatusBar />
+          {children}
+        </section>
+      </main>
     </div>
   );
 };

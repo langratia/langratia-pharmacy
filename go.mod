@@ -3,7 +3,7 @@ module app
 go 1.25.0
 
 require (
-	github.com/wailsapp/wails/v2 v2.12.0
+	github.com/wailsapp/wails/v2 v2.13.0
 	golang.org/x/crypto v0.51.0
 	modernc.org/sqlite v1.54.0
 )

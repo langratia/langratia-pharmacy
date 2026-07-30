@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   ShoppingCart,
@@ -7,167 +7,131 @@ import {
   X,
   CheckCircle,
   Loader,
-  Clock,
-  AlertTriangle,
-  Receipt,
-  Printer
+  Printer,
+  Search,
+  Banknote,
+  Smartphone,
+  AlertCircle,
 } from 'lucide-react';
-import { Medicine, Shift, ShiftZReport } from '../../types';
+import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
-import { ListMedicines, ProcessSale, GetActiveShift, OpenShift, CloseShift } from '../../../wailsjs/go/main/App';
+import { ListMedicines, ProcessSale } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 import { usePharmacy } from '../../context/PharmacyContext';
 
-interface CartItem {
-  medicine: Medicine;
-  quantity: number;
-}
+interface CartItem { medicine: Medicine; quantity: number; }
+interface POSPageProps { externalCartItems?: CartItem[]; onClearExternalCart?: () => void; }
 
-interface POSPageProps {
-  externalCartItems?: CartItem[];
-  onClearExternalCart?: () => void;
-}
+type PaymentMethod = 'Cash' | 'MobileMoney';
+
+const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
+
+/* ── Modal wrapper ─────────────────────────────────────────────────── */
+const Modal: React.FC<{ children: React.ReactNode; onClose?: () => void; width?: number }> = ({ children, onClose, width = 420 }) => (
+  <div
+    onClick={onClose}
+    style={{ position: 'fixed', inset: 0, background: 'rgba(3,5,8,0.75)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '24px' }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{ width: '100%', maxWidth: width, background: 'var(--surface-soft)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r2)', boxShadow: 'var(--shadow-dropdown)', padding: '28px', animation: 'popupEnter 0.2s cubic-bezier(0.16,1,0.3,1) forwards' }}
+    >
+      {children}
+    </div>
+  </div>
+);
+
+const modalTitle = (text: string) => (
+  <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', marginBottom: '6px', letterSpacing: '-0.2px' }}>{text}</h2>
+);
+const modalSub = (text: string) => (
+  <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>{text}</p>
+);
+const modalInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input
+    {...props}
+    style={{ width: '100%', background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '8px', padding: '10px 14px', fontSize: '14px', color: 'var(--ink)', outline: 'none', minHeight: 'unset', boxSizing: 'border-box', ...props.style }}
+    onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; props.onFocus?.(e); }}
+    onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; props.onBlur?.(e); }}
+  />
+);
 
 export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExternalCart }) => {
   const { user } = useAuth();
   const { pharmacyName } = usePharmacy();
-  const categories = ['All', 'General', 'Antibiotics', 'Analgesics', 'Antimalarials', 'Cardiovascular', 'Vitamins & Supplements', 'Respiratory', 'Dermatology'];
-  
+
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isTenderOpen, setIsTenderOpen] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedSale, setCompletedSale] = useState<any>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  // Discount state
   const [discountAmount, setDiscountAmount] = useState<number>(0);
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('fixed');
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
-
-  // Shift & Till Reconciliation state
-  const [activeShift, setActiveShift] = useState<Shift | null>(null);
-  const [isOpenShiftModalOpen, setIsOpenShiftModalOpen] = useState(false);
-  const [isCloseShiftModalOpen, setIsCloseShiftModalOpen] = useState(false);
-  const [openingCashInput, setOpeningCashInput] = useState<string>('50000');
-  const [actualCashInput, setActualCashInput] = useState<string>('');
-  const [shiftNotes, setShiftNotes] = useState<string>('');
-  const [zReport, setZReport] = useState<ShiftZReport | null>(null);
+  const [discountError, setDiscountError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
+  const [tenderedAmount, setTenderedAmount] = useState<string>('');
+  const [catalogView, setCatalogView] = useState<'grid' | 'table'>(() => {
+    return (localStorage.getItem('pos_catalog_view') as 'grid' | 'table') || 'grid';
+  });
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
-  const zReportRef = useRef<HTMLDivElement>(null);
 
-  // Debounce search input (300ms)
+  /* ── Debounce search ─────────────────────────────────────────────── */
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Load Active Shift on mount
-  const checkActiveShift = async () => {
-    if (!user) return;
-    try {
-      let shift: Shift | null = null;
-      try {
-        shift = await GetActiveShift(user.id);
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp?.GetActiveShift) {
-          shift = await wailsApp.GetActiveShift(user.id);
-        }
-      }
-      setActiveShift(shift);
-      if (!shift) {
-        setIsOpenShiftModalOpen(true);
-      }
-    } catch (err) {
-      console.error('Failed to query shift:', err);
-    }
-  };
-
-  useEffect(() => {
-    checkActiveShift();
-  }, [user]);
-
-  // Global Keyboard Hotkeys
+  /* ── Keyboard shortcuts ──────────────────────────────────────────── */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      } else if (e.key === 'F4') {
-        e.preventDefault();
-        setIsDiscountModalOpen(prev => !prev);
-      } else if (e.key === 'F10' || e.key === 'F12') {
-        e.preventDefault();
-        if (!isProcessing && cart.length > 0) {
-          handleApproveSale();
-        }
-      } else if (e.key === 'Escape') {
-        setIsDiscountModalOpen(false);
-        setIsCheckoutOpen(false);
-        setIsCloseShiftModalOpen(false);
-      }
+      if (e.key === 'F2') { e.preventDefault(); searchInputRef.current?.focus(); }
+      else if (e.key === 'F4') { e.preventDefault(); setIsDiscountModalOpen(prev => !prev); }
+      else if (e.key === 'F10' || e.key === 'F12') { e.preventDefault(); if (!isProcessing && cart.length > 0) openTender(); }
+      else if (e.key === 'Escape') { setIsDiscountModalOpen(false); setIsReceiptOpen(false); setIsTenderOpen(false); setIsClearConfirmOpen(false); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isProcessing, cart.length]);
 
-  // Load external cart items from Prescriptions if passed
+  /* ── External cart (from prescriptions) ─────────────────────────── */
   useEffect(() => {
     if (externalCartItems && externalCartItems.length > 0) {
       setCart(externalCartItems);
-      if (onClearExternalCart) {
-        onClearExternalCart();
-      }
+      onClearExternalCart?.();
     }
   }, [externalCartItems]);
 
-  const fetchMedicines = async () => {
+  /* ── Fetch medicines (uses debouncedSearch — fix #18) ────────────── */
+  const fetchMedicines = useCallback(async () => {
     setIsLoading(true);
     try {
       let data: Medicine[] = [];
-      try {
-        data = await ListMedicines(search, category === 'All' ? '' : category, false);
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp && typeof wailsApp.ListMedicines === 'function') {
-          data = await wailsApp.ListMedicines(search, category === 'All' ? '' : category, false);
-        }
-      }
-      setMedicines(data && data.length > 0 ? data : []);
-    } catch (err: any) {
-      console.error(err);
-      toast.error('Failed to load medicines from database');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMedicines();
+      try { data = await ListMedicines(debouncedSearch, category === 'All' ? '' : category, false); }
+      catch { const w = (window as any)?.go?.main?.App; if (w?.ListMedicines) data = await w.ListMedicines(debouncedSearch, category === 'All' ? '' : category, false); }
+      setMedicines(data?.length > 0 ? data : []);
+    } catch (err: any) { console.error(err); toast.error('Failed to load medicines'); }
+    finally { setIsLoading(false); }
   }, [debouncedSearch, category]);
 
-  const handleAddToCart = (med: Medicine) => {
-    if (med.current_stock <= 0) {
-      toast.error(`${med.name} is currently out of stock!`);
-      return;
-    }
+  useEffect(() => { fetchMedicines(); }, [fetchMedicines]);
 
+  /* ── Cart operations ─────────────────────────────────────────────── */
+  const handleAddToCart = (med: Medicine) => {
+    if (med.current_stock <= 0) { toast.error(`${med.name} is out of stock!`); return; }
     setCart(prev => {
-      const existing = prev.find(item => item.medicine.id === med.id);
+      const existing = prev.find(i => i.medicine.id === med.id);
       if (existing) {
-        if (existing.quantity >= med.current_stock) {
-          toast.error(`Maximum stock reached for ${med.name}`);
-          return prev;
-        }
-        return prev.map(item =>
-          item.medicine.id === med.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        if (existing.quantity >= med.current_stock) { toast.error(`Maximum stock reached for ${med.name}`); return prev; }
+        return prev.map(i => i.medicine.id === med.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, { medicine: med, quantity: 1 }];
     });
@@ -178,504 +142,462 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       const item = prev.find(i => i.medicine.id === medId);
       if (!item) return prev;
       const newQty = item.quantity + delta;
-      if (newQty <= 0) {
-        toast.success(`${item.medicine.name} removed from cart`);
-        return prev.filter(i => i.medicine.id !== medId);
-      }
-      if (newQty > item.medicine.current_stock) {
-        toast.error('Stock limit reached');
-        return prev;
-      }
-      return prev.map(i =>
-        i.medicine.id === medId ? { ...i, quantity: newQty } : i
-      );
+      if (newQty <= 0) { toast.success(`${item.medicine.name} removed`); return prev.filter(i => i.medicine.id !== medId); }
+      if (newQty > item.medicine.current_stock) { toast.error('Stock limit reached'); return prev; }
+      return prev.map(i => i.medicine.id === medId ? { ...i, quantity: newQty } : i);
     });
   };
 
-  const handleRemoveFromCart = (medId: number) => {
-    setCart(prev => prev.filter(item => item.medicine.id !== medId));
-  };
+  const handleRemoveFromCart = (medId: number) => setCart(prev => prev.filter(i => i.medicine.id !== medId));
 
-  // Cart financial computations
+  /* ── Totals ──────────────────────────────────────────────────────── */
   const grossTotal = cart.reduce((sum, item) => sum + (item.medicine.selling_price * item.quantity), 0);
-  
   let calculatedDiscount = 0;
   if (discountAmount > 0) {
-    if (discountType === 'percent') {
-      calculatedDiscount = grossTotal * (discountAmount / 100);
-    } else {
-      calculatedDiscount = discountAmount;
-    }
+    calculatedDiscount = discountType === 'percent' ? grossTotal * (discountAmount / 100) : discountAmount;
     if (calculatedDiscount > grossTotal) calculatedDiscount = grossTotal;
   }
-
   const netTotal = Math.max(0, grossTotal - calculatedDiscount);
+  const tendered = parseFloat(tenderedAmount) || 0;
+  const change = Math.max(0, tendered - netTotal);
 
-  // Shift Management Handlers
-  const handleOpenShift = async () => {
-    const cash = parseFloat(openingCashInput) || 0;
-    try {
-      let shift: Shift | null = null;
-      try {
-        shift = await OpenShift(user?.id || 1, user?.username || 'cashier', cash);
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp?.OpenShift) {
-          shift = await wailsApp.OpenShift(user?.id || 1, user?.username || 'cashier', cash);
-        }
-      }
-      setActiveShift(shift);
-      setIsOpenShiftModalOpen(false);
-      toast.success(`Till Shift #${shift?.id || ''} opened successfully!`);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to open shift');
-    }
+  /* ── Open tender / checkout modal ───────────────────────────────── */
+  const openTender = () => {
+    if (cart.length === 0) { toast.error('Cart is empty'); return; }
+    setTenderedAmount(String(netTotal));
+    setIsTenderOpen(true);
   };
 
-  const handleCloseShift = async () => {
-    if (!activeShift) return;
-    const actual = parseFloat(actualCashInput) || 0;
-    try {
-      let report: ShiftZReport | null = null;
-      try {
-        report = await CloseShift(activeShift.id, actual, shiftNotes);
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp?.CloseShift) {
-          report = await wailsApp.CloseShift(activeShift.id, actual, shiftNotes);
-        }
-      }
-      setZReport(report);
-      setActiveShift(null);
-      setIsCloseShiftModalOpen(false);
-      toast.success('Till Shift closed. Z-Report generated!');
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to close shift');
-    }
-  };
-
-  const handleApproveSale = async () => {
-    if (cart.length === 0) {
-      toast.error('Cart is empty');
-      return;
-    }
-
-    if (!activeShift) {
-      toast.error('Please open a Till Shift before processing sales');
-      setIsOpenShiftModalOpen(true);
-      return;
-    }
-
+  /* ── Process sale ────────────────────────────────────────────────── */
+  const handleConfirmSale = async () => {
     setIsProcessing(true);
-
-    const cartInput = cart.map(item => ({
-      medicine_id: item.medicine.id,
-      quantity: item.quantity,
-      unit_price: item.medicine.selling_price,
-      prescription_id: (item as any).prescription_id || undefined
-    }));
-
+    const cartInput = cart.map(item => ({ medicine_id: item.medicine.id, quantity: item.quantity, unit_price: item.medicine.selling_price, prescription_id: (item as any).prescription_id || undefined }));
     try {
       let sale: any = null;
-      try {
-        sale = await ProcessSale(
-          user?.id || 1,
-          user?.username || 'cashier',
-          cartInput as any,
-          'Cash',
-          discountAmount,
-          discountType,
-          activeShift?.id || null
-        );
-      } catch {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp && typeof wailsApp.ProcessSale === 'function') {
-          sale = await wailsApp.ProcessSale(
-            user?.id || 1,
-            user?.username || 'cashier',
-            cartInput,
-            'Cash',
-            discountAmount,
-            discountType,
-            activeShift?.id || null
-          );
-        }
-      }
-
-      if (!sale) {
-        throw new Error('Sale processing returned no result. Please try again.');
-      }
-
-      setCompletedSale(sale);
-      setCart([]);
-      setDiscountAmount(0);
-      setIsCheckoutOpen(true);
-
-      // Refresh medicines stock and active shift totals
+      try { sale = await ProcessSale(user?.id || 1, user?.username || 'cashier', cartInput as any, paymentMethod, discountAmount, discountType, null); }
+      catch { const w = (window as any)?.go?.main?.App; if (w?.ProcessSale) sale = await w.ProcessSale(user?.id || 1, user?.username || 'cashier', cartInput, paymentMethod, discountAmount, discountType, null); }
+      if (!sale) throw new Error('Sale processing returned no result.');
+      setCompletedSale({ ...sale, tendered, change, paymentMethod });
+      setCart([]); setDiscountAmount(0); setIsTenderOpen(false); setIsReceiptOpen(true);
       fetchMedicines();
-      checkActiveShift();
-    } catch (err: any) {
-      toast.error(err?.message || 'Checkout failed.');
-    } finally {
-      setIsProcessing(false);
-    }
+    } catch (err: any) { toast.error(err?.message || 'Checkout failed.'); }
+    finally { setIsProcessing(false); }
   };
 
-  // Thermal 80mm Receipt Print Handler
-  const handlePrintReceipt = () => {
-    const printContents = receiptRef.current?.innerHTML;
-    if (!printContents) return;
+  /* ── Print helper ────────────────────────────────────────────────── */
+  const printIframe = (ref: React.RefObject<HTMLDivElement | null>, title: string) => {
+    const contents = ref.current?.innerHTML;
+    if (!contents) return;
     const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
+    Object.assign(iframe.style, { position: 'absolute', width: '0', height: '0', border: 'none' });
     document.body.appendChild(iframe);
     const doc = iframe.contentWindow?.document;
     if (!doc) return;
     doc.open();
-    doc.write(`
-      <html><head><title>Thermal Receipt</title>
-      <style>
-        @page { size: 80mm auto; margin: 0; }
-        body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 72mm; margin: 0 auto; padding: 10px 0; color: #000; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .bold { font-weight: bold; }
-        .divider { border-top: 1px dashed #000; margin: 6px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-        th, td { padding: 2px 0; font-size: 10px; }
-      </style></head><body>${printContents}</body></html>
-    `);
+    doc.write(`<html><head><title>${title}</title><style>@page{size:80mm auto;margin:0}body{font-family:'Courier New',monospace;font-size:11px;width:72mm;margin:0 auto;padding:10px 0;color:#000}.text-center{text-align:center}.text-right{text-align:right}.bold{font-weight:bold}.divider{border-top:1px dashed #000;margin:6px 0}table{width:100%;border-collapse:collapse;margin:6px 0}th,td{padding:2px 0;font-size:10px}</style></head><body>${contents}</body></html>`);
     doc.close();
     iframe.contentWindow?.focus();
     iframe.contentWindow?.print();
     setTimeout(() => document.body.removeChild(iframe), 1000);
   };
 
-  const handlePrintZReport = () => {
-    const printContents = zReportRef.current?.innerHTML;
-    if (!printContents) return;
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
-    doc.open();
-    doc.write(`
-      <html><head><title>Shift Z-Report</title>
-      <style>
-        @page { size: 80mm auto; margin: 0; }
-        body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 72mm; margin: 0 auto; padding: 10px 0; color: #000; }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .bold { font-weight: bold; }
-        .divider { border-top: 1px dashed #000; margin: 6px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-        th, td { padding: 2px 0; font-size: 10px; }
-      </style></head><body>${printContents}</body></html>
-    `);
-    doc.close();
-    iframe.contentWindow?.focus();
-    iframe.contentWindow?.print();
-    setTimeout(() => document.body.removeChild(iframe), 1000);
-  };
-
+  /* ── RENDER ─────────────────────────────────────────────────────── */
   return (
-    <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--color-bg-base)', overflow: 'hidden' }}>
-      
-      {/* LEFT MAIN PANEL: Catalog & Toolbar */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        
-        {/* Contextual Command Toolbar with Shift Status */}
-        <div style={{ borderBottom: '1px solid var(--color-border-subtle)', backgroundColor: 'var(--color-bg-panel)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-            <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+    <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden', gap: '0' }}>
+
+      {/* ── LEFT: Catalog ─────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', marginRight: '16px' }}>
+
+        {/* Toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+
+          {/* Row 1: Search + Toggle (same flex line) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+
+            {/* Search */}
+            <div style={{ position: 'relative', flex: 1, minWidth: '160px', maxWidth: '320px' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-dark)', display: 'flex', pointerEvents: 'none' }}>
+                <Search size={15} />
+              </span>
               <input
                 ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search medicine by name or category... [F2]"
-                style={{
-                  width: '100%',
-                  height: '34px',
-                  padding: '0 12px',
-                  fontSize: '12px',
-                  backgroundColor: 'var(--color-bg-input)',
-                  border: '1px solid var(--color-border-default)',
-                  color: 'var(--color-text-primary)',
-                  outline: 'none'
-                }}
+                placeholder="Search medicines… [F2]"
+                style={{ width: '100%', height: '40px', padding: '0 12px 0 38px', fontSize: '14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', minHeight: 'unset' }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
 
-            {/* Category Filter Chips */}
-            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-              {categories.slice(0, 5).map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setCategory(cat)}
-                  style={{
-                    height: '28px',
-                    padding: '0 10px',
-                    fontSize: '11px',
-                    fontWeight: category === cat ? 700 : 500,
-                    backgroundColor: category === cat ? 'var(--color-accent-solid)' : 'var(--color-bg-elevated)',
-                    color: category === cat ? '#ffffff' : 'var(--color-text-primary)',
-                    border: '1px solid var(--color-border-default)',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Till Shift Indicator & Close Action */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {activeShift ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px', backgroundColor: 'var(--color-success-bg)', border: '1px solid var(--color-success-border)', fontSize: '11px', color: 'var(--color-success-text)', fontWeight: 600 }}>
-                <Clock size={13} />
-                <span>SHIFT #{activeShift.id} OPEN</span>
-                <span style={{ opacity: 0.7 }}>• Expected Drawer: UGX {formatCurrency(activeShift.expected_cash || activeShift.opening_cash)}</span>
-                <button
-                  onClick={() => {
-                    setActualCashInput(activeShift.expected_cash?.toString() || '0');
-                    setIsCloseShiftModalOpen(true);
-                  }}
-                  style={{
-                    marginLeft: '6px',
-                    padding: '2px 8px',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    backgroundColor: 'var(--color-danger-bg)',
-                    color: 'var(--color-danger-text)',
-                    border: '1px solid var(--color-danger-border)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  CLOSE SHIFT (Z-REPORT)
-                </button>
-              </div>
-            ) : (
+            {/* View Toggle — immediately right of search */}
+            <div style={{ display: 'flex', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px', padding: '3px', gap: '2px', flexShrink: 0 }}>
               <button
-                onClick={() => setIsOpenShiftModalOpen(true)}
+                title="Grid view"
+                onClick={() => { setCatalogView('grid'); localStorage.setItem('pos_catalog_view', 'grid'); }}
                 style={{
-                  height: '32px',
-                  padding: '0 12px',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  backgroundColor: 'var(--color-warning-bg)',
-                  color: 'var(--color-warning-text)',
-                  border: '1px solid var(--color-warning-border)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  width: '34px', height: '34px', padding: '0',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: catalogView === 'grid' ? 'var(--blue)' : 'transparent',
+                  color: catalogView === 'grid' ? '#fff' : 'var(--muted)',
+                  transition: 'all 0.15s ease', minHeight: 'unset', transform: 'none',
+                  boxShadow: 'none', overflow: 'visible', flexShrink: 0,
                 }}
               >
-                <AlertTriangle size={13} />
-                <span>OPEN TILL SHIFT</span>
+                {/* Grid icon — inline SVG avoids any lucide rendering issues */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                </svg>
               </button>
-            )}
+              <button
+                title="Table view"
+                onClick={() => { setCatalogView('table'); localStorage.setItem('pos_catalog_view', 'table'); }}
+                style={{
+                  width: '34px', height: '34px', padding: '0',
+                  border: 'none', borderRadius: '6px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: catalogView === 'table' ? 'var(--blue)' : 'transparent',
+                  color: catalogView === 'table' ? '#fff' : 'var(--muted)',
+                  transition: 'all 0.15s ease', minHeight: 'unset', transform: 'none',
+                  boxShadow: 'none', overflow: 'visible', flexShrink: 0,
+                }}
+              >
+                {/* List icon — inline SVG */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', flexShrink: 0 }}>
+                  <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                  <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="3" cy="18" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Category chips — own full-width row below search+toggle */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flexBasis: '100%', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                style={{
+                  padding: '0 12px', height: '36px', fontSize: '12px', fontWeight: 600,
+                  background: category === cat ? 'var(--blue)' : 'var(--surface)',
+                  color: category === cat ? '#fff' : 'var(--muted)',
+                  border: category === cat ? '1px solid var(--blue)' : '1px solid var(--line)',
+                  borderRadius: '20px', cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease', minHeight: 'unset',
+                  transform: 'none', boxShadow: 'none', flexShrink: 0,
+                }}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
 
         </div>
 
-        {/* Product Catalog Grid / List */}
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-            gap: '14px',
-            padding: '16px',
-            alignContent: 'start'
-          }}
-        >
-          {isLoading ? (
-            <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              <Loader size={24} className="animate-spin" style={{ margin: '0 auto 12px', color: 'var(--color-accent-base)' }} />
-              <span>Loading catalog...</span>
-            </div>
-          ) : medicines.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-              No medicines matching query.
-            </div>
-          ) : (
-            medicines.map((med) => {
-              const isOutOfStock = med.current_stock <= 0;
-              const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
-              const inCart = cart.find(c => c.medicine.id === med.id);
+        {/* Product Catalog — Grid or Table */}
+        {catalogView === 'grid' ? (
+          /* ── Grid View ── */
+          <div style={{ flex: 1, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(185px, 1fr))', gap: '14px', alignContent: 'start' }}>
+            {isLoading ? (
+              <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '14px', color: 'var(--muted)' }}>
+                <Loader size={28} className="animate-spin" style={{ color: 'var(--blue)' }} />
+                <span style={{ fontSize: '14px' }}>Loading catalog…</span>
+              </div>
+            ) : medicines.length === 0 ? (
+              <div className="empty-state" style={{ gridColumn: '1/-1', border: 'none', background: 'transparent', boxShadow: 'none', padding: '80px 20px' }}>
+                <Search size={40} />
+                <h3>No medicines found</h3>
+                <p>Try a different search term or category.</p>
+              </div>
+            ) : (
+              medicines.map(med => {
+                const isOutOfStock = med.current_stock <= 0;
+                const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
+                const inCart = cart.find(c => c.medicine.id === med.id);
 
-              return (
-                <div
-                  key={med.id}
-                  onClick={() => !isOutOfStock && handleAddToCart(med)}
-                  style={{
-                    backgroundColor: 'var(--color-bg-panel)',
-                    border: inCart ? '2px solid var(--color-accent-solid)' : '1px solid var(--color-border-default)',
-                    padding: '14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                    opacity: isOutOfStock ? 0.5 : 1,
-                    position: 'relative',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  {/* Top Badges */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
-                      {med.medicine_form || 'Tablet'}
-                    </span>
-                    {isOutOfStock ? (
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-danger-text)', backgroundColor: 'var(--color-danger-bg)', padding: '2px 6px' }}>OUT OF STOCK</span>
-                    ) : isLowStock ? (
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-warning-text)', backgroundColor: 'var(--color-warning-bg)', padding: '2px 6px' }}>LOW STOCK ({med.current_stock})</span>
-                    ) : (
-                      <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-text-muted)' }}>Stock: {med.current_stock}</span>
-                    )}
-                  </div>
-
-                  {/* Title & Generic Name */}
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.3, marginBottom: '2px' }}>
-                      {med.name}
+                return (
+                  <div
+                    key={med.id}
+                    onClick={() => !isOutOfStock && handleAddToCart(med)}
+                    className={isLowStock ? 'product-card low-stock' : inCart ? 'product-card selected' : 'product-card'}
+                    style={{ opacity: isOutOfStock ? 0.45 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                  >
+                    {/* Badges row */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '6px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        {med.medicine_form || 'Tablet'}
+                      </span>
+                      {isOutOfStock ? (
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--red)', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', padding: '3px 8px', borderRadius: '6px' }}>OUT</span>
+                      ) : isLowStock ? (
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--yellow)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', padding: '3px 8px', borderRadius: '6px' }}>LOW·{med.current_stock}</span>
+                      ) : (
+                        <span style={{ fontSize: '11px', color: 'var(--muted-dark)' }}>×{med.current_stock}</span>
+                      )}
                     </div>
-                    {med.generic_name && (
-                      <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                        {med.generic_name} {med.dosage_strength ? `(${med.dosage_strength})` : ''}
+
+                    {/* Name — clamped to 2 lines */}
+                    <div style={{ width: '100%', textAlign: 'center', minHeight: '42px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {med.name}
                       </div>
-                    )}
-                  </div>
-
-                  {/* Price & Action Button */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '8px', borderTop: '1px dashed var(--color-border-subtle)' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-accent-solid)' }}>
-                      UGX {formatCurrency(med.selling_price)}
+                      {med.generic_name && (
+                        <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {med.generic_name}{med.dosage_strength ? ` (${med.dosage_strength})` : ''}
+                        </div>
+                      )}
                     </div>
-                    <button
-                      disabled={isOutOfStock}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToCart(med);
-                      }}
-                      style={{
-                        padding: '5px 10px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        backgroundColor: inCart ? 'var(--color-accent-solid)' : 'var(--color-bg-base)',
-                        color: inCart ? '#ffffff' : 'var(--color-text-primary)',
-                        border: '1px solid var(--color-border-default)',
-                        cursor: isOutOfStock ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      {inCart ? `ADD (${inCart.quantity})` : '+ ADD'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
 
+                    {/* Price + Add button */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingTop: '10px', borderTop: '1px solid var(--line)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--blue)' }}>
+                        {formatCurrency(med.selling_price)}
+                      </span>
+                      <button
+                        disabled={isOutOfStock}
+                        onClick={(e) => { e.stopPropagation(); handleAddToCart(med); }}
+                        style={{
+                          height: '30px', padding: '0 12px', fontSize: '12px', fontWeight: 700,
+                          borderRadius: '8px', border: 'none', cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                          background: inCart ? 'var(--blue)' : 'var(--surface-soft)',
+                          color: inCart ? '#fff' : 'var(--ink)',
+                          transition: 'all 0.15s cubic-bezier(0.34,1.56,0.64,1)',
+                          minHeight: 'unset', transform: 'none', boxShadow: 'none',
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                      >
+                        {inCart ? `+${inCart.quantity}` : '+ Add'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* ── Table View ── */
+          <div style={{ flex: 1, overflowY: 'auto', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+            {isLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', gap: '14px', color: 'var(--muted)' }}>
+                <Loader size={28} className="animate-spin" style={{ color: 'var(--blue)' }} />
+                <span style={{ fontSize: '14px' }}>Loading catalog…</span>
+              </div>
+            ) : medicines.length === 0 ? (
+              <div className="empty-state" style={{ border: 'none', background: 'transparent', boxShadow: 'none', padding: '80px 20px' }}>
+                <Search size={40} />
+                <h3>No medicines found</h3>
+                <p>Try a different search term or category.</p>
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface-soft)', position: 'sticky', top: 0, zIndex: 1 }}>
+                    <th style={{ padding: '11px 16px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '35%' }}>Medicine</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '12%' }}>Form</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'left', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '15%' }}>Category</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'center', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '10%' }}>Stock</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '13%' }}>Price (UGX)</th>
+                    <th style={{ padding: '11px 12px', textAlign: 'center', fontWeight: 700, fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', width: '15%' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {medicines.map((med, idx) => {
+                    const isOutOfStock = med.current_stock <= 0;
+                    const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
+                    const inCart = cart.find(c => c.medicine.id === med.id);
+
+                    return (
+                      <tr
+                        key={med.id}
+                        onClick={() => !isOutOfStock && handleAddToCart(med)}
+                        style={{
+                          borderBottom: '1px solid var(--line)',
+                          background: inCart
+                            ? 'rgba(18,108,255,0.06)'
+                            : idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
+                          opacity: isOutOfStock ? 0.45 : 1,
+                          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                          transition: 'background 0.12s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isOutOfStock) (e.currentTarget as HTMLElement).style.background = 'var(--overlay-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.background = inCart
+                            ? 'rgba(18,108,255,0.06)'
+                            : idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)';
+                        }}
+                      >
+                        {/* Medicine name + generic */}
+                        <td style={{ padding: '10px 16px' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{med.name}</div>
+                          {med.generic_name && (
+                            <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                              {med.generic_name}{med.dosage_strength ? ` · ${med.dosage_strength}` : ''}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Form */}
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '6px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>
+                            {med.medicine_form || 'Tablet'}
+                          </span>
+                        </td>
+
+                        {/* Category */}
+                        <td style={{ padding: '10px 12px', fontSize: '12px', color: 'var(--muted)' }}>
+                          {med.category || '—'}
+                        </td>
+
+                        {/* Stock */}
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          {isOutOfStock ? (
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--red)', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', padding: '3px 8px', borderRadius: '6px' }}>OUT</span>
+                          ) : isLowStock ? (
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--yellow)', background: 'var(--color-warning-bg)', border: '1px solid var(--color-warning-border)', padding: '3px 8px', borderRadius: '6px' }}>LOW · {med.current_stock}</span>
+                          ) : (
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>{med.current_stock}</span>
+                          )}
+                        </td>
+
+                        {/* Price */}
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontSize: '14px', color: 'var(--blue)', whiteSpace: 'nowrap' }}>
+                          {formatCurrency(med.selling_price)}
+                        </td>
+
+                        {/* Add button */}
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <button
+                            disabled={isOutOfStock}
+                            onClick={(e) => { e.stopPropagation(); handleAddToCart(med); }}
+                            style={{
+                              height: '30px', padding: '0 14px', fontSize: '12px', fontWeight: 700,
+                              borderRadius: '8px', border: 'none',
+                              cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                              background: inCart ? 'var(--blue)' : 'var(--surface-soft)',
+                              color: inCart ? '#fff' : 'var(--ink)',
+                              transition: 'all 0.15s cubic-bezier(0.34,1.56,0.64,1)',
+                              minHeight: 'unset', transform: 'none', boxShadow: 'none',
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                            }}
+                            onMouseEnter={(e) => { if (!isOutOfStock) { (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(18,108,255,0.3)'; } }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'none'; (e.currentTarget as HTMLElement).style.boxShadow = 'none'; }}
+                          >
+                            {inCart ? (
+                              <><Plus size={12} />{inCart.quantity} in cart</>
+                            ) : (
+                              <><Plus size={12} />Add</>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* RIGHT PANEL: Cart & Checkout Dock */}
-      <div style={{ width: '380px', backgroundColor: 'var(--color-bg-panel)', borderLeft: '1px solid var(--color-border-default)', display: 'flex', flexDirection: 'column', height: '100%' }}>
-        
+      {/* ── RIGHT: Cart & Checkout Dock ───────────────────────────────── */}
+      <div style={{ width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', overflow: 'hidden', boxShadow: 'var(--shadow)' }}>
+
         {/* Cart Header */}
-        <div style={{ padding: '16px', borderBottom: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'var(--color-bg-elevated)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            <ShoppingCart size={16} style={{ color: 'var(--color-accent-solid)' }} />
-            <span>Current Order</span>
+        <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-soft)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ShoppingCart size={18} style={{ color: 'var(--blue)' }} />
+            <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>Current Order</span>
             {cart.length > 0 && (
-              <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: 'var(--color-accent-subtle)', color: 'var(--color-accent-solid)', fontWeight: 700 }}>
-                {cart.length} items
+              <span style={{ fontSize: '12px', padding: '2px 8px', background: 'rgba(18,108,255,0.12)', border: '1px solid rgba(18,108,255,0.25)', color: 'var(--blue)', borderRadius: '20px', fontWeight: 700 }}>
+                {cart.length}
               </span>
             )}
           </div>
+          {/* Cart Clear — now with confirmation (fix #8) */}
           {cart.length > 0 && (
             <button
-              onClick={() => setCart([])}
-              style={{ fontSize: '11px', color: 'var(--color-danger-text)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+              onClick={() => setIsClearConfirmOpen(true)}
+              style={{ fontSize: '12px', color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, minHeight: 'unset', height: 'auto', padding: '4px 0', transform: 'none', boxShadow: 'none' }}
             >
-              Clear Cart
+              Clear
             </button>
           )}
         </div>
 
-        {/* Cart Items List */}
+        {/* Cart Items */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
           {cart.length === 0 ? (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
-              <ShoppingCart size={32} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
-              <div>Cart is empty</div>
-              <div style={{ fontSize: '11px', marginTop: '4px' }}>Click any drug card to add to order</div>
+            // Empty state — uses .empty-state class (fix #14)
+            <div className="empty-state" style={{ border: 'none', background: 'transparent', boxShadow: 'none', padding: '48px 16px' }}>
+              <ShoppingCart size={40} />
+              <h3>Cart is empty</h3>
+              <p>Click any medicine card to add it here.</p>
             </div>
           ) : (
-            cart.map((item) => {
-              const itemSubtotal = item.medicine.selling_price * item.quantity;
+            cart.map(item => {
+              const subtotal = item.medicine.selling_price * item.quantity;
               return (
                 <div
                   key={item.medicine.id}
-                  style={{
-                    backgroundColor: 'var(--color-bg-base)',
-                    border: '1px solid var(--color-border-subtle)',
-                    padding: '10px 12px',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px'
-                  }}
+                  style={{ background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '10px', padding: '12px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)', flex: 1, paddingRight: '8px' }}>
-                      {item.medicine.name}
-                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', flex: 1, paddingRight: '8px', lineHeight: 1.3 }}>{item.medicine.name}</div>
                     <button
                       onClick={() => handleRemoveFromCart(item.medicine.id)}
-                      style={{ color: 'var(--color-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}
+                      style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none', flexShrink: 0 }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--red)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--muted)'; }}
                     >
                       <X size={14} />
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                      UGX {formatCurrency(item.medicine.selling_price)}
-                    </div>
-                    
-                    {/* Qty Controls */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>UGX {formatCurrency(item.medicine.selling_price)}</span>
+
+                    {/* Qty controls */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--surface)', border: '1px solid var(--line-strong)', borderRadius: '8px', padding: '3px' }}>
                       <button
+                        title="Reduce quantity"
                         onClick={() => handleUpdateQty(item.medicine.id, -1)}
-                        style={{ width: '22px', height: '22px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{
+                          width: '32px', height: '32px', border: '1px solid var(--line)', background: 'var(--surface-soft)',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--ink)', borderRadius: '6px', minHeight: 'unset', transform: 'none', boxShadow: 'none',
+                          transition: 'all 0.15s ease', padding: 0
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--overlay-active)'; e.currentTarget.style.borderColor = 'var(--blue)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-soft)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
                       >
-                        <Minus size={12} />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
                       </button>
-                      <span style={{ fontSize: '12px', fontWeight: 700, width: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, width: '28px', textAlign: 'center', color: 'var(--ink)' }}>{item.quantity}</span>
                       <button
+                        title="Increase quantity"
                         onClick={() => handleUpdateQty(item.medicine.id, 1)}
-                        style={{ width: '22px', height: '22px', border: '1px solid var(--color-border-default)', backgroundColor: 'var(--color-bg-elevated)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{
+                          width: '32px', height: '32px', border: '1px solid var(--line)', background: 'var(--surface-soft)',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--ink)', borderRadius: '6px', minHeight: 'unset', transform: 'none', boxShadow: 'none',
+                          transition: 'all 0.15s ease', padding: 0
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--overlay-active)'; e.currentTarget.style.borderColor = 'var(--blue)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--surface-soft)'; e.currentTarget.style.borderColor = 'var(--line)'; }}
                       >
-                        <Plus size={12} />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+                          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                        </svg>
                       </button>
                     </div>
 
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                      UGX {formatCurrency(itemSubtotal)}
-                    </div>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>UGX {formatCurrency(subtotal)}</span>
                   </div>
                 </div>
               );
@@ -683,342 +605,262 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           )}
         </div>
 
-        {/* Cart Financial Summary & Checkout */}
-        <div style={{ borderTop: '1px solid var(--color-border-default)', padding: '16px', backgroundColor: 'var(--color-bg-elevated)' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', fontSize: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)' }}>
-              <span>Subtotal Gross</span>
+        {/* Financial Summary & Checkout */}
+        <div style={{ borderTop: '1px solid var(--line)', padding: '18px 20px', background: 'var(--surface-soft)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
+              <span>Subtotal</span>
               <span>UGX {formatCurrency(grossTotal)}</span>
             </div>
-
-            {/* Discount Row */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: calculatedDiscount > 0 ? 'var(--color-success-text)' : 'var(--color-text-muted)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: calculatedDiscount > 0 ? 'var(--green)' : 'var(--muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>Discount</span>
                 <button
                   onClick={() => setIsDiscountModalOpen(true)}
-                  style={{ fontSize: '10px', padding: '1px 5px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ fontSize: '11px', padding: '2px 8px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '6px', cursor: 'pointer', color: 'var(--muted)', fontWeight: 600, minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
                 >
-                  [F4] EDIT
+                  F4 Edit
                 </button>
               </div>
               <span>- UGX {formatCurrency(calculatedDiscount)}</span>
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 800, color: 'var(--color-text-primary)', paddingTop: '6px', borderTop: '1px dashed var(--color-border-subtle)' }}>
-              <span>NET TOTAL (CASH)</span>
-              <span style={{ color: 'var(--color-accent-solid)' }}>UGX {formatCurrency(netTotal)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800, color: 'var(--ink)', paddingTop: '10px', borderTop: '1px solid var(--line)', letterSpacing: '-0.3px' }}>
+              <span>Total</span>
+              <span style={{ color: 'var(--blue)' }}>UGX {formatCurrency(netTotal)}</span>
             </div>
           </div>
 
-          {/* Checkout Button */}
           <button
             disabled={cart.length === 0 || isProcessing}
-            onClick={handleApproveSale}
-            style={{
-              width: '100%',
-              height: '42px',
-              backgroundColor: cart.length === 0 ? 'var(--color-bg-hover)' : 'var(--color-accent-solid)',
-              color: cart.length === 0 ? 'var(--color-text-muted)' : '#ffffff',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: 800,
-              cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
+            onClick={openTender}
+            style={{ width: '100%', height: '50px', background: cart.length === 0 ? 'var(--surface-soft)' : 'var(--blue)', color: cart.length === 0 ? 'var(--muted)' : '#fff', border: cart.length === 0 ? '1px solid var(--line)' : 'none', borderRadius: 'var(--r)', fontSize: '15px', fontWeight: 800, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}
+            onMouseEnter={(e) => { if (cart.length > 0 && !isProcessing) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
           >
-            {isProcessing ? (
-              <Loader size={16} className="animate-spin" />
-            ) : (
-              <>
-                <CheckCircle size={16} />
-                <span>APPROVE SALE (F10)</span>
-              </>
-            )}
+            <CheckCircle size={18} /> Checkout (F10)
           </button>
-
         </div>
-
       </div>
 
-      {/* MODAL: OPEN SHIFT (Starting Float Cash) */}
-      {isOpenShiftModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '380px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)', marginBottom: '6px' }}>
-              Open Till Shift
+      {/* ── MODAL: Clear Cart Confirmation (fix #8) ───────────────────── */}
+      {isClearConfirmOpen && (
+        <Modal onClose={() => setIsClearConfirmOpen(false)} width={360}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertCircle size={26} style={{ color: 'var(--red)' }} />
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-              Enter your starting drawer float cash to begin processing cash sales for this shift.
+            <div>
+              <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--ink)', marginBottom: '6px' }}>Clear cart?</h2>
+              <p style={{ fontSize: '13px', color: 'var(--muted)' }}>This will remove all {cart.length} item{cart.length > 1 ? 's' : ''} from the current order. This cannot be undone.</p>
             </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px', color: 'var(--color-text-secondary)' }}>
-                STARTING CASH FLOAT (UGX)
-              </label>
-              <input
-                type="number"
-                value={openingCashInput}
-                onChange={(e) => setOpeningCashInput(e.target.value)}
-                style={{ width: '100%', height: '36px', padding: '0 12px', fontSize: '14px', fontWeight: 700, backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
-              />
-            </div>
-
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={() => setIsClearConfirmOpen(false)} className="btn" style={{ flex: 1, height: '44px' }}>Cancel</button>
             <button
-              onClick={handleOpenShift}
-              style={{ width: '100%', height: '38px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+              onClick={() => { setCart([]); setDiscountAmount(0); setIsClearConfirmOpen(false); toast.success('Cart cleared'); }}
+              className="btn btn-danger"
+              style={{ flex: 1, height: '44px', fontWeight: 700 }}
             >
-              START SHIFT & BEGIN SALES
+              Clear Cart
             </button>
           </div>
-        </div>
+        </Modal>
       )}
 
-      {/* MODAL: CLOSE SHIFT (Z-REPORT) */}
-      {isCloseShiftModalOpen && activeShift && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '420px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                Close Till Shift #{activeShift.id}
-              </div>
-              <button onClick={() => setIsCloseShiftModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} /></button>
-            </div>
-
-            <div style={{ fontSize: '12px', backgroundColor: 'var(--color-bg-base)', padding: '10px', marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <div><strong>Opening Float:</strong> UGX {formatCurrency(activeShift.opening_cash)}</div>
-              <div><strong>Expected Cash in Till:</strong> UGX {formatCurrency(activeShift.expected_cash || activeShift.opening_cash)}</div>
-            </div>
-
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
-                ACTUAL CASH COUNTED IN DRAWER (UGX)
-              </label>
-              <input
-                type="number"
-                value={actualCashInput}
-                onChange={(e) => setActualCashInput(e.target.value)}
-                placeholder="Enter physical cash counted..."
-                style={{ width: '100%', height: '36px', padding: '0 12px', fontSize: '14px', fontWeight: 700, backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
-                SHIFT NOTES / VARIANCE REASON (OPTIONAL)
-              </label>
-              <input
-                type="text"
-                value={shiftNotes}
-                onChange={(e) => setShiftNotes(e.target.value)}
-                placeholder="e.g., Minor change discrepancy"
-                style={{ width: '100%', height: '32px', padding: '0 10px', fontSize: '12px', backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
-              />
-            </div>
-
-            <button
-              onClick={handleCloseShift}
-              style={{ width: '100%', height: '38px', backgroundColor: 'var(--color-danger-text)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
-            >
-              CLOSE SHIFT & PRINT Z-REPORT
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: EDIT DISCOUNT [F4] */}
+      {/* ── MODAL: Discount Editor [F4] ───────────────────────────────── */}
       {isDiscountModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '340px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '20px', boxShadow: 'var(--shadow-dropdown)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                Cart Discount Adjustment
+        <Modal onClose={() => setIsDiscountModalOpen(false)} width={360}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            {modalTitle('Cart Discount')}
+            <button onClick={() => setIsDiscountModalOpen(false)} className="win-btn"><X size={16} /></button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+            {(['fixed', 'percent'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => { setDiscountType(type); setDiscountError(''); setDiscountAmount(0); }}
+                style={{ padding: '10px', fontSize: '13px', fontWeight: 700, background: discountType === type ? 'var(--blue)' : 'var(--surface-soft)', color: discountType === type ? '#fff' : 'var(--muted)', border: discountType === type ? '1px solid var(--blue)' : '1px solid var(--line)', borderRadius: '8px', cursor: 'pointer', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
+              >
+                {type === 'fixed' ? 'Fixed UGX' : 'Percentage %'}
+              </button>
+            ))}
+          </div>
+
+          {/* Discount input with validation (fix #9) */}
+          <div style={{ marginBottom: '8px' }}>
+            {modalInput({
+              type: 'number',
+              value: discountAmount,
+              min: 0,
+              max: discountType === 'percent' ? 100 : undefined,
+              onChange: (e) => {
+                const val = parseFloat(e.target.value) || 0;
+                if (discountType === 'percent' && val > 100) {
+                  setDiscountError('Percentage cannot exceed 100%');
+                  setDiscountAmount(100);
+                } else {
+                  setDiscountError('');
+                  setDiscountAmount(val);
+                }
+              },
+              placeholder: discountType === 'percent' ? 'Enter % off (0–100)…' : 'Enter amount in UGX…',
+              autoFocus: true,
+              style: { fontSize: '16px', fontWeight: 700, borderColor: discountError ? 'var(--red)' : undefined },
+            })}
+          </div>
+          {discountError && (
+            <p style={{ fontSize: '12px', color: 'var(--red)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <AlertCircle size={13} /> {discountError}
+            </p>
+          )}
+          {discountAmount > 0 && !discountError && (
+            <p style={{ fontSize: '12px', color: 'var(--green)', marginBottom: '12px' }}>
+              Saves UGX {formatCurrency(discountType === 'percent' ? grossTotal * (discountAmount / 100) : discountAmount)}
+            </p>
+          )}
+
+          <button
+            onClick={() => setIsDiscountModalOpen(false)}
+            style={{ width: '100%', height: '44px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s ease', marginTop: discountError ? '0' : '12px' }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            Apply Discount
+          </button>
+        </Modal>
+      )}
+
+      {/* ── MODAL: Tender / Checkout Confirmation ────────── */}
+      {isTenderOpen && (
+        <Modal onClose={() => !isProcessing && setIsTenderOpen(false)} width={420}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+            {modalTitle('Confirm Payment')}
+            {!isProcessing && <button onClick={() => setIsTenderOpen(false)} className="win-btn"><X size={16} /></button>}
+          </div>
+          {modalSub('Select payment method and confirm the sale.')}
+
+          {/* Payment method selector */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+            {([
+              { value: 'Cash', label: 'Cash', Icon: Banknote },
+              { value: 'MobileMoney', label: 'Mobile Money', Icon: Smartphone },
+            ] as { value: PaymentMethod; label: string; Icon: any }[]).map(({ value, label, Icon }) => (
+              <button
+                key={value}
+                onClick={() => setPaymentMethod(value)}
+                style={{
+                  padding: '14px 10px', fontSize: '13px', fontWeight: 700, borderRadius: '10px', cursor: 'pointer',
+                  background: paymentMethod === value ? 'rgba(18,108,255,0.12)' : 'var(--surface)',
+                  color: paymentMethod === value ? 'var(--blue)' : 'var(--muted)',
+                  border: paymentMethod === value ? '2px solid var(--blue)' : '1px solid var(--line)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                  minHeight: 'unset', transform: 'none', boxShadow: 'none', transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={22} />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Order summary */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
+              <span>Items</span><span>{cart.length} item{cart.length !== 1 ? 's' : ''}</span>
+            </div>
+            {calculatedDiscount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)' }}>
+                <span>Discount</span><span>- UGX {formatCurrency(calculatedDiscount)}</span>
               </div>
-              <button onClick={() => setIsDiscountModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} /></button>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '16px', color: 'var(--ink)', paddingTop: '8px', borderTop: '1px solid var(--line)' }}>
+              <span>Total Payable</span><span style={{ color: 'var(--blue)' }}>UGX {formatCurrency(netTotal)}</span>
             </div>
+          </div>
 
-            {/* Discount Type Toggle */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
-              <button
-                onClick={() => setDiscountType('fixed')}
-                style={{ padding: '6px', fontSize: '11px', fontWeight: 700, backgroundColor: discountType === 'fixed' ? 'var(--color-accent-solid)' : 'var(--color-bg-base)', color: discountType === 'fixed' ? '#ffffff' : 'var(--color-text-primary)', border: '1px solid var(--color-border-default)', cursor: 'pointer' }}
-              >
-                Fixed UGX
-              </button>
-              <button
-                onClick={() => setDiscountType('percent')}
-                style={{ padding: '6px', fontSize: '11px', fontWeight: 700, backgroundColor: discountType === 'percent' ? 'var(--color-accent-solid)' : 'var(--color-bg-base)', color: discountType === 'percent' ? '#ffffff' : 'var(--color-text-primary)', border: '1px solid var(--color-border-default)', cursor: 'pointer' }}
-              >
-                Percentage (%)
-              </button>
+          <button
+            disabled={isProcessing}
+            onClick={handleConfirmSale}
+            style={{ width: '100%', height: '50px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: '15px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.2s ease' }}
+            onMouseEnter={(e) => { if (!isProcessing) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            {isProcessing ? <><Loader size={18} className="animate-spin" /> Processing…</> : <><CheckCircle size={18} /> Confirm Sale</>}
+          </button>
+        </Modal>
+      )}
+
+      {/* ── MODAL: Sale Complete + Receipt ───────────────────────────── */}
+      {isReceiptOpen && completedSale && (
+        <Modal onClose={() => setIsReceiptOpen(false)} width={400}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <CheckCircle size={52} style={{ color: 'var(--green)', margin: '0 auto 12px', animation: 'successPop 0.3s cubic-bezier(0.175,0.885,0.32,1.275) forwards' }} />
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 4px' }}>Transaction Complete</h2>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>{completedSale.invoice_number}</p>
+          </div>
+
+          {/* Summary panel visible in modal */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
+              <span>Payment</span><span style={{ fontWeight: 600, color: 'var(--ink)' }}>{completedSale.paymentMethod === 'MobileMoney' ? 'Mobile Money' : 'Cash'}</span>
             </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <input
-                type="number"
-                value={discountAmount}
-                onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
-                placeholder={discountType === 'percent' ? 'Enter % off...' : 'Enter amount in UGX...'}
-                style={{ width: '100%', height: '36px', padding: '0 12px', fontSize: '14px', fontWeight: 700, backgroundColor: 'var(--color-bg-input)', border: '1px solid var(--color-border-default)', outline: 'none' }}
-              />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '15px', color: 'var(--ink)', paddingTop: '8px', borderTop: '1px solid var(--line)' }}>
+              <span>Total Paid</span><span style={{ color: 'var(--green)' }}>UGX {formatCurrency(completedSale.total_amount)}</span>
             </div>
+            {completedSale.paymentMethod === 'Cash' && completedSale.change > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: 'var(--blue)' }}>
+                <span>Change Given</span><span>UGX {formatCurrency(completedSale.change)}</span>
+              </div>
+            )}
+          </div>
 
+          {/* Hidden printable receipt */}
+          <div style={{ display: 'none' }}>
+            <div ref={receiptRef}>
+              <div className="text-center bold">{pharmacyName || 'LANGRATIA PHARMACY'}</div>
+              <div className="text-center">Official Sales Receipt</div>
+              <div className="divider" />
+              <div>Invoice: {completedSale.invoice_number}</div>
+              <div>Date: {new Date().toLocaleString()}</div>
+              <div>Cashier: {completedSale.username || user?.username}</div>
+              <div>Payment: {completedSale.paymentMethod === 'MobileMoney' ? 'Mobile Money' : 'Cash'}</div>
+              <div className="divider" />
+              <table>
+                <thead><tr><th style={{ textAlign: 'left' }}>Item</th><th style={{ textAlign: 'center' }}>Qty</th><th style={{ textAlign: 'right' }}>Total</th></tr></thead>
+                <tbody>
+                  {completedSale.items?.map((item: any, idx: number) => (
+                    <tr key={idx}><td>{item.medicine_name}</td><td style={{ textAlign: 'center' }}>{item.quantity}</td><td style={{ textAlign: 'right' }}>{formatCurrency(item.subtotal)}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="divider" />
+              {completedSale.discount_amount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Discount:</span><span>- UGX {formatCurrency(completedSale.discount_amount)}</span></div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}><span>NET TOTAL:</span><span>UGX {formatCurrency(completedSale.total_amount)}</span></div>
+              {completedSale.paymentMethod === 'Cash' && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tendered:</span><span>UGX {formatCurrency(completedSale.tendered)}</span></div>}
+              {completedSale.change > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Change:</span><span>UGX {formatCurrency(completedSale.change)}</span></div>}
+              <div className="divider" />
+              <div className="text-center">Thank you for visiting!</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
             <button
-              onClick={() => setIsDiscountModalOpen(false)}
-              style={{ width: '100%', height: '36px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
+              onClick={() => printIframe(receiptRef, 'Thermal Receipt')}
+              className="btn btn-primary"
+              style={{ flex: 1, height: '46px', fontSize: '14px', borderRadius: 'var(--r)' }}
             >
-              APPLY DISCOUNT
+              <Printer size={16} /> Print Receipt
+            </button>
+            <button
+              onClick={() => setIsReceiptOpen(false)}
+              className="btn"
+              style={{ height: '46px', padding: '0 20px', borderRadius: 'var(--r)', fontSize: '14px' }}
+            >
+              Close
             </button>
           </div>
-        </div>
-      )}
-
-      {/* MODAL: COMPLETED SALE & THERMAL RECEIPT */}
-      {isCheckoutOpen && completedSale && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '380px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <CheckCircle size={40} style={{ color: 'var(--color-success-text)', margin: '0 auto 8px' }} />
-              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>Transaction Complete</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{completedSale.invoice_number}</div>
-            </div>
-
-            {/* Hidden Printable Thermal Receipt Template (80mm) */}
-            <div style={{ display: 'none' }}>
-              <div ref={receiptRef}>
-                <div className="text-center bold">{pharmacyName || 'LANGRATIA PHARMACY'}</div>
-                <div className="text-center">Official Sales Receipt</div>
-                <div className="divider"></div>
-                <div>Invoice: {completedSale.invoice_number}</div>
-                <div>Date: {new Date().toLocaleString()}</div>
-                <div>Cashier: {completedSale.username || user?.username}</div>
-                <div>Payment Method: Cash</div>
-                <div className="divider"></div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left' }}>Item</th>
-                      <th style={{ textAlign: 'center' }}>Qty</th>
-                      <th style={{ textAlign: 'right' }}>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {completedSale.items?.map((item: any, idx: number) => (
-                      <tr key={idx}>
-                        <td>{item.medicine_name}</td>
-                        <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right' }}>{formatCurrency(item.subtotal)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="divider"></div>
-                {completedSale.discount_amount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Discount:</span>
-                    <span>- UGX {formatCurrency(completedSale.discount_amount)}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '12px', marginTop: '4px' }}>
-                  <span>NET TOTAL (CASH):</span>
-                  <span>UGX {formatCurrency(completedSale.total_amount)}</span>
-                </div>
-                <div className="divider"></div>
-                <div className="text-center" style={{ marginTop: '8px' }}>Thank you for visiting!</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-              <button
-                onClick={handlePrintReceipt}
-                style={{ flex: 1, height: '38px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <Printer size={16} />
-                <span>PRINT RECEIPT (80mm)</span>
-              </button>
-              <button
-                onClick={() => setIsCheckoutOpen(false)}
-                style={{ height: '38px', padding: '0 16px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
-              >
-                CLOSE
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Z-REPORT DISPLAY */}
-      {zReport && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ width: '400px', backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', padding: '24px', boxShadow: 'var(--shadow-dropdown)' }}>
-            
-            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <Receipt size={36} style={{ color: 'var(--color-accent-solid)', margin: '0 auto 8px' }} />
-              <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--color-text-primary)' }}>Shift Z-Report Summary</div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Shift #{zReport.shift.id} • Cashier: {zReport.shift.username}</div>
-            </div>
-
-            {/* Hidden Printable Z-Report Template (80mm) */}
-            <div style={{ display: 'none' }}>
-              <div ref={zReportRef}>
-                <div className="text-center bold">{pharmacyName || 'LANGRATIA PHARMACY'}</div>
-                <div className="text-center bold">Z-REPORT SHIFT RECONCILIATION</div>
-                <div className="divider"></div>
-                <div>Shift ID: #{zReport.shift.id}</div>
-                <div>Cashier: {zReport.shift.username}</div>
-                <div>Opened: {new Date(zReport.shift.started_at).toLocaleString()}</div>
-                <div>Closed: {zReport.shift.ended_at ? new Date(zReport.shift.ended_at).toLocaleString() : ''}</div>
-                <div className="divider"></div>
-                <div>Opening Float: UGX {formatCurrency(zReport.shift.opening_cash)}</div>
-                <div>Cash Sales: UGX {formatCurrency(zReport.cash_sales_total)}</div>
-                <div className="divider"></div>
-                <div>Gross Sales: UGX {formatCurrency(zReport.gross_sales_total)}</div>
-                <div>Discounts: UGX {formatCurrency(zReport.total_discounts)}</div>
-                <div>NET SALES: UGX {formatCurrency(zReport.net_sales_total)}</div>
-                <div className="divider"></div>
-                <div>Expected Cash in Drawer: UGX {formatCurrency(zReport.expected_drawer)}</div>
-                <div>Actual Cash Counted: UGX {formatCurrency(zReport.actual_drawer)}</div>
-                <div style={{ fontWeight: 'bold' }}>CASH VARIANCE: UGX {formatCurrency(zReport.cash_variance)}</div>
-                <div className="divider"></div>
-                <div className="text-center">End of Shift Reconciliation</div>
-              </div>
-            </div>
-
-            <div style={{ fontSize: '12px', backgroundColor: 'var(--color-bg-base)', padding: '12px', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Opening Cash Float:</span> <strong>UGX {formatCurrency(zReport.shift.opening_cash)}</strong></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total Net Cash Sales:</span> <strong>UGX {formatCurrency(zReport.net_sales_total)}</strong></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Expected Drawer:</span> <strong>UGX {formatCurrency(zReport.expected_drawer)}</strong></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Actual Counted:</span> <strong>UGX {formatCurrency(zReport.actual_drawer)}</strong></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: zReport.cash_variance < 0 ? 'var(--color-danger-text)' : 'var(--color-success-text)', fontWeight: 800, borderTop: '1px dashed var(--color-border-subtle)', paddingTop: '4px' }}>
-                <span>CASH VARIANCE:</span>
-                <span>UGX {formatCurrency(zReport.cash_variance)}</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={handlePrintZReport}
-                style={{ flex: 1, height: '38px', backgroundColor: 'var(--color-accent-solid)', color: '#ffffff', border: 'none', fontWeight: 700, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-              >
-                <Printer size={16} />
-                <span>PRINT Z-REPORT</span>
-              </button>
-              <button
-                onClick={() => setZReport(null)}
-                style={{ height: '38px', padding: '0 16px', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', fontWeight: 700, fontSize: '12px', cursor: 'pointer' }}
-              >
-                CLOSE
-              </button>
-            </div>
-
-          </div>
-        </div>
+        </Modal>
       )}
 
     </div>

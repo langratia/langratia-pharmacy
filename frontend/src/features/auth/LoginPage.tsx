@@ -1,19 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { Cross, Lock, User as UserIcon, ShieldAlert, Cpu, CheckCircle, Sparkles, Building2 } from 'lucide-react';
+import { Lock, User as UserIcon, ShieldAlert, Pill, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { IsFirstTimeSetup, CompleteFirstTimeSetup } from '../../../wailsjs/go/main/App';
 
+/* ── Shared input style ────────────────────────────────────────────────── */
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '11px 14px 11px 42px',
+  background: 'var(--surface-soft)',
+  border: '1px solid var(--line)',
+  borderRadius: '8px',
+  fontSize: '14px',
+  color: 'var(--ink)',
+  outline: 'none',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+  minHeight: 'unset',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '12px',
+  fontWeight: 600,
+  color: 'var(--muted)',
+  marginBottom: '8px',
+  letterSpacing: '0.03em',
+};
+
+const iconWrapStyle: React.CSSProperties = {
+  position: 'absolute',
+  left: '14px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  color: 'var(--muted-dark)',
+  display: 'flex',
+  pointerEvents: 'none',
+};
+
 export const LoginPage: React.FC = () => {
   const { login, isLoading, error } = useAuth();
-  const { pharmacyName, logoUrl, refreshConfig } = usePharmacy();
+  const { pharmacyName, refreshConfig } = usePharmacy();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
   // First-Time Setup State
   const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
-  const [setupStep, setSetupStep] = useState<'wizard' | 'animating'>('wizard');
   const [setupPharmacyName, setSetupPharmacyName] = useState('');
   const [setupFullName, setSetupFullName] = useState('');
   const [setupUsername, setSetupUsername] = useState('admin');
@@ -26,18 +59,13 @@ export const LoginPage: React.FC = () => {
     (async () => {
       try {
         let first = false;
-        try {
-          first = await IsFirstTimeSetup();
-        } catch {
+        try { first = await IsFirstTimeSetup(); }
+        catch {
           const wailsApp = (window as any)?.go?.main?.App;
-          if (wailsApp && typeof wailsApp.IsFirstTimeSetup === 'function') {
-            first = await wailsApp.IsFirstTimeSetup();
-          }
+          if (wailsApp?.IsFirstTimeSetup) first = await wailsApp.IsFirstTimeSetup();
         }
         setIsFirstTime(first);
-      } catch {
-        setIsFirstTime(false);
-      }
+      } catch { setIsFirstTime(false); }
     })();
   }, []);
 
@@ -51,19 +79,12 @@ export const LoginPage: React.FC = () => {
   const handleSetupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSetupError('');
-
     if (!setupFullName.trim() || !setupUsername.trim() || !setupPassword) {
-      setSetupError('Please fill out all required setup fields.');
+      setSetupError('Please fill out all required fields.');
       return;
     }
-    if (setupPassword.length < 4) {
-      setSetupError('Password must be at least 4 characters long.');
-      return;
-    }
-    if (setupPassword !== setupConfirmPassword) {
-      setSetupError('Passwords do not match.');
-      return;
-    }
+    if (setupPassword.length < 4) { setSetupError('Password must be at least 4 characters.'); return; }
+    if (setupPassword !== setupConfirmPassword) { setSetupError('Passwords do not match.'); return; }
 
     setIsSettingUp(true);
     try {
@@ -71,380 +92,289 @@ export const LoginPage: React.FC = () => {
       try {
         userRes = await CompleteFirstTimeSetup(
           setupPharmacyName.trim() || 'My Pharmacy',
-          setupFullName.trim(),
-          setupUsername.trim(),
-          setupPassword
+          setupFullName.trim(), setupUsername.trim(), setupPassword
         );
       } catch {
         const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp && typeof wailsApp.CompleteFirstTimeSetup === 'function') {
+        if (wailsApp?.CompleteFirstTimeSetup) {
           userRes = await wailsApp.CompleteFirstTimeSetup(
             setupPharmacyName.trim() || 'My Pharmacy',
-            setupFullName.trim(),
-            setupUsername.trim(),
-            setupPassword
+            setupFullName.trim(), setupUsername.trim(), setupPassword
           );
         }
       }
-
       if (userRes) {
         await refreshConfig();
-        toast.success('Admin setup complete!');
+        toast.success('Setup complete! Logging you in…');
         setIsFirstTime(false);
-        setUsername(setupUsername.trim());
-        setPassword(setupPassword);
-
-        // Directly attempt login with newly configured credentials
         await login(setupUsername.trim(), setupPassword);
       }
     } catch (err: any) {
-      setSetupError(err?.message || 'Failed to complete setup. Please try again.');
-    } finally {
-      setIsSettingUp(false);
-    }
+      setSetupError(err?.message || 'Setup failed. Please try again.');
+    } finally { setIsSettingUp(false); }
   };
 
+  /* Loading check */
   if (isFirstTime === null) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--color-bg-base)', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-        Initializing System Check...
-      </div>
-    );
-  }
-
-  // --- FIRST TIME SETUP ONBOARDING WIZARD ---
-  if (isFirstTime) {
-    return (
       <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'var(--color-bg-base)',
-        padding: '20px'
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg)', color: 'var(--muted)', fontSize: '14px',
+        backgroundImage: 'radial-gradient(circle, var(--overlay-line) 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
       }}>
-        <div style={{
-          width: '100%',
-          maxWidth: '460px',
-          backgroundColor: 'var(--color-bg-panel)',
-          borderRadius: '0px',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
-          padding: '36px 32px 28px',
-          border: '1px solid var(--color-border-default)'
-        }}>
-          {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                  System Initial Setup
-                </h1>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                  Configure your business name and primary admin credentials
-                </div>
-              </div>
-
-              {/* Error Alert */}
-              {setupError && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  backgroundColor: 'var(--color-danger-bg)',
-                  border: '1px solid var(--color-danger-border)',
-                  color: 'var(--color-danger-text)',
-                  padding: '10px 12px',
-                  borderRadius: '0px',
-                  fontSize: '12px',
-                  marginBottom: '16px'
-                }}>
-                  <ShieldAlert size={16} />
-                  <span>{setupError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSetupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                    Pharmacy / Company Name
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Building2 size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-                    <input
-                      type="text"
-                      value={setupPharmacyName}
-                      onChange={(e) => setSetupPharmacyName(e.target.value)}
-                      placeholder="e.g. City Pharmacy Ltd"
-                      autoFocus
-                      style={{ width: '100%', padding: '6px 10px 6px 32px', height: '34px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', fontSize: '13px', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                    Admin Full Name *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <UserIcon size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-                    <input
-                      type="text"
-                      required
-                      value={setupFullName}
-                      onChange={(e) => setSetupFullName(e.target.value)}
-                      placeholder="e.g. John Doe"
-                      style={{ width: '100%', padding: '6px 10px 6px 32px', height: '34px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', fontSize: '13px', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      Admin Username *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={setupUsername}
-                      onChange={(e) => setSetupUsername(e.target.value)}
-                      placeholder="admin"
-                      style={{ width: '100%', padding: '6px 10px', height: '34px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', fontSize: '13px', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      Set Password *
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={setupPassword}
-                      onChange={(e) => setSetupPassword(e.target.value)}
-                      placeholder="Min 4 chars"
-                      style={{ width: '100%', padding: '6px 10px', height: '34px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', fontSize: '13px', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--color-text-secondary)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                    Confirm Password *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={setupConfirmPassword}
-                    onChange={(e) => setSetupConfirmPassword(e.target.value)}
-                    placeholder="Re-enter password"
-                    style={{ width: '100%', padding: '6px 10px', height: '34px', borderRadius: '0px', border: '1px solid var(--color-border-strong)', fontSize: '13px', backgroundColor: 'var(--color-bg-input)', color: 'var(--color-text-primary)', boxSizing: 'border-box' }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSettingUp}
-                  className="desktop-btn-primary"
-                  style={{ width: '100%', height: '38px', borderRadius: '0px', fontSize: '13px', fontWeight: 700, justifyContent: 'center', marginTop: '6px', cursor: isSettingUp ? 'not-allowed' : 'pointer' }}
-                >
-                  {isSettingUp ? 'Configuring System...' : 'Initialize System & Complete Setup'}
-                </button>
-              </form>
-        </div>
+        Initializing system…
       </div>
     );
   }
 
-  // --- STANDARD LOGIN SCREEN ---
-  return (
+  /* Shared page wrapper */
+  const pageWrapper = (content: React.ReactNode) => (
     <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: 'var(--color-bg-base)',
-      padding: '20px'
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'var(--bg)', padding: '24px',
+      backgroundImage: 'radial-gradient(circle, var(--overlay-line) 1px, transparent 1px)',
+      backgroundSize: '24px 24px',
     }}>
       <div style={{
-        width: '100%',
-        maxWidth: '420px',
-        backgroundColor: 'var(--color-bg-panel)',
-        borderRadius: '0px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)',
-        padding: '36px 32px 28px',
-        border: '1px solid var(--color-border-default)'
+        width: '100%', maxWidth: '420px',
+        background: 'var(--surface)',
+        border: '1px solid var(--line)',
+        borderRadius: 'var(--r2)',
+        boxShadow: 'var(--shadow)',
+        padding: '40px 36px 32px',
+        animation: 'popupEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: 'var(--color-accent-solid)' }}>
-            <Building2 size={24} />
+        {content}
+      </div>
+    </div>
+  );
+
+  /* ── First-Time Setup Wizard ─────────────────────────────────────────── */
+  if (isFirstTime) {
+    return pageWrapper(
+      <>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{
+            width: '60px', height: '60px', borderRadius: '50%',
+            background: 'rgba(18, 108, 255, 0.12)',
+            border: '1px solid rgba(18, 108, 255, 0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px', color: 'var(--blue)',
+          }}>
+            <Pill size={28} />
           </div>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '4px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-            {pharmacyName}
+          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.2px' }}>
+            Initial Setup
           </h1>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, backgroundColor: 'var(--color-bg-base)', padding: '2px 8px', border: '1px solid var(--color-border-subtle)' }}>
-            <Cpu size={12} style={{ color: 'var(--color-accent-base)' }} />
-            <span>ENTERPRISE POS • SECURE AUTH</span>
-          </div>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
+            Configure your pharmacy and admin credentials
+          </p>
         </div>
 
-        {/* Error Alert */}
-        {error && (
+        {/* Error */}
+        {setupError && (
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: 'var(--color-danger-bg)',
-            border: '1px solid var(--color-danger-border)',
-            color: 'var(--color-danger-text)',
-            padding: '10px 12px',
-            borderRadius: '0px',
-            fontSize: '12px',
-            marginBottom: '20px'
+            display: 'flex', alignItems: 'center', gap: '10px',
+            background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)',
+            color: 'var(--color-danger-text)', padding: '12px 14px',
+            borderRadius: '8px', fontSize: '13px', marginBottom: '20px',
           }}>
-            <ShieldAlert size={16} />
-            <span>{error}</span>
+            <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+            <span>{setupError}</span>
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleLoginSubmit}>
-          <div style={{ marginBottom: '18px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--color-text-secondary)',
-              marginBottom: '6px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em'
-            }}>
-              Operator Username
-            </label>
+        <form onSubmit={handleSetupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          {/* Pharmacy name */}
+          <div>
+            <label style={labelStyle}>Pharmacy / Company Name</label>
             <div style={{ position: 'relative' }}>
-              <div style={{
-                position: 'absolute',
-                left: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--color-text-muted)',
-                display: 'flex'
-              }}>
-                <UserIcon size={14} />
-              </div>
+              <span style={iconWrapStyle}><Building2 size={16} /></span>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                required
-                autoFocus
-                style={{
-                  width: '100%',
-                  padding: '6px 10px 6px 32px',
-                  height: '34px',
-                  borderRadius: '0px',
-                  border: '1px solid var(--color-border-strong)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  backgroundColor: 'var(--color-bg-input)',
-                  color: 'var(--color-text-primary)',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--color-accent-base)';
-                  e.target.style.boxShadow = '0 0 0 2px var(--color-accent-subtle)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--color-border-strong)';
-                  e.target.style.boxShadow = 'none';
-                }}
+                type="text" value={setupPharmacyName}
+                onChange={(e) => setSetupPharmacyName(e.target.value)}
+                placeholder="e.g. City Pharmacy Ltd" autoFocus
+                style={inputStyle}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
 
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: '11px',
-              fontWeight: 700,
-              color: 'var(--color-text-secondary)',
-              marginBottom: '6px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em'
-            }}>
-              Access Password
-            </label>
+          {/* Full name */}
+          <div>
+            <label style={labelStyle}>Admin Full Name *</label>
             <div style={{ position: 'relative' }}>
-              <div style={{
-                position: 'absolute',
-                left: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--color-text-muted)',
-                display: 'flex'
-              }}>
-                <Lock size={14} />
-              </div>
+              <span style={iconWrapStyle}><UserIcon size={16} /></span>
               <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                required
-                style={{
-                  width: '100%',
-                  padding: '6px 10px 6px 32px',
-                  height: '34px',
-                  borderRadius: '0px',
-                  border: '1px solid var(--color-border-strong)',
-                  fontSize: '13px',
-                  outline: 'none',
-                  backgroundColor: 'var(--color-bg-input)',
-                  color: 'var(--color-text-primary)',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--color-accent-base)';
-                  e.target.style.boxShadow = '0 0 0 2px var(--color-accent-subtle)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--color-border-strong)';
-                  e.target.style.boxShadow = 'none';
-                }}
+                type="text" required value={setupFullName}
+                onChange={(e) => setSetupFullName(e.target.value)}
+                placeholder="e.g. John Doe"
+                style={inputStyle}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
+          </div>
+
+          {/* Username + Password row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+            <div>
+              <label style={labelStyle}>Admin Username *</label>
+              <input type="text" required value={setupUsername}
+                onChange={(e) => setSetupUsername(e.target.value)} placeholder="admin"
+                style={{ ...inputStyle, paddingLeft: '14px' }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Password *</label>
+              <input type="password" required value={setupPassword}
+                onChange={(e) => setSetupPassword(e.target.value)} placeholder="Min 4 chars"
+                style={{ ...inputStyle, paddingLeft: '14px' }}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+          </div>
+
+          {/* Confirm password */}
+          <div>
+            <label style={labelStyle}>Confirm Password *</label>
+            <input type="password" required value={setupConfirmPassword}
+              onChange={(e) => setSetupConfirmPassword(e.target.value)} placeholder="Re-enter password"
+              style={{ ...inputStyle, paddingLeft: '14px' }}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
+            />
           </div>
 
           <button
-            type="submit"
-            disabled={isLoading}
-            className="desktop-btn-primary"
+            type="submit" disabled={isSettingUp}
             style={{
-              width: '100%',
-              height: '36px',
-              borderRadius: '0px',
-              fontSize: '13px',
-              fontWeight: 700,
-              justifyContent: 'center',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.7 : 1
+              width: '100%', height: '46px', borderRadius: 'var(--r)',
+              background: 'var(--blue)', color: '#fff', border: 'none',
+              fontSize: '15px', fontWeight: 700, cursor: isSettingUp ? 'not-allowed' : 'pointer',
+              opacity: isSettingUp ? 0.7 : 1,
+              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              marginTop: '4px',
             }}
+            onMouseEnter={(e) => { if (!isSettingUp) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
           >
-            {isLoading ? 'Authenticating System...' : 'Sign In to System'}
+            {isSettingUp ? 'Configuring System…' : 'Initialize & Complete Setup'}
           </button>
         </form>
+      </>
+    );
+  }
 
+  /* ── Standard Login Screen ───────────────────────────────────────────── */
+  return pageWrapper(
+    <>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{
-          marginTop: '24px',
-          paddingTop: '12px',
-          borderTop: '1px solid var(--color-border-subtle)',
-          textAlign: 'center',
-          fontSize: '10px',
-          color: 'var(--color-text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em'
+          width: '60px', height: '60px', borderRadius: '50%',
+          background: 'rgba(18, 108, 255, 0.12)',
+          border: '1px solid rgba(18, 108, 255, 0.25)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 16px', color: 'var(--blue)',
+          boxShadow: '0 0 20px rgba(18, 108, 255, 0.2)',
         }}>
-          {pharmacyName} POS • v1.0.0 Enterprise Release
+          <Pill size={28} />
+        </div>
+        <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.3px' }}>
+          {pharmacyName}
+        </h1>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '6px',
+          fontSize: '11px', color: 'var(--muted)',
+          background: 'var(--surface-soft)', border: '1px solid var(--line)',
+          padding: '4px 12px', borderRadius: '20px', fontWeight: 600,
+        }}>
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px var(--green)', display: 'inline-block' }} />
+          ENTERPRISE POS • SECURE AUTH
         </div>
       </div>
-    </div>
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)',
+          color: 'var(--color-danger-text)', padding: '12px 14px',
+          borderRadius: '8px', fontSize: '13px', marginBottom: '24px',
+        }}>
+          <ShieldAlert size={16} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        {/* Username */}
+        <div>
+          <label style={labelStyle}>Username</label>
+          <div style={{ position: 'relative' }}>
+            <span style={iconWrapStyle}><UserIcon size={16} /></span>
+            <input
+              type="text" value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter username" required autoFocus
+              style={inputStyle}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
+            />
+          </div>
+        </div>
+
+        {/* Password */}
+        <div>
+          <label style={labelStyle}>Password</label>
+          <div style={{ position: 'relative' }}>
+            <span style={iconWrapStyle}><Lock size={16} /></span>
+            <input
+              type="password" value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password" required
+              style={inputStyle}
+              onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
+              onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
+            />
+          </div>
+        </div>
+
+        {/* Submit */}
+        <button
+          type="submit" disabled={isLoading}
+          style={{
+            width: '100%', height: '48px', borderRadius: 'var(--r)',
+            background: 'var(--blue)', color: '#fff', border: 'none',
+            fontSize: '15px', fontWeight: 700,
+            cursor: isLoading ? 'not-allowed' : 'pointer',
+            opacity: isLoading ? 0.7 : 1,
+            transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            marginTop: '4px',
+          }}
+          onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+        >
+          {isLoading ? 'Authenticating…' : 'Sign In'}
+        </button>
+      </form>
+
+      {/* Footer */}
+      <div style={{
+        marginTop: '28px', paddingTop: '16px',
+        borderTop: '1px solid var(--line)',
+        textAlign: 'center', fontSize: '12px',
+        color: 'var(--muted-dark)',
+      }}>
+        {pharmacyName} · v1.0.0
+      </div>
+    </>
   );
 };

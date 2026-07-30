@@ -13,48 +13,43 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   subtitle,
   actions,
   isPageTitle = true,
-  style
+  style,
 }) => {
   return (
     <div
       style={{
-        height: '32px',
-        maxHeight: '32px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 10px',
-        backgroundColor: 'var(--color-bg-panel)',
-        border: '1px solid var(--color-border-default)',
-        borderRadius: '0px',
-        boxSizing: 'border-box',
-        ...style
+        marginBottom: '20px',
+        ...style,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
         <h1
           style={{
             margin: 0,
-            fontSize: isPageTitle ? '13px' : '12px',
+            fontSize: isPageTitle ? '22px' : '17px',
             fontWeight: 700,
-            color: 'var(--color-text-primary)',
-            letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap'
+            color: 'var(--ink)',
+            letterSpacing: '-0.3px',
           }}
         >
           {title}
         </h1>
         {subtitle && (
-          <>
-            <span style={{ color: 'var(--color-border-default)', userSelect: 'none' }}>|</span>
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {subtitle}
-            </span>
-          </>
+          <span
+            style={{
+              fontSize: '13px',
+              color: 'var(--muted)',
+            }}
+          >
+            {subtitle}
+          </span>
         )}
       </div>
       {actions && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {actions}
         </div>
       )}

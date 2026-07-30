@@ -25,11 +25,12 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
     <div
       style={{
         display: 'flex',
-        gap: '8px',
+        gap: '16px',
         width: '100%',
         height: '100%',
         flex: 1,
         overflow: 'hidden',
+        minHeight: 0,
         ...style
       }}
     >
@@ -47,15 +48,7 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
               <button
                 onClick={onToggleInspector}
                 title="Collapse Inspector"
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  padding: 0,
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  color: 'var(--color-text-muted)',
-                  cursor: 'pointer'
-                }}
+                className="win-btn"
               >
                 <ChevronRight size={14} />
               </button>
@@ -65,7 +58,8 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
             width: inspectorWidth,
             minWidth: inspectorWidth,
             height: '100%',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            flexShrink: 0,
           }}
           noPadding
         >
@@ -77,17 +71,12 @@ export const SplitPane: React.FC<SplitPaneProps> = ({
         <button
           onClick={onToggleInspector}
           title="Open Inspector Panel"
+          className="win-btn"
           style={{
-            width: '18px',
+            width: '28px',
             height: '100%',
-            backgroundColor: 'var(--color-bg-panel)',
-            border: '1px solid var(--color-border-default)',
-            borderRadius: '0px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-text-muted)',
-            cursor: 'pointer'
+            borderRadius: '8px',
+            flexShrink: 0,
           }}
         >
           <ChevronLeft size={14} />

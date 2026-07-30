@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PermissionProvider } from './context/PermissionContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { PharmacyProvider } from './context/PharmacyContext';
 import { LoginPage } from './features/auth/LoginPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { NavItemKey } from './components/layout/Sidebar';
@@ -24,11 +26,11 @@ const SESSION_IDLE_TIMEOUT_MINUTES = 15;
 const MainApp: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeView, setActiveView] = useState<NavItemKey>('dashboard');
-
-  useEffect(() => { loadCurrency(); }, []);
   const [inventoryFilter, setInventoryFilter] = useState<string>('all');
   const [posCartItems, setPosCartItems] = useState<any[]>([]);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  useEffect(() => { loadCurrency(); }, []);
 
   // Set default view based on user role
   useEffect(() => {
@@ -40,13 +42,11 @@ const MainApp: React.FC = () => {
   }, [user]);
 
   const handleSelectView = (view: NavItemKey, filter?: string) => {
-    if (filter) {
-      setInventoryFilter(filter);
-    }
+    if (filter) setInventoryFilter(filter);
     setActiveView(view);
   };
 
-  // Global Ctrl+K / ⌘K keyboard shortcut listener
+  // Global Ctrl+K shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -67,12 +67,17 @@ const MainApp: React.FC = () => {
       case 'dashboard':
         return <DashboardPage onSelectView={handleSelectView} />;
       case 'pos':
-        return <POSPage externalCartItems={posCartItems} onClearExternalCart={() => setPosCartItems([])} />;
+        return (
+          <POSPage
+            externalCartItems={posCartItems}
+            onClearExternalCart={() => setPosCartItems([])}
+          />
+        );
       case 'prescriptions':
         return (
-          <PrescriptionsPage 
-            onSelectView={(v) => handleSelectView(v)} 
-            onLoadPrescriptionToPOS={(items) => setPosCartItems(items)} 
+          <PrescriptionsPage
+            onSelectView={(v) => handleSelectView(v)}
+            onLoadPrescriptionToPOS={(items) => setPosCartItems(items)}
           />
         );
       case 'inventory':
@@ -96,10 +101,10 @@ const MainApp: React.FC = () => {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeView}
-            initial={{ opacity: 0, y: 4 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.1, ease: 'easeOut' }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             style={{ height: '100%' }}
           >
             {renderContent()}
@@ -107,10 +112,7 @@ const MainApp: React.FC = () => {
         </AnimatePresence>
       </MainLayout>
 
-      <IdleTimer
-        timeoutMinutes={SESSION_IDLE_TIMEOUT_MINUTES}
-        onTimeout={logout}
-      />
+      <IdleTimer timeoutMinutes={SESSION_IDLE_TIMEOUT_MINUTES} onTimeout={logout} />
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}
@@ -124,46 +126,43 @@ const MainApp: React.FC = () => {
   );
 };
 
-import { ThemeProvider } from './context/ThemeContext';
-import { PharmacyProvider } from './context/PharmacyContext';
-
 function App() {
   return (
     <ThemeProvider>
       <PharmacyProvider>
         <AuthProvider>
           <PermissionProvider>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: 'var(--color-bg-elevated)',
-              color: 'var(--color-text-primary)',
-              borderRadius: '0px',
-              border: '1px solid var(--color-border-default)',
-              fontSize: '12px',
-              fontWeight: 500,
-              boxShadow: 'var(--shadow-dropdown)'
-            },
-            success: {
-              iconTheme: {
-                primary: 'var(--color-success-text)',
-                secondary: 'var(--color-success-bg)'
-              }
-            },
-            error: {
-              iconTheme: {
-                primary: 'var(--color-danger-text)',
-                secondary: 'var(--color-danger-bg)'
-              }
-            }
-          }}
-        />
-        <MainApp />
-        </PermissionProvider>
-      </AuthProvider>
-    </PharmacyProvider>
-  </ThemeProvider>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: 'var(--surface-soft)',
+                  color: 'var(--ink)',
+                  borderRadius: 'var(--r)',
+                  border: '1px solid var(--line-strong)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  boxShadow: 'var(--shadow)',
+                },
+                success: {
+                  iconTheme: {
+                    primary: 'var(--green)',
+                    secondary: 'rgba(20, 240, 109, 0.12)',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: 'var(--red)',
+                    secondary: 'rgba(255, 56, 96, 0.12)',
+                  },
+                },
+              }}
+            />
+            <MainApp />
+          </PermissionProvider>
+        </AuthProvider>
+      </PharmacyProvider>
+    </ThemeProvider>
   );
 }
 
