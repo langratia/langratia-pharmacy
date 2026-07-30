@@ -733,15 +733,50 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
       {/* ── MODAL: Tender / Checkout Confirmation ────────── */}
       {isTenderOpen && (
-        <Modal onClose={() => !isProcessing && setIsTenderOpen(false)} width={420}>
+        <Modal onClose={() => !isProcessing && setIsTenderOpen(false)} width={460}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-            {modalTitle('Confirm Payment')}
+            {modalTitle('Order & Payment Confirmation')}
             {!isProcessing && <button onClick={() => setIsTenderOpen(false)} className="win-btn"><X size={16} /></button>}
           </div>
-          {modalSub('Select payment method and confirm the sale.')}
+          {modalSub('Review items being purchased and select payment method.')}
+
+          {/* Itemized Cart List Preview */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
+            borderRadius: '10px',
+            padding: '12px 14px',
+            marginBottom: '16px',
+            maxHeight: '180px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Item Description ({cart.length})</span>
+              <span>Subtotal</span>
+            </div>
+            {cart.map((item, idx) => {
+              const itemTotal = item.medicine.selling_price * item.quantity;
+              return (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', borderBottom: idx < cart.length - 1 ? '1px dashed var(--line)' : 'none', paddingBottom: '6px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', pr: '8px' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{item.medicine.name}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      {item.quantity} × UGX {formatCurrency(item.medicine.selling_price)}
+                    </span>
+                  </div>
+                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                    UGX {formatCurrency(itemTotal)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
 
           {/* Payment method selector */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
             {([
               { value: 'Cash', label: 'Cash', Icon: Banknote },
               { value: 'MobileMoney', label: 'Mobile Money', Icon: Smartphone },
@@ -750,24 +785,24 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 key={value}
                 onClick={() => setPaymentMethod(value)}
                 style={{
-                  padding: '14px 10px', fontSize: '13px', fontWeight: 700, borderRadius: '10px', cursor: 'pointer',
+                  padding: '12px 10px', fontSize: '13px', fontWeight: 700, borderRadius: '10px', cursor: 'pointer',
                   background: paymentMethod === value ? 'rgba(18,108,255,0.12)' : 'var(--surface)',
                   color: paymentMethod === value ? 'var(--blue)' : 'var(--muted)',
                   border: paymentMethod === value ? '2px solid var(--blue)' : '1px solid var(--line)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
                   minHeight: 'unset', transform: 'none', boxShadow: 'none', transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={22} />
+                <Icon size={20} />
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Order summary */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+          {/* Order financial totals summary */}
+          <div style={{ background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
-              <span>Items</span><span>{cart.length} item{cart.length !== 1 ? 's' : ''}</span>
+              <span>Subtotal</span><span>UGX {formatCurrency(grossTotal)}</span>
             </div>
             {calculatedDiscount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)' }}>
@@ -786,7 +821,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             onMouseEnter={(e) => { if (!isProcessing) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
             onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
           >
-            {isProcessing ? <><Loader size={18} className="animate-spin" /> Processing…</> : <><CheckCircle size={18} /> Confirm Sale</>}
+            {isProcessing ? <><Loader size={18} className="animate-spin" /> Processing…</> : <><CheckCircle size={18} /> Confirm & Complete Sale</>}
           </button>
         </Modal>
       )}
