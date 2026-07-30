@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   Users,
   ChevronRight,
-  Plus,
   Sun,
   Moon,
   Search,
@@ -241,15 +240,6 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
             '--wails-draggable': 'no-drag',
           }}
         >
-          {/* New Sale shortcut */}
-          <button
-            onClick={() => onSelectView('pos')}
-            className="btn btn-primary"
-            style={{ padding: '8px 16px', fontSize: '13px', gap: '6px', minHeight: 'unset', height: '36px' }}
-          >
-            <Plus size={14} />
-            <span>New Sale</span>
-          </button>
 
           {/* Search button */}
           <button
