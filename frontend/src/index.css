@@ -9,10 +9,10 @@
   color-scheme: dark;
 
   /* Backgrounds */
-  --bg:            #030508;
-  --surface:       #070a0d;
-  --surface-soft:  #111820;
-  --surface-card:  #0c1015;
+  --bg:            #0B1120;
+  --surface:       #0F172A;
+  --surface-soft:  #1E293B;
+  --surface-card:  #172033;
 
   /* Borders */
   --line:          rgba(255, 255, 255, 0.08);
@@ -122,10 +122,10 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg:            #f4f6f9;
+  --bg:            #F8FAFC;
   --surface:       #ffffff;
-  --surface-soft:  #e8ecf1;
-  --surface-card:  #fafbfc;
+  --surface-soft:  #F1F5F9;
+  --surface-card:  #FFFFFF;
   --line:          rgba(0, 0, 0, 0.10);
   --line-focus:    #126cff;
   --line-strong:   rgba(0, 0, 0, 0.20);
@@ -321,7 +321,7 @@ button:hover {
 }
 
 button:active {
-  transform: translateY(1px) scale(0.97);
+  transform: translateY(1px);
   box-shadow: none;
 }
 
@@ -400,7 +400,7 @@ select option {
 }
 
 .btn:active {
-  transform: translateY(1px) scale(0.97);
+  transform: translateY(1px);
   box-shadow: none;
 }
 
@@ -513,6 +513,27 @@ select option {
   box-shadow: var(--shadow-dropdown);
 }
 
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(3, 5, 8, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-window {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r2);
+  box-shadow: var(--shadow-dropdown);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Product / POS Cards ────────────────────────────────────────────────────── */
 .product-card {
   background: var(--surface);
@@ -537,7 +558,7 @@ select option {
 }
 
 .product-card:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(0);
 }
 
 .product-card.low-stock {
@@ -579,7 +600,7 @@ select option {
 }
 
 .pos-add-btn:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: translateY(1px);
 }
 
 .pos-add-btn:disabled {
@@ -630,6 +651,11 @@ select option {
 
 .ztable tbody tr:hover td {
   background: var(--overlay-hover);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 /* DataGrid compatibility */
@@ -695,7 +721,7 @@ select option {
 }
 
 .dashboard-kpi-card:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 .dashboard-kpi-card:focus-visible {

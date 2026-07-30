@@ -731,7 +731,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             flexDirection: 'column',
             gap: '8px'
           }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--line)', paddingBottom: '6px', display: 'flex', justifyContent: 'space-between' }}>
               <span>Item Description ({cart.length})</span>
               <span>Subtotal</span>
             </div>
@@ -741,11 +741,11 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', borderBottom: idx < cart.length - 1 ? '1px dashed var(--line)' : 'none', paddingBottom: '6px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', paddingRight: '8px' }}>
                     <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{item.medicine.name}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                    <span className="tabular-nums" style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       {item.quantity} × UGX {formatCurrency(item.medicine.selling_price)}
                     </span>
                   </div>
-                  <span style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                  <span className="tabular-nums" style={{ fontWeight: 700, color: 'var(--ink)' }}>
                     UGX {formatCurrency(itemTotal)}
                   </span>
                 </div>
@@ -756,15 +756,15 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           {/* Order financial totals summary */}
           <div style={{ background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
-              <span>Subtotal</span><span>UGX {formatCurrency(grossTotal)}</span>
+              <span>Subtotal</span><span className="tabular-nums">UGX {formatCurrency(grossTotal)}</span>
             </div>
             {calculatedDiscount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)' }}>
-                <span>Discount</span><span>- UGX {formatCurrency(calculatedDiscount)}</span>
+                <span>Discount</span><span className="tabular-nums">- UGX {formatCurrency(calculatedDiscount)}</span>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '16px', color: 'var(--ink)', paddingTop: '8px', borderTop: '1px solid var(--line)' }}>
-              <span>Total Payable</span><span style={{ color: 'var(--blue)' }}>UGX {formatCurrency(netTotal)}</span>
+              <span>Total Payable</span><span className="tabular-nums" style={{ color: 'var(--blue)' }}>UGX {formatCurrency(netTotal)}</span>
             </div>
           </div>
 
