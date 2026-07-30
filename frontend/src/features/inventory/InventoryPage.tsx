@@ -10,7 +10,9 @@ import {
   Package,
   AlertTriangle,
   Boxes,
-  Pill
+  Pill,
+  X,
+  CheckCircle2
 } from 'lucide-react';
 import { Medicine, Supplier } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -74,6 +76,13 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   const [isNewRecord, setIsNewRecord] = useState<boolean>(false);
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
+
+  // Add Medicine Modal State
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [modalFormData, setModalFormData] = useState(INITIAL_FORM);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Suppliers for dropdown
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -170,16 +179,43 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
   const handleCreateNewRecord = () => {
     if (!canEdit) return;
-    setSelectedMedicine(null);
-    setIsNewRecord(true);
-    setIsEditingMode(true);
-    setInspectorError(null);
-    setFormData(INITIAL_FORM);
+    setModalFormData(INITIAL_FORM);
+    setModalError(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleAddMedicineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canEdit) return;
+    if (!modalFormData.name.trim()) {
+      setModalError('Medicine Name is required.');
+      return;
+    }
+
+    try {
+      const wailsApp = (window as any)?.go?.main?.App;
+      if (wailsApp) {
+        const payload: Medicine = {
+          id: 0,
+          ...modalFormData,
+          current_stock: modalFormData.current_stock || 0,
+          is_archived: false,
+          created_at: new Date().toISOString()
+        };
+        await wailsApp.AddMedicine(payload, user?.id || 1, user?.username || 'admin');
+        setIsAddModalOpen(false);
+        setSuccessMessage(`"${modalFormData.name}" has been successfully added to inventory!`);
+        setShowSuccessModal(true);
+        fetchMedicines();
+      }
+    } catch (err: any) {
+      setModalError(err?.message || 'Failed to add medicine record');
+    }
   };
 
   const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEdit) return;
+    if (!canEdit || !selectedMedicine) return;
     if (!formData.name.trim()) {
       setInspectorError('Medicine Name is required.');
       return;
@@ -188,28 +224,17 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     try {
       const wailsApp = (window as any)?.go?.main?.App;
       if (wailsApp) {
-        if (selectedMedicine && !isNewRecord) {
-          const payload: Medicine = {
-            ...selectedMedicine,
-            ...formData,
-            current_stock: formData.current_stock ?? selectedMedicine.current_stock
-          };
-          await wailsApp.UpdateMedicine(payload, user?.id || 1, user?.username || 'admin');
-          toast.success(`Updated ${formData.name}`);
-        } else {
-          const payload: Medicine = {
-            id: 0,
-            ...formData,
-            current_stock: formData.current_stock || 0,
-            is_archived: false,
-            created_at: new Date().toISOString()
-          };
-          await wailsApp.AddMedicine(payload, user?.id || 1, user?.username || 'admin');
-          toast.success(`Added ${formData.name}`);
-        }
+        const payload: Medicine = {
+          ...selectedMedicine,
+          ...formData,
+          current_stock: formData.current_stock ?? selectedMedicine.current_stock
+        };
+        await wailsApp.UpdateMedicine(payload, user?.id || 1, user?.username || 'admin');
+        toast.success(`Updated ${formData.name}`);
+        setSuccessMessage(`Updated "${formData.name}" successfully!`);
+        setShowSuccessModal(true);
       }
       setIsEditingMode(false);
-      setIsNewRecord(false);
       fetchMedicines();
     } catch (err: any) {
       setInspectorError(err?.message || 'Failed to save medicine record');
@@ -841,11 +866,236 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
   );
 
   return (
-    <SplitPane
-      primaryPane={primaryContent}
-      inspectorPane={inspectorContent}
-      inspectorTitle={isNewRecord ? 'Add Medicine' : 'Medicine Inspector'}
-      inspectorWidth="340px"
-    />
+    <>
+      <SplitPane
+        primaryPane={primaryContent}
+        inspectorPane={inspectorContent}
+        inspectorTitle="Medicine Inspector"
+        inspectorWidth="340px"
+      />
+
+      {/* ── MODAL: Add New Medicine ──────────────────────────────── */}
+      {isAddModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsAddModalOpen(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 'var(--r2)',
+              width: '640px',
+              maxWidth: '90vw',
+              padding: '24px',
+              boxShadow: 'var(--shadow-dropdown)',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Add New Medicine</h2>
+              <button onClick={() => setIsAddModalOpen(false)} className="btn" style={{ padding: '4px 8px', minHeight: 'unset' }}><X size={16} /></button>
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '16px' }}>Enter full details to add a new product SKU to the pharmacy database.</p>
+
+            {modalError && (
+              <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(255, 56, 96, 0.1)', border: '1px solid var(--red)', color: 'var(--red)', fontSize: '13px', marginBottom: '14px' }}>
+                {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddMedicineSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                  Medicine Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Amoxicillin Trihydrate 500mg"
+                  value={modalFormData.name}
+                  onChange={(e) => setModalFormData({ ...modalFormData, name: e.target.value })}
+                  style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Generic Composition</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Amoxicillin"
+                    value={modalFormData.generic_name}
+                    onChange={(e) => setModalFormData({ ...modalFormData, generic_name: e.target.value })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Brand Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Amoxil"
+                    value={modalFormData.brand_name}
+                    onChange={(e) => setModalFormData({ ...modalFormData, brand_name: e.target.value })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Category</label>
+                  <select
+                    value={modalFormData.category}
+                    onChange={(e) => setModalFormData({ ...modalFormData, category: e.target.value })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  >
+                    {categories.filter(c => c !== 'All').map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Form</label>
+                  <select
+                    value={modalFormData.medicine_form}
+                    onChange={(e) => setModalFormData({ ...modalFormData, medicine_form: e.target.value })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  >
+                    {medicineForms.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Dosage / Strength</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 500mg"
+                    value={modalFormData.dosage_strength}
+                    onChange={(e) => setModalFormData({ ...modalFormData, dosage_strength: e.target.value })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Buying Price (UGX)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={modalFormData.buying_price}
+                    onChange={(e) => setModalFormData({ ...modalFormData, buying_price: sanitizePriceInput(e.target.value) })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Selling Price (UGX) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    required
+                    value={modalFormData.selling_price}
+                    onChange={(e) => setModalFormData({ ...modalFormData, selling_price: sanitizePriceInput(e.target.value) })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--blue)', fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Initial Stock Qty</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={modalFormData.current_stock || 0}
+                    onChange={(e) => setModalFormData({ ...modalFormData, current_stock: parseInt(e.target.value) || 0 })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Reorder Level</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={modalFormData.reorder_level}
+                    onChange={(e) => setModalFormData({ ...modalFormData, reorder_level: parseInt(e.target.value) || 10 })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Pack Size</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 10x10"
+                    value={modalFormData.pack_size}
+                    onChange={(e) => setModalFormData({ ...modalFormData, pack_size: e.target.value })}
+                    style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                <input
+                  type="checkbox"
+                  id="modal_rx"
+                  checked={modalFormData.requires_prescription}
+                  onChange={(e) => setModalFormData({ ...modalFormData, requires_prescription: e.target.checked })}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <label htmlFor="modal_rx" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
+                  Requires Doctor's Prescription (Rx)
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn">Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ gap: '6px' }}>
+                  <Save size={14} />
+                  <span>Save Medicine SKU</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Action Success Confirmation Alert ────────────── */}
+      {showSuccessModal && (
+        <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 'var(--r2)',
+              width: '420px',
+              padding: '28px',
+              boxShadow: 'var(--shadow-dropdown)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: '16px'
+            }}
+          >
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(20, 240, 109, 0.12)', border: '1px solid rgba(20, 240, 109, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Action Successful</h3>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+              {successMessage}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="btn btn-primary"
+              style={{ width: '100%', height: '40px', marginTop: '8px' }}
+            >
+              Done / Continue
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

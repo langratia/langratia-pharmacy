@@ -5,7 +5,8 @@ import {
   ShoppingCart,
   FileText,
   User,
-  Stethoscope
+  Stethoscope,
+  CheckCircle2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
@@ -64,6 +65,8 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   const [notes, setNotes] = useState<string>('');
   const [rxItems, setRxItems] = useState<NewRxItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   const [selectedMedId, setSelectedMedId] = useState<number | ''>('');
   const [dosage, setDosage] = useState<string>('1 tablet');
@@ -232,6 +235,8 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
       );
       toast.success('Prescription recorded!');
       setShowNewModal(false);
+      setSuccessMessage(`Prescription for ${patientName} has been recorded successfully!`);
+      setShowSuccessModal(true);
       fetchPrescriptions(statusFilter, debouncedSearch);
     } catch (err: any) {
       toast.error('Failed to create prescription: ' + (err.message || err));
@@ -501,11 +506,50 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
   );
 
   return (
-    <SplitPane
-      primaryPane={primaryContent}
-      inspectorPane={inspectorContent}
-      inspectorTitle="Prescription Inspector"
-      inspectorWidth="340px"
-    />
+    <>
+      <SplitPane
+        primaryPane={primaryContent}
+        inspectorPane={inspectorContent}
+        inspectorTitle="Prescription Inspector"
+        inspectorWidth="340px"
+      />
+
+      {/* ── MODAL: Action Success Confirmation Alert ────────────── */}
+      {showSuccessModal && (
+        <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--line-strong)',
+              borderRadius: 'var(--r2)',
+              width: '420px',
+              padding: '28px',
+              boxShadow: 'var(--shadow-dropdown)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              gap: '16px'
+            }}
+          >
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(20, 240, 109, 0.12)', border: '1px solid rgba(20, 240, 109, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--green)' }}>
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>Prescription Saved</h3>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
+              {successMessage}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="btn btn-primary"
+              style={{ width: '100%', height: '40px', marginTop: '8px' }}
+            >
+              Done / Continue
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
