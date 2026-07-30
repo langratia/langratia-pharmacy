@@ -8,7 +8,6 @@ import {
   BarChart3,
   Settings,
   FileText,
-  LogOut,
   Activity,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -52,7 +51,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { can } = usePermissions();
   const { pharmacyName } = usePharmacy();
 
@@ -213,11 +212,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView }) =>
         </nav>
       </div>
 
-      {/* Bottom section: user status card + logout */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-        {/* User / connection status card */}
-        {user && (
+      {/* Bottom section: user status card */}
+      {user && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div
             style={{
               background: 'var(--surface)',
@@ -264,44 +261,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, onSelectView }) =>
               {user.role}
             </span>
           </div>
-        )}
-
-        {/* Logout button */}
-        <button
-          onClick={logout}
-          title="Sign out"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '10px 14px',
-            borderRadius: '8px',
-            background: 'transparent',
-            border: '1px solid transparent',
-            color: 'var(--red)',
-            fontWeight: 500,
-            fontSize: '14px',
-            width: '100%',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            minHeight: 'unset',
-            height: 'auto',
-            transform: 'none',
-            boxShadow: 'none',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 56, 96, 0.08)';
-            e.currentTarget.style.borderColor = 'rgba(255, 56, 96, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.borderColor = 'transparent';
-          }}
-        >
-          <LogOut size={16} />
-          <span>Sign Out</span>
-        </button>
-      </div>
+        </div>
+      )}
     </aside>
   );
 };

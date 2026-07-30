@@ -13,6 +13,10 @@ import {
   Search,
   Server,
   Monitor,
+  LogOut,
+  Settings,
+  Camera,
+  User,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -46,13 +50,16 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [todaySales, setTodaySales] = useState<number>(0);
 
   const [notifications, setNotifications] = useState<models.NotificationSummary | null>(null);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchResults, setSearchResults] = useState<models.SearchResultItem[]>([]);
@@ -110,6 +117,9 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfileMenu(false);
       }
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSearchModal(false);
@@ -429,71 +439,162 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
             )}
           </div>
 
-          {/* User avatar badge */}
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            title="Click to change avatar"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '6px 12px 6px 6px',
-              background: 'var(--overlay-hover)',
-              border: '1px solid var(--line)',
-              borderRadius: '9999px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--overlay-active)';
-              e.currentTarget.style.borderColor = 'var(--line-strong)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'var(--overlay-hover)';
-              e.currentTarget.style.borderColor = 'var(--line)';
-            }}
-          >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '50%',
-                  background: 'var(--blue)',
-                  color: '#fff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                {(user?.username?.[0] || 'U').toUpperCase()}
-              </div>
-            )}
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1 }}>
-                {user?.username || 'User'}
-              </div>
-              <div
-                style={{
-                  fontSize: '11px',
-                  color: 'var(--muted)',
-                  textTransform: 'capitalize',
-                  lineHeight: 1,
-                  marginTop: '2px',
-                }}
-              >
-                {user?.role}
+          {/* User avatar badge & Profile dropdown menu */}
+          <div ref={profileRef} style={{ position: 'relative' }}>
+            <div
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              title="User Account"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '6px 12px 6px 6px',
+                background: showProfileMenu ? 'var(--overlay-active)' : 'var(--overlay-hover)',
+                border: showProfileMenu ? '1px solid var(--blue)' : '1px solid var(--line)',
+                borderRadius: '9999px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!showProfileMenu) {
+                  e.currentTarget.style.background = 'var(--overlay-active)';
+                  e.currentTarget.style.borderColor = 'var(--line-strong)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!showProfileMenu) {
+                  e.currentTarget.style.background = 'var(--overlay-hover)';
+                  e.currentTarget.style.borderColor = 'var(--line)';
+                }
+              }}
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Avatar"
+                  style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    borderRadius: '50%',
+                    background: 'var(--blue)',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  {(user?.username?.[0] || 'U').toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1 }}>
+                  {user?.username || 'User'}
+                </div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--muted)',
+                    textTransform: 'capitalize',
+                    lineHeight: 1,
+                    marginTop: '2px',
+                  }}
+                >
+                  {user?.role}
+                </div>
               </div>
             </div>
+
+            {/* Profile Dropdown Menu */}
+            {showProfileMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  width: '240px',
+                  background: 'var(--surface-soft)',
+                  border: '1px solid var(--line-strong)',
+                  borderRadius: 'var(--r2)',
+                  boxShadow: 'var(--shadow-dropdown)',
+                  zIndex: 200,
+                  padding: '8px',
+                  animation: 'popupEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                }}
+              >
+                {/* User Info Header */}
+                <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--line)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--blue)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                    {(user?.username?.[0] || 'U').toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {user?.full_name || user?.username}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'capitalize', marginTop: '2px' }}>
+                      {user?.role} {user?.branch ? `· ${user.branch}` : ''}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Change Avatar Photo */}
+                <button
+                  onClick={() => { setShowProfileMenu(false); fileInputRef.current?.click(); }}
+                  style={{
+                    width: '100%', padding: '9px 12px', background: 'transparent', border: 'none',
+                    borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
+                    fontSize: '13px', color: 'var(--ink)', fontWeight: 600, transition: 'background 0.15s ease',
+                    textAlign: 'left', minHeight: 'unset', transform: 'none', boxShadow: 'none'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--overlay-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <Camera size={15} style={{ color: 'var(--blue)' }} />
+                  <span>Change Profile Photo</span>
+                </button>
+
+                {/* Admin Settings Link */}
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => { setShowProfileMenu(false); onSelectView('settings'); }}
+                    style={{
+                      width: '100%', padding: '9px 12px', background: 'transparent', border: 'none',
+                      borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
+                      fontSize: '13px', color: 'var(--ink)', fontWeight: 600, transition: 'background 0.15s ease',
+                      textAlign: 'left', minHeight: 'unset', transform: 'none', boxShadow: 'none'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--overlay-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <Settings size={15} style={{ color: 'var(--muted)' }} />
+                    <span>System Settings</span>
+                  </button>
+                )}
+
+                {/* Logout Button for all roles */}
+                <button
+                  onClick={() => { setShowProfileMenu(false); logout(); }}
+                  style={{
+                    width: '100%', padding: '9px 12px', background: 'transparent', border: 'none',
+                    borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px',
+                    fontSize: '13px', color: 'var(--red)', fontWeight: 600, transition: 'background 0.15s ease',
+                    textAlign: 'left', minHeight: 'unset', transform: 'none', boxShadow: 'none', marginTop: '4px',
+                    borderTop: '1px solid var(--line)'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <LogOut size={15} />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
