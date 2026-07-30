@@ -8,7 +8,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { ListMedicines, GetExpiringBatches, GetSalesSummary, ListUsers, GetCashierPerformance, ListAuditLogs } from '../../../wailsjs/go/main/App';
 import { useAuth } from '../../context/AuthContext';
 
-type TabKey = 'inventory' | 'expiry' | 'performance' | 'audit' | 'sales';
+type TabKey = 'inventory' | 'expiry' | 'performance' | 'sales' | 'audit';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -75,7 +75,6 @@ export const ReportsPage: React.FC = () => {
         if (abortRef.current) return;
         setMedicines(meds || []);
         setExpiringBatches(exp || []);
-        if ((!meds || meds.length === 0) && (!exp || exp.length === 0)) setFetchError('Failed to load reports data from backend.');
       }
 
       if (tab === 'performance') {
@@ -94,7 +93,6 @@ export const ReportsPage: React.FC = () => {
         const summary = await tryLoad(() => GetSalesSummary(), () => (window as any)?.go?.main?.App?.GetSalesSummary?.());
         if (abortRef.current) return;
         if (summary) setSalesSummary(summary);
-        else setFetchError('Failed to load sales summary.');
       }
 
       if (tab === 'audit') {
@@ -104,9 +102,8 @@ export const ReportsPage: React.FC = () => {
       }
     } catch (err: unknown) {
       if (abortRef.current) return;
-      const msg = err instanceof Error ? err.message : 'Failed to load data';
+      const msg = err instanceof Error ? err.message : 'Failed to load report data';
       setFetchError(msg);
-      console.error('Failed to load tab data:', err);
     } finally {
       if (!abortRef.current) setIsLoading(false);
     }
@@ -136,61 +133,54 @@ export const ReportsPage: React.FC = () => {
   });
 
   const inventoryColumns: Column<Medicine>[] = [
-    { key: 'name', header: 'Medicine', width: '25%', accessor: (m) => <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{m.name} <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>({m.dosage_strength || m.medicine_form})</span></span> },
-    { key: 'category', header: 'Category', width: '12%', accessor: (m) => <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{m.category}</span> },
-    { key: 'buying_price', header: 'Buy (UGX)', width: '10%', align: 'right' as const, accessor: (m) => <span style={{ color: 'var(--color-text-muted)' }}>{formatCurrency(m.buying_price)}</span> },
-    { key: 'selling_price', header: 'Sell (UGX)', width: '10%', align: 'right' as const, accessor: (m) => <span style={{ color: 'var(--color-text-secondary)' }}>{formatCurrency(m.selling_price)}</span> },
-    { key: 'current_stock', header: 'Stock', width: '8%', align: 'center' as const, accessor: (m) => <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{m.current_stock}</span> },
-    { key: 'valuation', header: 'Value (UGX)', width: '12%', align: 'right' as const, accessor: (m) => <span style={{ fontWeight: 700, color: 'var(--color-text-accent)' }}>{formatCurrency(m.current_stock * m.buying_price)}</span> },
+    { key: 'name', header: 'Medicine', width: '30%', accessor: (m) => <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.name} <span style={{ fontSize: '11px', color: 'var(--muted)' }}>({m.dosage_strength || m.medicine_form})</span></span> },
+    { key: 'category', header: 'Category', width: '15%', accessor: (m) => <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{m.category || 'General'}</span> },
+    { key: 'buying_price', header: 'Buying Price (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums">{formatCurrency(m.buying_price)}</span> },
+    { key: 'selling_price', header: 'Selling Price (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ color: 'var(--blue)' }}>{formatCurrency(m.selling_price)}</span> },
+    { key: 'current_stock', header: 'In Stock', width: '10%', align: 'center' as const, accessor: (m) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{m.current_stock}</span> },
+    { key: 'valuation', header: 'Valuation (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ fontWeight: 700, color: 'var(--green)' }}>{formatCurrency(m.current_stock * m.buying_price)}</span> },
   ];
 
   const expiryColumns: Column<Batch>[] = [
-    { key: 'batch_number', header: 'Batch', width: '20%', accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>{b.batch_number}</span> },
-    { key: 'medicine_name', header: 'Item', width: '30%', accessor: (b) => <span style={{ color: 'var(--color-text-secondary)' }}>{b.medicine_name || `#${b.medicine_id}`}</span> },
-    { key: 'quantity_remaining', header: 'At Risk', width: '10%', align: 'center' as const, accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--color-danger-text)' }}>{b.quantity_remaining}</span> },
+    { key: 'batch_number', header: 'Batch #', width: '20%', accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{b.batch_number}</span> },
+    { key: 'medicine_name', header: 'Medicine Item', width: '35%', accessor: (b) => <span style={{ color: 'var(--ink)' }}>{b.medicine_name || `#${b.medicine_id}`}</span> },
+    { key: 'quantity_remaining', header: 'Qty at Risk', width: '15%', align: 'center' as const, accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--red)' }}>{b.quantity_remaining}</span> },
     {
       key: 'days_until_expiry', header: 'Days Left', width: '15%', align: 'center' as const,
       accessor: (b) => {
         const days = daysUntil(b.expiry_date);
-        const color = days <= 0 ? 'var(--color-danger-text)' : days <= 30 ? 'var(--color-danger-text)' : days <= 60 ? 'var(--color-warning-text)' : 'var(--color-text-secondary)';
-        return <span style={{ fontWeight: 700, color }}>{days <= 0 ? 'EXPIRED' : `${days}d`}</span>;
+        const color = days <= 0 ? 'var(--red)' : days <= 30 ? 'var(--red)' : days <= 60 ? 'var(--yellow)' : 'var(--muted)';
+        return <span style={{ fontWeight: 700, color }}>{days <= 0 ? 'EXPIRED' : `${days} days`}</span>;
       }
     },
-    { key: 'expiry_date', header: 'Expiry Date', width: '25%', align: 'right' as const, accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--color-warning-text)' }}>{formatDate(b.expiry_date)}</span> },
+    { key: 'expiry_date', header: 'Expiry Date', width: '15%', align: 'right' as const, accessor: (b) => <span style={{ fontWeight: 600, color: 'var(--muted-dark)' }}>{formatDate(b.expiry_date)}</span> },
   ];
 
   const performanceColumns: Column<models.User>[] = [
-    { key: 'username', header: 'Username', width: '15%', accessor: (u) => <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{u.username}</span> },
-    { key: 'full_name', header: 'Name', width: '20%', accessor: (u) => <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>{u.full_name}</span> },
-    { key: 'role', header: 'Role', width: '10%', accessor: (u) => <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{u.role}</span> },
+    { key: 'username', header: 'Username', width: '20%', accessor: (u) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{u.username}</span> },
+    { key: 'full_name', header: 'Staff Name', width: '25%', accessor: (u) => <span style={{ fontSize: '12px', color: 'var(--ink)' }}>{u.full_name || '—'}</span> },
+    { key: 'role', header: 'Role Privilege', width: '15%', accessor: (u) => <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--muted)' }}>{u.role}</span> },
     {
-      key: 'today', header: 'Today', width: '18%',
+      key: 'today', header: 'Today Sales', width: '20%',
       accessor: (u) => {
         const p = cashierPerf.get(u.id);
-        return <div style={{ fontSize: '11px', lineHeight: '1.6' }}><span style={{ color: 'var(--color-text-secondary)' }}>Sales: </span><strong>{p?.today?.total_sales || 0}</strong><br /><span style={{ color: 'var(--color-text-secondary)' }}>Rev: </span><strong>{formatCurrency(p?.today?.total_revenue || 0)}</strong></div>;
+        return <div style={{ fontSize: '12px' }}><strong>{p?.today?.total_sales || 0} orders</strong> · <span className="tabular-nums" style={{ color: 'var(--blue)', fontWeight: 700 }}>UGX {formatCurrency(p?.today?.total_revenue || 0)}</span></div>;
       }
     },
     {
-      key: 'week', header: 'This Week', width: '18%',
+      key: 'month', header: 'This Month', width: '20%',
       accessor: (u) => {
         const p = cashierPerf.get(u.id);
-        return <div style={{ fontSize: '11px', lineHeight: '1.6' }}><span style={{ color: 'var(--color-text-secondary)' }}>Sales: </span><strong>{p?.this_week?.total_sales || 0}</strong><br /><span style={{ color: 'var(--color-text-secondary)' }}>Rev: </span><strong>{formatCurrency(p?.this_week?.total_revenue || 0)}</strong></div>;
-      }
-    },
-    {
-      key: 'month', header: 'This Month', width: '19%',
-      accessor: (u) => {
-        const p = cashierPerf.get(u.id);
-        return <div style={{ fontSize: '11px', lineHeight: '1.6' }}><span style={{ color: 'var(--color-text-secondary)' }}>Sales: </span><strong>{p?.this_month?.total_sales || 0}</strong><br /><span style={{ color: 'var(--color-text-secondary)' }}>Rev: </span><strong>{formatCurrency(p?.this_month?.total_revenue || 0)}</strong></div>;
+        return <div style={{ fontSize: '12px' }}><strong>{p?.this_month?.total_sales || 0} orders</strong> · <span className="tabular-nums" style={{ color: 'var(--green)', fontWeight: 700 }}>UGX {formatCurrency(p?.this_month?.total_revenue || 0)}</span></div>;
       }
     },
   ];
 
   const auditColumns: Column<models.AuditLog>[] = [
-    { key: 'timestamp', header: 'Time', width: '20%', accessor: (log) => <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{new Date(log.timestamp).toLocaleString()}</span> },
-    { key: 'username', header: 'User', width: '15%', accessor: (log) => <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{log.username}</span> },
-    { key: 'action', header: 'Action', width: '20%', accessor: (log) => <span style={{ fontWeight: 600, color: 'var(--color-text-accent)' }}>{log.action}</span> },
-    { key: 'details', header: 'Details', width: '45%', accessor: (log) => <span style={{ fontSize: '10px', color: 'var(--color-text-secondary)' }}>{log.details}</span> },
+    { key: 'timestamp', header: 'Time', width: '20%', accessor: (log) => <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{new Date(log.timestamp).toLocaleString()}</span> },
+    { key: 'username', header: 'Operator', width: '15%', accessor: (log) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{log.username}</span> },
+    { key: 'action', header: 'System Action', width: '20%', accessor: (log) => <span style={{ fontWeight: 600, color: 'var(--blue)' }}>{log.action}</span> },
+    { key: 'details', header: 'Details', width: '45%', accessor: (log) => <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{log.details}</span> },
   ];
 
   const handleExportCSV = () => {
@@ -200,199 +190,270 @@ export const ReportsPage: React.FC = () => {
           ['Medicine Name', 'Category', 'Buying Price', 'Selling Price', 'Stock Qty', 'Valuation'],
           ...filteredMedicines.map(m => [m.name, m.category || '', String(m.buying_price), String(m.selling_price), String(m.current_stock), String(m.current_stock * m.buying_price)])
         ];
-        downloadCSV(`inventory_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+        downloadCSV(`inventory_report_${new Date().toISOString().slice(0, 10)}.csv`, rows);
       } else if (activeTab === 'expiry') {
         const rows = [
           ['Batch Number', 'Item', 'Qty at Risk', 'Days Until Expiry', 'Expiry Date'],
           ...filteredBatches.map(b => [b.batch_number, b.medicine_name || '', String(b.quantity_remaining), String(daysUntil(b.expiry_date)), formatDate(b.expiry_date)])
         ];
-        downloadCSV(`expiry_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+        downloadCSV(`expiry_report_${new Date().toISOString().slice(0, 10)}.csv`, rows);
       } else if (activeTab === 'audit') {
         const rows = [
           ['Timestamp', 'User', 'Action', 'Details'],
           ...filteredLogs.map(log => [new Date(log.timestamp).toISOString(), log.username, log.action, log.details])
         ];
-        downloadCSV(`audit_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+        downloadCSV(`audit_trail_${new Date().toISOString().slice(0, 10)}.csv`, rows);
       } else if (activeTab === 'performance') {
         const rows = [
-          ['Username', 'Name', 'Role', 'Today Sales', 'Today Revenue', 'Week Sales', 'Week Revenue', 'Month Sales', 'Month Revenue'],
+          ['Username', 'Name', 'Role', 'Today Sales', 'Today Revenue', 'Month Sales', 'Month Revenue'],
           ...allUsers.map(u => {
             const p = cashierPerf.get(u.id);
-            return [u.username, u.full_name, u.role, String(p?.today?.total_sales || 0), String(p?.today?.total_revenue || 0), String(p?.this_week?.total_sales || 0), String(p?.this_week?.total_revenue || 0), String(p?.this_month?.total_sales || 0), String(p?.this_month?.total_revenue || 0)];
+            return [u.username, u.full_name, u.role, String(p?.today?.total_sales || 0), String(p?.today?.total_revenue || 0), String(p?.this_month?.total_sales || 0), String(p?.this_month?.total_revenue || 0)];
           })
         ];
-        downloadCSV(`performance_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+        downloadCSV(`staff_performance_${new Date().toISOString().slice(0, 10)}.csv`, rows);
       }
-    } catch { /* csv download errors are rare */ }
+    } catch { /* export safeguard */ }
   };
 
   const totalValuation = filteredMedicines.reduce((acc, m) => acc + (m.current_stock * m.buying_price), 0);
 
-  const tabMeta: { key: TabKey; label: string; icon: React.ReactNode; count?: number }[] = [
-    { key: 'inventory', label: 'Inventory', icon: <Package size={14} />, count: medicines.length },
-    { key: 'expiry', label: 'Expiry', icon: <Clock size={14} />, count: expiringBatches.length },
-    { key: 'performance', label: 'Performance', icon: <Users size={14} /> },
-    { key: 'sales', label: 'Sales Summary', icon: <BarChart3 size={14} /> },
-    { key: 'audit', label: 'Audit Trail', icon: <Shield size={14} />, count: auditLogs.length },
-  ];
+  const tabBtn = (key: TabKey, label: string, icon: React.ReactNode, count?: number) => (
+    <button
+      type="button"
+      onClick={() => setActiveTab(key)}
+      style={{
+        height: '36px',
+        padding: '0 16px',
+        fontSize: '13px',
+        fontWeight: 600,
+        borderRadius: 'var(--r)',
+        background: activeTab === key ? 'var(--surface)' : 'transparent',
+        color: activeTab === key ? 'var(--blue)' : 'var(--muted)',
+        border: activeTab === key ? '1px solid var(--line-strong)' : '1px solid transparent',
+        boxShadow: activeTab === key ? 'var(--shadow-btn)' : 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap'
+      }}
+    >
+      {icon}
+      <span>{label}</span>
+      {count !== undefined && (
+        <span style={{
+          fontSize: '11px',
+          fontWeight: 700,
+          padding: '2px 6px',
+          borderRadius: '10px',
+          background: activeTab === key ? 'rgba(18,108,255,0.12)' : 'var(--surface-soft)',
+          color: activeTab === key ? 'var(--blue)' : 'var(--muted)'
+        }}>
+          {count}
+        </span>
+      )}
+    </button>
+  );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', height: '100%', minHeight: 0, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', minHeight: 0, width: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
+      
+      {/* ── Top Header Strip & Navigation Pills ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface-soft)', padding: '4px', borderRadius: 'var(--r2)', border: '1px solid var(--line)' }}>
+          {tabBtn('inventory', 'Inventory Stock', <Package size={14} />, medicines.length)}
+          {tabBtn('expiry', 'Expiry Risk (90d)', <Clock size={14} />, expiringBatches.length)}
+          {tabBtn('sales', 'Sales Reports', <BarChart3 size={14} />)}
+          {tabBtn('performance', 'Staff Performance', <Users size={14} />)}
+          {tabBtn('audit', 'Audit Logs', <Shield size={14} />, auditLogs.length)}
+        </div>
 
-      {/* ── Toolbar ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>Reports & Analytics</div>
         {activeTab !== 'sales' && (
-          <button onClick={handleExportCSV} disabled={isLoading} className="btn btn-primary" style={{ marginLeft: 'auto', gap: '6px', opacity: isLoading ? 0.6 : 1 }}>
+          <button onClick={handleExportCSV} disabled={isLoading} className="btn btn-primary" style={{ gap: '6px' }}>
             <Download size={14} /> Export CSV
           </button>
         )}
       </div>
 
-      {/* ── Main Split ── */}
-      <div style={{ display: 'flex', gap: '16px', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-
-        {/* Left Tab Nav */}
-        <Panel noPadding style={{ width: '200px', flexShrink: 0, height: '100%', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '12px' }}>
-            {tabMeta.map(t => (
-              <button key={t.key} onClick={() => setActiveTab(t.key)}
-                style={{
-                  height: '40px', fontSize: '13px', fontWeight: 600, justifyContent: 'flex-start', gap: '10px',
-                  padding: '0 14px', borderRadius: 'var(--r)',
-                  background: activeTab === t.key ? 'rgba(18,108,255,0.12)' : 'transparent',
-                  border: activeTab === t.key ? '1px solid rgba(18,108,255,0.3)' : '1px solid transparent',
-                  color: activeTab === t.key ? 'var(--blue)' : 'var(--muted)',
-                  minHeight: 'unset', transform: 'none', boxShadow: 'none',
-                }}
-              >{t.icon} {t.label}{t.count !== undefined ? ` (${t.count})` : ''}</button>
-            ))}
-          </div>
-        </Panel>
-
-        {/* Content Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', minHeight: 0, gap: '12px' }}>
-
-          {/* Search / filter row */}
-          {activeTab !== 'sales' && activeTab !== 'performance' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-              <div style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
-                <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder={`Search ${activeTab}…`}
-                  style={{ width: '100%', paddingLeft: '36px', minHeight: 'unset', height: '38px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }} />
-              </div>
-              {activeTab === 'inventory' && (
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
-                  Stock Value: <span style={{ color: 'var(--blue)' }}>UGX {formatCurrency(totalValuation)}</span>
-                </div>
-              )}
+      {/* ── Main Scrollable Body ── */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        
+        {/* Search bar & stock valuation strip */}
+        {activeTab !== 'sales' && activeTab !== 'performance' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexShrink: 0 }}>
+            <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={`Search ${activeTab} records…`}
+                style={{ width: '100%', paddingLeft: '36px', height: '38px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
+              />
             </div>
-          )}
-
-          {fetchError && (
-            <div style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--red)', background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <span>{fetchError}</span>
-              <button onClick={() => loadTabData(activeTab)} className="btn" style={{ fontSize: '12px' }}>Retry</button>
-            </div>
-          )}
-
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             {activeTab === 'inventory' && (
-              <DataGrid columns={inventoryColumns} data={filteredMedicines} keyExtractor={(m) => m.id}
-                isLoading={isLoading} emptyMessage={debouncedSearch ? 'No medicines match search.' : 'No inventory records.'}
-                compactRows={true} zebraStriping={true} style={{ flex: 1 }} />
-            )}
-
-            {activeTab === 'expiry' && (
-              <DataGrid columns={expiryColumns} data={filteredBatches} keyExtractor={(b) => b.id}
-                isLoading={isLoading} emptyMessage={debouncedSearch ? 'No batches match search.' : 'No batches expiring within 90 days.'}
-                compactRows={true} zebraStriping={true} style={{ flex: 1 }} />
-            )}
-
-            {activeTab === 'performance' && (
-              <DataGrid columns={performanceColumns} data={allUsers} keyExtractor={(u) => u.id}
-                isLoading={isLoading} emptyMessage="No users found."
-                compactRows={true} zebraStriping={true} style={{ flex: 1 }} />
-            )}
-
-            {activeTab === 'audit' && (
-              <DataGrid columns={auditColumns} data={filteredLogs} keyExtractor={(log) => log.id}
-                isLoading={isLoading} emptyMessage={debouncedSearch ? 'No audit logs match search.' : 'No audit logs found.'}
-                compactRows={true} zebraStriping={true} style={{ flex: 1 }} />
-            )}
-
-            {activeTab === 'sales' && salesSummary && (
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', paddingRight: '4px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                  {[
-                    { label: 'Today', value: salesSummary.today_total },
-                    { label: 'This Week', value: salesSummary.week_total },
-                    { label: 'This Month', value: salesSummary.month_total },
-                  ].map(kpi => (
-                    <Panel key={kpi.label} style={{ padding: '16px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>{kpi.label}</div>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--blue)' }}>UGX {formatCurrency(kpi.value)}</div>
-                    </Panel>
-                  ))}
-                  <Panel style={{ padding: '16px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Transactions</div>
-                    <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>{salesSummary.total_sales}</div>
-                  </Panel>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <Panel noPadding>
-                    <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Revenue by Payment Method</div>
-                    {salesSummary.by_method.length === 0 ? (
-                      <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>No sales data yet.</div>
-                    ) : (
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead><tr style={{ background: 'var(--surface-soft)' }}>
-                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Method</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Count</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total (UGX)</th>
-                        </tr></thead>
-                        <tbody>
-                          {salesSummary.by_method.map(m => (
-                            <tr key={m.method} style={{ borderTop: '1px solid var(--line)' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)', textTransform: 'capitalize' }}>{m.method}</td>
-                              <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{m.count}</td>
-                              <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--blue)' }}>{formatCurrency(m.total)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </Panel>
-
-                  <Panel noPadding>
-                    <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Top Selling Products</div>
-                    {salesSummary.top_products.length === 0 ? (
-                      <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>No sales data yet.</div>
-                    ) : (
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                        <thead><tr style={{ background: 'var(--surface-soft)' }}>
-                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Product</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Qty Sold</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Revenue (UGX)</th>
-                        </tr></thead>
-                        <tbody>
-                          {salesSummary.top_products.map(p => (
-                            <tr key={p.medicine_id} style={{ borderTop: '1px solid var(--line)' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{p.medicine_name}</td>
-                              <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{p.quantity_sold}</td>
-                              <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--blue)' }}>{formatCurrency(p.revenue)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </Panel>
-                </div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)', marginLeft: 'auto' }}>
+                Total Stock Valuation: <strong className="tabular-nums" style={{ color: 'var(--blue)', fontSize: '14px' }}>UGX {formatCurrency(totalValuation)}</strong>
               </div>
             )}
           </div>
+        )}
+
+        {fetchError && (
+          <div style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--red)', background: 'rgba(255,56,96,0.1)', border: '1px solid var(--red)', borderRadius: '8px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{fetchError}</span>
+            <button onClick={() => loadTabData(activeTab)} className="btn" style={{ fontSize: '12px' }}>Retry</button>
+          </div>
+        )}
+
+        {/* ── TAB CONTENT VIEWS ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          
+          {activeTab === 'inventory' && (
+            <DataGrid
+              columns={inventoryColumns}
+              data={filteredMedicines}
+              keyExtractor={(m) => m.id}
+              isLoading={isLoading}
+              emptyMessage={debouncedSearch ? 'No medicines match search term.' : 'No inventory records found.'}
+              compactRows={true}
+              zebraStriping={true}
+              style={{ flex: 1 }}
+            />
+          )}
+
+          {activeTab === 'expiry' && (
+            <DataGrid
+              columns={expiryColumns}
+              data={filteredBatches}
+              keyExtractor={(b) => b.id}
+              isLoading={isLoading}
+              emptyMessage={debouncedSearch ? 'No expiring batches match search.' : 'No stock expiring within 90 days.'}
+              compactRows={true}
+              zebraStriping={true}
+              style={{ flex: 1 }}
+            />
+          )}
+
+          {activeTab === 'performance' && (
+            <DataGrid
+              columns={performanceColumns}
+              data={allUsers}
+              keyExtractor={(u) => u.id}
+              isLoading={isLoading}
+              emptyMessage="No staff members registered."
+              compactRows={true}
+              zebraStriping={true}
+              style={{ flex: 1 }}
+            />
+          )}
+
+          {activeTab === 'audit' && (
+            <DataGrid
+              columns={auditColumns}
+              data={filteredLogs}
+              keyExtractor={(log) => log.id}
+              isLoading={isLoading}
+              emptyMessage={debouncedSearch ? 'No audit logs match search.' : 'No audit logs recorded.'}
+              compactRows={true}
+              zebraStriping={true}
+              style={{ flex: 1 }}
+            />
+          )}
+
+          {activeTab === 'sales' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
+              
+              {/* Sales Metric KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                <Panel style={{ padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Today's Revenue</div>
+                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
+                    UGX {formatCurrency(salesSummary?.today_total || 0)}
+                  </div>
+                </Panel>
+
+                <Panel style={{ padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>7-Day Revenue</div>
+                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
+                    UGX {formatCurrency(salesSummary?.week_total || 0)}
+                  </div>
+                </Panel>
+
+                <Panel style={{ padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Monthly Revenue</div>
+                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--green)' }}>
+                    UGX {formatCurrency(salesSummary?.month_total || 0)}
+                  </div>
+                </Panel>
+
+                <Panel style={{ padding: '16px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Completed Orders</div>
+                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--ink)' }}>
+                    {salesSummary?.total_sales || 0}
+                  </div>
+                </Panel>
+              </div>
+
+              {/* Payment Methods & Top Selling Products */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                <Panel noPadding>
+                  <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Payment Methods</div>
+                  {!salesSummary || salesSummary.by_method.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>No sales transactions yet.</div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-soft)' }}>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Method</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Orders</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salesSummary.by_method.map(m => (
+                          <tr key={m.method} style={{ borderTop: '1px solid var(--line)' }}>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>💵 {m.method}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{m.count}</td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--blue)' }}>UGX {formatCurrency(m.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </Panel>
+
+                <Panel noPadding>
+                  <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Top Selling Medicines</div>
+                  {!salesSummary || salesSummary.top_products.length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>No sales transactions yet.</div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-soft)' }}>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Item</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total Revenue (UGX)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salesSummary.top_products.map(p => (
+                          <tr key={p.medicine_id} style={{ borderTop: '1px solid var(--line)' }}>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{p.medicine_name}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{p.quantity_sold}</td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--blue)' }}>{formatCurrency(p.revenue)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </Panel>
+              </div>
+
+            </div>
+          )}
+
         </div>
       </div>
     </div>

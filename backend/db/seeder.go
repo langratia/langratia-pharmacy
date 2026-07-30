@@ -245,7 +245,7 @@ func (db *DB) seedBatchesAndPurchasesTx(tx *sql.Tx) error {
 
 func (db *DB) seedSalesAndLogsTx(tx *sql.Tx) error {
 	now := time.Now()
-	paymentMethods := []string{"Cash", "Mobile Money", "Card"}
+	paymentMethods := []string{"Cash"}
 
 	for i := 1; i <= 100; i++ {
 		medID := (i % 100) + 1

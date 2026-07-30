@@ -241,14 +241,16 @@ func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
 	// Total sales count
 	s.db.QueryRow(`SELECT COUNT(*) FROM sales`).Scan(&ss.TotalSales)
 
-	// By payment method
-	rows, err := s.db.Query(`SELECT COALESCE(payment_method,'Cash'), COUNT(*), COALESCE(SUM(total_amount),0.0) FROM sales GROUP BY payment_method ORDER BY SUM(total_amount) DESC`)
+	// By payment method (Cash standard)
+	rows, err := s.db.Query(`SELECT 'Cash' AS method, COUNT(*), COALESCE(SUM(total_amount),0.0) FROM sales`)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
 			var p PaymentMethodSummary
 			if rows.Scan(&p.Method, &p.Count, &p.Total) == nil {
-				ss.ByMethod = append(ss.ByMethod, p)
+				if p.Count > 0 {
+					ss.ByMethod = append(ss.ByMethod, p)
+				}
 			}
 		}
 		if err := rows.Err(); err != nil {
