@@ -128,6 +128,9 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 			}
 			summary.RecentSales = append(summary.RecentSales, sl)
 		}
+		if err := salesRows.Err(); err != nil {
+			log.Printf("dashboard: error in recent sales iteration: %v", err)
+		}
 	}
 
 	// 7. Recent Purchases (Top 5)
@@ -145,6 +148,9 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 				continue
 			}
 			summary.RecentPurchases = append(summary.RecentPurchases, pur)
+		}
+		if err := purRows.Err(); err != nil {
+			log.Printf("dashboard: error in recent purchases iteration: %v", err)
 		}
 	}
 
@@ -166,6 +172,9 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 			}
 			summary.ExpiringItems = append(summary.ExpiringItems, item)
 		}
+		if err := expRows.Err(); err != nil {
+			log.Printf("dashboard: error in expiring items iteration: %v", err)
+		}
 	}
 
 	// 9. Detailed Low Stock Items (Top 10)
@@ -183,6 +192,9 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 				continue
 			}
 			summary.LowStockItems = append(summary.LowStockItems, item)
+		}
+		if err := lowRows.Err(); err != nil {
+			log.Printf("dashboard: error in low stock items iteration: %v", err)
 		}
 	}
 
@@ -235,6 +247,9 @@ func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
 				ss.ByMethod = append(ss.ByMethod, p)
 			}
 		}
+		if err := rows.Err(); err != nil {
+			log.Printf("reports: error in payment method iteration: %v", err)
+		}
 	}
 
 	// Top 10 products by quantity sold
@@ -252,6 +267,9 @@ func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
 			if prodRows.Scan(&tp.MedicineID, &tp.MedicineName, &tp.QuantitySold, &tp.Revenue) == nil {
 				ss.TopProducts = append(ss.TopProducts, tp)
 			}
+		}
+		if err := prodRows.Err(); err != nil {
+			log.Printf("reports: error in top products iteration: %v", err)
 		}
 	}
 

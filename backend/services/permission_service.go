@@ -59,6 +59,9 @@ func (s *PermissionService) GetRolePermissions(role string) ([]string, error) {
 		}
 		perms = append(perms, p)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return perms, nil
 }
 

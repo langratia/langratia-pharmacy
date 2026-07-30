@@ -99,7 +99,12 @@ func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, u
 		return fmt.Errorf("failed to checkpoint WAL: %w", err)
 	}
 
-	// 4. Overwrite database file on disk
+	// 4. Close current connection pool before overwriting the file on disk (Windows safety)
+	if err := s.db.DB.Close(); err != nil {
+		return fmt.Errorf("failed to close database before restore: %w", err)
+	}
+
+	// 5. Overwrite database file on disk
 	destFile, err := os.Create(s.dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to open target db for overwrite: %w", err)
@@ -171,6 +176,10 @@ func (s *BackupService) ListAuditLogs(limit int) ([]models.AuditLog, error) {
 			log.UserID = &uid.Int64
 		}
 		logs = append(logs, log)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return logs, nil

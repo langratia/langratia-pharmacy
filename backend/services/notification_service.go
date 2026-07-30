@@ -48,6 +48,9 @@ func (n *NotificationService) GetNotificationsSummary() (*models.NotificationSum
 				})
 			}
 		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// 2. Expiring batches (expiring within 60 days)
@@ -78,6 +81,9 @@ func (n *NotificationService) GetNotificationsSummary() (*models.NotificationSum
 					Target:   "inventory",
 				})
 			}
+		}
+		if err := expRows.Err(); err != nil {
+			return nil, err
 		}
 	}
 

@@ -48,7 +48,9 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 	if len(items) == 0 {
 		return nil, errors.New("cart cannot be empty")
 	}
-	paymentMethod = "Cash"
+	if paymentMethod == "" {
+		paymentMethod = "Cash"
+	}
 	if discountType == "" {
 		discountType = "fixed"
 	}
@@ -212,6 +214,10 @@ func (s *SalesService) ListRecentSales(limit int) ([]models.Sale, error) {
 			sl.UserID = &uid.Int64
 		}
 		sales = append(sales, sl)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return sales, nil

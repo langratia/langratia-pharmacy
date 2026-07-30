@@ -95,6 +95,10 @@ func (s *SupplierService) ListSuppliers(includeArchived bool) ([]models.Supplier
 		suppliers = append(suppliers, sup)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return suppliers, nil
 }
 

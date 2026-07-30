@@ -194,6 +194,10 @@ func (p *PrescriptionService) ListPrescriptions(status string, search string, li
 		list = append(list, rx)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return list, nil
 }
 
@@ -281,6 +285,10 @@ func (p *PrescriptionService) UpdatePrescriptionStatus(userID int64, username st
 					itemsToDeduct = append(itemsToDeduct, dispenseItem{medicineID: medID, qty: needed})
 				}
 			}
+		}
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return err
 		}
 		rows.Close()
 

@@ -106,6 +106,10 @@ func (s *BatchService) GetBatchesByMedicine(medicineID int64) ([]models.Batch, e
 		batches = append(batches, b)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return batches, nil
 }
 
@@ -145,6 +149,10 @@ func (s *BatchService) DeductStockFEFO(tx *sql.Tx, medicineID int64, quantityToD
 			return nil, err
 		}
 		availables = append(availables, ab)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
 	}
 	rows.Close()
 
@@ -214,6 +222,28 @@ func (s *BatchService) AdjustStock(medicineID int64, batchID *int64, userID int6
 		if err != nil {
 			return fmt.Errorf("failed to update batch stock: %w", err)
 		}
+	} else {
+		// If no batch is specified, adjust batch stock on the most recent batch or create/update active batch
+		var latestBatchID int64
+		err := tx.QueryRow(`SELECT id FROM batches WHERE medicine_id = ? ORDER BY expiry_date DESC LIMIT 1`, medicineID).Scan(&latestBatchID)
+		if err == nil {
+			_, err = tx.Exec(`UPDATE batches SET quantity_remaining = quantity_remaining + ? WHERE id = ?`, qtyAdjusted, latestBatchID)
+			if err != nil {
+				return fmt.Errorf("failed to update batch stock: %w", err)
+			}
+			batchID = &latestBatchID
+		} else {
+			// If no batch exists at all, insert a default adjustment batch
+			batchNum := fmt.Sprintf("BATCH-ADJ-%d-%d", medicineID, time.Now().Unix())
+			expDate := time.Now().AddDate(1, 0, 0).Format("2006-01-02")
+			res, err := tx.Exec(`INSERT INTO batches (batch_number, medicine_id, quantity_received, quantity_remaining, buying_price, expiry_date) VALUES (?, ?, ?, ?, 0.0, ?)`,
+				batchNum, medicineID, qtyAdjusted, qtyAdjusted, expDate)
+			if err != nil {
+				return fmt.Errorf("failed to create batch for stock adjustment: %w", err)
+			}
+			newID, _ := res.LastInsertId()
+			batchID = &newID
+		}
 	}
 
 	// Record Stock Adjustment
@@ -273,6 +303,10 @@ func (s *BatchService) GetExpiringBatches(withinDays int) ([]models.Batch, error
 			b.SupplierID = &supplierID.Int64
 		}
 		batches = append(batches, b)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return batches, nil

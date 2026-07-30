@@ -148,6 +148,10 @@ func (s *PurchaseService) ListPurchases() ([]models.Purchase, error) {
 		purchases = append(purchases, p)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return purchases, nil
 }
 
@@ -193,6 +197,10 @@ func (s *PurchaseService) ListPurchasesPaginated(page, pageSize int) (*models.Pa
 		purchases = append(purchases, p)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return &models.PaginatedPurchases{
 		Items:      purchases,
 		TotalCount: totalCount,
@@ -230,6 +238,9 @@ func (s *PurchaseService) ListPurchaseItems(purchaseID int64) ([]models.Purchase
 			item.BatchID = &batchID.Int64
 		}
 		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return items, nil
 }

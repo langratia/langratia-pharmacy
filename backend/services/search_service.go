@@ -57,6 +57,9 @@ func (s *SearchService) GlobalSearch(query string, userRole string) ([]models.Se
 				})
 			}
 		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// 2. Search Prescriptions (Available to all roles)
@@ -80,6 +83,9 @@ func (s *SearchService) GlobalSearch(query string, userRole string) ([]models.Se
 					TargetView: "prescriptions",
 				})
 			}
+		}
+		if err := rxRows.Err(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -106,6 +112,9 @@ func (s *SearchService) GlobalSearch(query string, userRole string) ([]models.Se
 				})
 			}
 		}
+		if err := saleRows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	// 4. Search Suppliers (Admin only)
@@ -130,6 +139,9 @@ func (s *SearchService) GlobalSearch(query string, userRole string) ([]models.Se
 						TargetView: "suppliers",
 					})
 				}
+			}
+			if err := supRows.Err(); err != nil {
+				return nil, err
 			}
 		}
 	}

@@ -223,6 +223,11 @@ func (s *MedicineService) ListMedicines(search, category string, includeArchived
 		}
 		medicines = append(medicines, m)
 	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return medicines, nil
 }
 
@@ -290,6 +295,10 @@ func (s *MedicineService) ListMedicinesPaginated(search, category string, includ
 			m.SupplierName = supName.String
 		}
 		medicines = append(medicines, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return &models.PaginatedMedicines{
