@@ -64,13 +64,32 @@ export const IdleTimer: React.FC<IdleTimerProps> = ({
         backgroundColor: 'var(--color-warning-bg, #fff3cd)',
         borderBottom: '1px solid var(--color-warning-border, #ffc107)',
         color: 'var(--color-warning-text, #856404)',
-        padding: '6px 16px',
-        fontSize: '12px',
+        padding: '8px 16px',
+        fontSize: '13px',
         fontWeight: 600,
         textAlign: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px'
       }}
     >
-      Session expires in {remaining} second{remaining !== 1 ? 's' : ''} due to inactivity
+      <span>Session expires in {remaining} second{remaining !== 1 ? 's' : ''} due to inactivity.</span>
+      <button
+        onClick={resetTimer}
+        style={{
+          padding: '3px 10px',
+          fontSize: '12px',
+          fontWeight: 700,
+          borderRadius: '6px',
+          border: 'none',
+          background: 'var(--blue)',
+          color: '#fff',
+          cursor: 'pointer'
+        }}
+      >
+        Stay Logged In
+      </button>
     </div>
   );
 };

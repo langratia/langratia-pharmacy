@@ -31,6 +31,15 @@ type SalesService struct {
 	batchService *BatchService
 }
 
+func NewSalesService(database *db.DB, batchService *BatchService) *SalesService {
+	svc := &SalesService{db: database, batchService: batchService}
+	// Seed the invoice counter from the current sale count so restarts don't reset to 0
+	var count int64
+	_ = database.QueryRow(`SELECT COUNT(*) FROM sales`).Scan(&count)
+	atomic.StoreInt64(&invoiceSeq, count)
+	return svc
+}
+
 
 type CartItemInput struct {
 	MedicineID     int64   `json:"medicine_id"`
@@ -39,9 +48,7 @@ type CartItemInput struct {
 	PrescriptionID *int64  `json:"prescription_id,omitempty"`
 }
 
-func NewSalesService(database *db.DB, batchService *BatchService) *SalesService {
-	return &SalesService{db: database, batchService: batchService}
-}
+
 
 // ProcessSale completes a POS transaction by deducting stock via FEFO and creating a sale invoice.
 func (s *SalesService) ProcessSale(userID int64, username string, items []CartItemInput, paymentMethod string, discountAmount float64, discountType string, shiftID *int64) (*models.Sale, error) {
@@ -166,7 +173,7 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 		return nil, err
 	}
 
-	s.logAction(userID, username, "POS_SALE", fmt.Sprintf("Completed sale %s for UGX %.2f", invoiceNumber, netAmount))
+	s.logAction(userID, username, "POS_SALE", fmt.Sprintf("Completed sale %s for %.2f", invoiceNumber, netAmount))
 
 	return &models.Sale{
 		ID:             saleID,
@@ -271,9 +278,6 @@ func (s *SalesService) GetCashierPerformance(userID int64) (*CashierPerformance,
 }
 
 func (s *SalesService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }
 

@@ -316,10 +316,5 @@ func (p *PrescriptionService) UpdatePrescriptionStatus(userID int64, username st
 }
 
 func (p *PrescriptionService) logAction(userID int64, username, action, details string) {
-	if _, err := p.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	); err != nil {
-		fmt.Printf("WARNING: failed to write audit log: %v\n", err)
-	}
+	logAudit(p.db, userID, username, action, details)
 }

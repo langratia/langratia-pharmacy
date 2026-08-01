@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, UserRole } from '../types';
 
 async function getWorkstation(): Promise<string> {
   try {
@@ -24,36 +24,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Session-safe fields extracted from the backend User object for localStorage persistence.
+// Save minimal session ID to localStorage. Role is NEVER trusted from localStorage.
 interface SessionStore {
   id: number;
-  username: string;
-  role: string;
-  full_name: string;
 }
 
 function saveSession(user: User): void {
   const session: SessionStore = {
     id: user.id,
-    username: user.username,
-    role: user.role,
-    full_name: user.full_name,
   };
   localStorage.setItem('langratia_session', JSON.stringify(session));
 }
 
-function loadSession(): User | null {
+function loadSavedUserId(): number | null {
   const saved = localStorage.getItem('langratia_session');
   if (!saved) return null;
   try {
     const session: SessionStore = JSON.parse(saved);
-    return {
-      id: session.id,
-      username: session.username,
-      role: session.role as any,
-      full_name: session.full_name,
-      created_at: '',
-    };
+    return session.id || null;
   } catch {
     return null;
   }
@@ -64,9 +52,37 @@ function clearSession(): void {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => loadSession());
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Re-validate saved session with backend on startup
+  useEffect(() => {
+    const validateSavedSession = async () => {
+      const savedUserId = loadSavedUserId();
+      if (!savedUserId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const wailsApp = (window as any)?.go?.main?.App;
+        if (wailsApp && typeof wailsApp.ValidateSession === 'function') {
+          const validUser: User = await wailsApp.ValidateSession(savedUserId);
+          setUser(validUser);
+          saveSession(validUser);
+        } else {
+          clearSession();
+        }
+      } catch {
+        setUser(null);
+        clearSession();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    validateSavedSession();
+  }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
@@ -85,8 +101,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveSession(loggedUser);
       setIsLoading(false);
       return true;
-    } catch (err: any) {
-      setError(err?.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message || 'Login failed. Please check your credentials.';
+      setError(msg);
       setIsLoading(false);
       return false;
     }
@@ -104,27 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     clearSession();
   };
-
-  // Validate stored session with backend on startup
-  useEffect(() => {
-    const validateSavedSession = async () => {
-      const savedUser = loadSession();
-      if (!savedUser) return;
-
-      try {
-        const wailsApp = (window as any)?.go?.main?.App;
-        if (wailsApp && typeof wailsApp.ValidateSession === 'function') {
-          const validUser: User = await wailsApp.ValidateSession(savedUser.id);
-          setUser(validUser);
-          saveSession(validUser);
-        }
-      } catch {
-        setUser(null);
-        clearSession();
-      }
-    };
-    validateSavedSession();
-  }, []);
 
   // Clear session on visibility change (e.g., Windows lock screen, fast user switching)
   useEffect(() => {

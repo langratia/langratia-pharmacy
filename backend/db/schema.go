@@ -325,6 +325,23 @@ var Migrations = []Migration{
 			ALTER TABLE sales ADD COLUMN shift_id INTEGER REFERENCES shifts(id) ON DELETE SET NULL;
 		`,
 	},
+	{
+		Version:     9,
+		Description: "Add performance indexes on high-traffic query columns",
+		Script: `
+			CREATE INDEX IF NOT EXISTS idx_batches_medicine_expiry ON batches(medicine_id, expiry_date);
+			CREATE INDEX IF NOT EXISTS idx_batches_expiry ON batches(expiry_date);
+			CREATE INDEX IF NOT EXISTS idx_batches_qty ON batches(quantity_remaining);
+			CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(sale_date);
+			CREATE INDEX IF NOT EXISTS idx_sales_user ON sales(user_id, sale_date);
+			CREATE INDEX IF NOT EXISTS idx_sales_shift ON sales(shift_id);
+			CREATE INDEX IF NOT EXISTS idx_medicines_archived_cat ON medicines(is_archived, category);
+			CREATE INDEX IF NOT EXISTS idx_medicines_stock ON medicines(current_stock, reorder_level);
+			CREATE INDEX IF NOT EXISTS idx_audit_user_time ON audit_logs(user_id, timestamp);
+			CREATE INDEX IF NOT EXISTS idx_login_history_user ON login_history(user_id, created_at);
+			CREATE INDEX IF NOT EXISTS idx_prescriptions_status ON prescriptions(status, created_at);
+		`,
+	},
 }
 
 

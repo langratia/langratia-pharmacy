@@ -202,17 +202,37 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		}
 	}
 
-	// 10. 7-Day Sales Trend
-	for i := 6; i >= 0; i-- {
-		dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
-		var amt float64
-		if err := s.db.QueryRow(`SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date) = date(?)`, dStr).Scan(&amt); err != nil {
-			log.Printf("dashboard: failed to scan sales trend for %s: %v", dStr, err)
+	// 10. 7-Day Sales Trend — single query instead of 7 individual queries
+	trendRows, err := s.db.Query(`
+		SELECT date(sale_date, 'localtime') as day, COALESCE(SUM(total_amount), 0.0)
+		FROM sales
+		WHERE date(sale_date, 'localtime') >= date('now', '-6 days', 'localtime')
+		GROUP BY date(sale_date, 'localtime')
+		ORDER BY day ASC`)
+	if err == nil {
+		defer trendRows.Close()
+		// Build a map of existing data
+		trendMap := make(map[string]float64)
+		for trendRows.Next() {
+			var day string
+			var amt float64
+			if trendRows.Scan(&day, &amt) == nil {
+				trendMap[day] = amt
+			}
 		}
-		summary.SalesTrend = append(summary.SalesTrend, SalesTrendPoint{
-			Date:   dStr,
-			Amount: amt,
-		})
+		if err := trendRows.Err(); err != nil {
+			log.Printf("dashboard: error in sales trend iteration: %v", err)
+		}
+		// Fill in all 7 days (including 0 for missing days)
+		for i := 6; i >= 0; i-- {
+			dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+			summary.SalesTrend = append(summary.SalesTrend, SalesTrendPoint{
+				Date:   dStr,
+				Amount: trendMap[dStr],
+			})
+		}
+	} else {
+		log.Printf("dashboard: failed to query sales trend: %v", err)
 	}
 
 	return summary, nil
@@ -241,8 +261,12 @@ func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
 	// Total sales count
 	s.db.QueryRow(`SELECT COUNT(*) FROM sales`).Scan(&ss.TotalSales)
 
-	// By payment method (Cash standard)
-	rows, err := s.db.Query(`SELECT 'Cash' AS method, COUNT(*), COALESCE(SUM(total_amount),0.0) FROM sales`)
+	// By payment method — group by actual payment_method column
+	rows, err := s.db.Query(`
+		SELECT payment_method, COUNT(*), COALESCE(SUM(total_amount), 0.0)
+		FROM sales
+		GROUP BY payment_method
+		ORDER BY payment_method`)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {

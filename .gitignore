@@ -5,3 +5,4 @@ frontend/dist
 *.db-wal
 *.db-shm
 config.json
+dummy_medicines.csv

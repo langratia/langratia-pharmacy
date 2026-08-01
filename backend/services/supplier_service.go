@@ -122,8 +122,5 @@ func (s *SupplierService) ArchiveSupplier(id int64, archive bool, userID int64, 
 }
 
 func (s *SupplierService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }

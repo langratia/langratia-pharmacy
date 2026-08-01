@@ -22,7 +22,7 @@ func (db *DB) Unlock() { db.mu.Unlock() }
 func InitDB(dbPath string) (*DB, error) {
 	// Ensure directory exists
 	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create db directory: %w", err)
 	}
 

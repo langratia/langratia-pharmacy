@@ -31,10 +31,7 @@ func (s *AuthService) getConfig(key, fallback string) string {
 }
 
 func (s *AuthService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }
 
 // IsFirstTimeSetup checks if initial onboarding setup is required.
@@ -235,8 +232,8 @@ func (s *AuthService) ForceLogout(userID int64, adminID int64) error {
 	return nil
 }
 
-// CreateUser registers a new user.
-func (s *AuthService) CreateUser(username, password, role, fullName, phone, email, branch string) (*models.User, error) {
+// CreateUser registers a new user. adminID is the ID of the admin performing the action (for audit logging).
+func (s *AuthService) CreateUser(username, password, role, fullName, phone, email, branch string, adminID int64) (*models.User, error) {
 	if username == "" || password == "" || role == "" || fullName == "" {
 		return nil, errors.New("all required user fields must be filled")
 	}
@@ -260,6 +257,14 @@ func (s *AuthService) CreateUser(username, password, role, fullName, phone, emai
 	if err != nil {
 		return nil, err
 	}
+
+	// Audit log: look up admin's username for a readable log entry
+	var adminUsername string
+	_ = s.db.QueryRow("SELECT username FROM users WHERE id = ?", adminID).Scan(&adminUsername)
+	if adminUsername == "" {
+		adminUsername = "unknown-admin"
+	}
+	s.logAction(adminID, adminUsername, "CREATE_USER", fmt.Sprintf("Created new user '%s' with role '%s'", username, role))
 
 	return &models.User{
 		ID:       id,

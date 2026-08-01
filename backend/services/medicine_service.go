@@ -402,10 +402,7 @@ func (s *MedicineService) BulkImportMedicines(medicines []models.Medicine, userI
 }
 
 func (s *MedicineService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }
 
 // --- helpers ---

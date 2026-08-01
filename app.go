@@ -252,7 +252,14 @@ func (a *App) cleanupOldBackups(backupDir string, keepCount int) {
 		return
 	}
 
-	sort.Strings(backupFiles)
+	sort.Slice(backupFiles, func(i, j int) bool {
+		infoI, errI := os.Stat(backupFiles[i])
+		infoJ, errJ := os.Stat(backupFiles[j])
+		if errI != nil || errJ != nil {
+			return backupFiles[i] < backupFiles[j]
+		}
+		return infoI.ModTime().Before(infoJ.ModTime())
+	})
 
 	// Delete the oldest ones
 	for i := 0; i < len(backupFiles)-keepCount; i++ {
@@ -318,7 +325,7 @@ func (a *App) CreateUser(username, password, role, fullName, phone, email, branc
 	if err := a.requireAdmin(userID); err != nil {
 		return nil, err
 	}
-	return a.authService.CreateUser(username, password, role, fullName, phone, email, branch)
+	return a.authService.CreateUser(username, password, role, fullName, phone, email, branch, userID)
 }
 
 func (a *App) ListUsers(userID int64) ([]models.User, error) {
@@ -838,12 +845,22 @@ func (a *App) GetWorkstationName() string {
 	return hostname
 }
 
+func (a *App) isHostMode() bool {
+	configPath := filepath.Join(execDir, "config.json")
+	if _, err := os.Stat(configPath); err == nil {
+		if strings.HasPrefix(a.dbPath, "\\\\") || strings.HasPrefix(a.dbPath, "//") {
+			return false
+		}
+	}
+	if strings.HasPrefix(a.dbPath, "\\\\") || strings.HasPrefix(a.dbPath, "//") {
+		return false
+	}
+	return true
+}
+
 // Network Config API Bindings
 func (a *App) GetNetworkStatus() NetworkStatus {
-	isHost := true
-	if strings.HasPrefix(a.dbPath, "\\\\") || strings.HasPrefix(a.dbPath, "//") {
-		isHost = false
-	}
+	isHost := a.isHostMode()
 	return NetworkStatus{
 		IsHost: isHost,
 		DBPath: a.dbPath,
@@ -859,11 +876,7 @@ type ConnectionStatus struct {
 }
 
 func (a *App) GetDBConnectionStatus() ConnectionStatus {
-	isHost := true
-	if strings.HasPrefix(a.dbPath, "\\\\") || strings.HasPrefix(a.dbPath, "//") {
-		isHost = false
-	}
-
+	isHost := a.isHostMode()
 	isConnected := !a.dbConnectionFailed && a.database != nil
 
 	var friendlyMsg string
@@ -903,9 +916,6 @@ func (a *App) UpdateDatabaseConfig(newPath string) error {
 }
 
 // EnableMainServerMode automatically configures Windows to share the DB folder.
-// This will trigger a Windows UAC prompt for admin elevation.
-// The user must accept the UAC prompt for the operation to succeed.
-// Windows Firewall may also prompt to allow UDP port 45555 for LAN discovery.
 func (a *App) EnableMainServerMode(userID int64) error {
 	if err := a.requireAdmin(userID); err != nil {
 		return err
@@ -914,15 +924,18 @@ func (a *App) EnableMainServerMode(userID int64) error {
 		return fmt.Errorf("auto-sharing is only supported on Windows")
 	}
 
-	dbDir := filepath.Dir(a.dbPath)
+	dbDir, err := filepath.Abs(filepath.Dir(a.dbPath))
+	if err != nil || strings.Contains(dbDir, "\"") || strings.Contains(dbDir, "`") {
+		return fmt.Errorf("invalid or unsanitized database directory path")
+	}
 	shareName := "LangratiaData$"
 
 	logger.Info("Enabling main server mode: sharing %s as %s", dbDir, shareName)
 
-	// 'net share' command to create the hidden share
+	// Quote dbDir safely for cmd /c net share execution
 	cmdStr := fmt.Sprintf("net share %s=\"%s\" /grant:Everyone,FULL", shareName, dbDir)
 
-	cmd := exec.Command("powershell", "-Command", "Start-Process", "cmd", "-ArgumentList", fmt.Sprintf("'/c %s'", cmdStr), "-Verb", "RunAs", "-WindowStyle", "Hidden")
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", "Start-Process", "cmd", "-ArgumentList", fmt.Sprintf("'/c %s'", strings.ReplaceAll(cmdStr, "'", "''")), "-Verb", "RunAs", "-WindowStyle", "Hidden")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Error("Failed to enable main server mode: %v | Output: %s", err, string(output))

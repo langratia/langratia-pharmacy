@@ -17,7 +17,9 @@ import {
   Settings,
   Camera,
   User,
+  X,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { NavItemKey } from './Sidebar';
@@ -57,6 +59,16 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
   const [notifications, setNotifications] = useState<models.NotificationSummary | null>(null);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const [dismissedNotifIds, setDismissedNotifIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('dismissedNotifs');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+  const prevDangerIdsRef = useRef<Set<string>>(new Set());
 
   const [showProfileMenu, setShowProfileMenu] = useState<boolean>(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -161,6 +173,50 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
     return () => clearTimeout(timer);
   }, [searchQuery, user]);
 
+  const activeNotifications = React.useMemo(() => {
+    if (!notifications) return [];
+    return notifications.items
+      .filter(item => !dismissedNotifIds.has(item.id))
+      .sort((a, b) => {
+        if (a.severity === 'danger' && b.severity !== 'danger') return -1;
+        if (a.severity !== 'danger' && b.severity === 'danger') return 1;
+        return 0;
+      });
+  }, [notifications, dismissedNotifIds]);
+
+  useEffect(() => {
+    if (!activeNotifications.length) return;
+    const currentDangerIds = new Set(
+      activeNotifications.filter(n => n.severity === 'danger').map(n => n.id)
+    );
+    
+    // Check if there are NEW danger IDs
+    for (const id of currentDangerIds) {
+      if (!prevDangerIdsRef.current.has(id)) {
+        const notif = activeNotifications.find(n => n.id === id);
+        if (notif) {
+          toast.error(
+            <div>
+              <strong>{notif.title}</strong>
+              <div style={{ fontSize: '12px' }}>{notif.message}</div>
+            </div>,
+            { duration: 6000 }
+          );
+        }
+      }
+    }
+    
+    prevDangerIdsRef.current = currentDangerIds;
+  }, [activeNotifications]);
+
+  const handleDismissNotif = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const next = new Set(dismissedNotifIds);
+    next.add(id);
+    setDismissedNotifIds(next);
+    localStorage.setItem('dismissedNotifs', JSON.stringify(Array.from(next)));
+  };
+
   const handleSearchResultClick = (item: models.SearchResultItem) => {
     setShowSearchModal(false);
     setSearchQuery('');
@@ -182,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
   };
 
   const pageMeta = PAGE_META[activeView] ?? { title: 'Dashboard', subtitle: '' };
-  const hasNotifications = notifications && notifications.total_count > 0;
+  const hasNotifications = activeNotifications.length > 0;
 
   return (
     <>
@@ -381,13 +437,13 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                         borderRadius: '20px',
                       }}
                     >
-                      {notifications!.total_count} New
+                      {activeNotifications.length} New
                     </span>
                   )}
                 </div>
 
                 <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                  {!notifications || notifications.items.length === 0 ? (
+                  {!hasNotifications ? (
                     <div
                       style={{
                         padding: '24px',
@@ -399,7 +455,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                       No alerts pending.
                     </div>
                   ) : (
-                    notifications.items.map((item) => (
+                    activeNotifications.map((item) => (
                       <div
                         key={item.id}
                         onClick={() => {
@@ -423,7 +479,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                             : <Clock size={15} style={{ color: 'var(--yellow)' }} />
                           }
                         </div>
-                        <div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
                             {item.title}
                           </div>
@@ -431,6 +487,19 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                             {item.message}
                           </div>
                         </div>
+                        <button
+                          onClick={(e) => handleDismissNotif(e, item.id)}
+                          className="win-btn"
+                          title="Dismiss Alert"
+                          style={{
+                            width: '24px', height: '24px', padding: 0, display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', flexShrink: 0, opacity: 0.5
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '0.5'}
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     ))
                   )}

@@ -108,7 +108,7 @@ func (s *PurchaseService) RecordPurchase(invoiceNumber string, supplierID *int64
 		return nil, err
 	}
 
-	s.logAction(userID, username, "RECORD_PURCHASE", fmt.Sprintf("Recorded stock purchase invoice %s (Total: UGX %.2f)", invoiceNumber, totalAmount))
+	s.logAction(userID, username, "RECORD_PURCHASE", fmt.Sprintf("Recorded stock purchase invoice %s (Total: %.2f)", invoiceNumber, totalAmount))
 
 	return &models.Purchase{
 		ID:            purchaseID,
@@ -246,8 +246,5 @@ func (s *PurchaseService) ListPurchaseItems(purchaseID int64) ([]models.Purchase
 }
 
 func (s *PurchaseService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }

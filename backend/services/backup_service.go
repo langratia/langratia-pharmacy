@@ -124,23 +124,29 @@ func (s *BackupService) RestoreDatabase(sourceBackupPath string, userID int64, u
 		return fmt.Errorf("failed to re-open restored database: %w", err)
 	}
 
-	// Re-enable WAL & Foreign Keys on the new connection
-	if _, err := newSqlDB.Exec("PRAGMA journal_mode = WAL;"); err != nil {
-		newSqlDB.Close()
-		return fmt.Errorf("failed to set WAL mode on restored db: %w", err)
+	// Re-enable all PRAGMAs that InitDB sets on a fresh connection
+	pragmas := []string{
+		"PRAGMA journal_mode = WAL;",
+		"PRAGMA synchronous = NORMAL;",
+		"PRAGMA temp_store = MEMORY;",
+		"PRAGMA cache_size = -64000;",
+		"PRAGMA foreign_keys = ON;",
+		"PRAGMA busy_timeout = 5000;",
 	}
-	if _, err := newSqlDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		newSqlDB.Close()
-		return fmt.Errorf("failed to enable foreign keys on restored db: %w", err)
+	for _, p := range pragmas {
+		if _, err := newSqlDB.Exec(p); err != nil {
+			newSqlDB.Close()
+			return fmt.Errorf("failed to set PRAGMA on restored db (%s): %w", p, err)
+		}
 	}
 
-	// 6. Atomically swap the underlying *sql.DB — new queries go to the new DB
-	oldDB := s.db.DB
+	// Re-apply connection pool limits
+	newSqlDB.SetMaxOpenConns(10)
+	newSqlDB.SetMaxIdleConns(5)
+
+	// 6. Atomically swap the underlying *sql.DB — all services share the *db.DB pointer
+	//    so this swap is immediately visible to every service.
 	s.db.DB = newSqlDB
-
-	// 7. Close the old connection pool outside the critical section
-	//    (oldDB is no longer referenced by anyone after the swap)
-	go oldDB.Close()
 
 	s.logAction(userID, username, "DATABASE_RESTORE", fmt.Sprintf("Restored database from %s", sourceBackupPath))
 	return nil
@@ -186,8 +192,5 @@ func (s *BackupService) ListAuditLogs(limit int) ([]models.AuditLog, error) {
 }
 
 func (s *BackupService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }

@@ -218,15 +218,29 @@ func (s *BatchService) AdjustStock(medicineID int64, batchID *int64, userID int6
 
 	// If batchID specified, adjust batch stock directly
 	if batchID != nil && *batchID > 0 {
+		// Guard: ensure adjustment won't produce negative stock
+		var currentQty int
+		if qErr := tx.QueryRow(`SELECT quantity_remaining FROM batches WHERE id = ?`, *batchID).Scan(&currentQty); qErr == nil {
+			if currentQty+qtyAdjusted < 0 {
+				return fmt.Errorf("adjustment of %d would result in negative stock (current: %d)", qtyAdjusted, currentQty)
+			}
+		}
 		_, err := tx.Exec(`UPDATE batches SET quantity_remaining = quantity_remaining + ? WHERE id = ?`, qtyAdjusted, *batchID)
 		if err != nil {
 			return fmt.Errorf("failed to update batch stock: %w", err)
 		}
 	} else {
-		// If no batch is specified, adjust batch stock on the most recent batch or create/update active batch
+		// If no batch is specified, adjust stock on the most recent batch
 		var latestBatchID int64
 		err := tx.QueryRow(`SELECT id FROM batches WHERE medicine_id = ? ORDER BY expiry_date DESC LIMIT 1`, medicineID).Scan(&latestBatchID)
 		if err == nil {
+			// Guard: ensure adjustment won't produce negative stock
+			var currentQty int
+			if qErr := tx.QueryRow(`SELECT quantity_remaining FROM batches WHERE id = ?`, latestBatchID).Scan(&currentQty); qErr == nil {
+				if currentQty+qtyAdjusted < 0 {
+					return fmt.Errorf("adjustment of %d would result in negative stock (current: %d)", qtyAdjusted, currentQty)
+				}
+			}
 			_, err = tx.Exec(`UPDATE batches SET quantity_remaining = quantity_remaining + ? WHERE id = ?`, qtyAdjusted, latestBatchID)
 			if err != nil {
 				return fmt.Errorf("failed to update batch stock: %w", err)
@@ -327,8 +341,5 @@ func (s *BatchService) updateMedicineStockTx(tx *sql.Tx, medicineID int64) error
 }
 
 func (s *BatchService) logAction(userID int64, username, action, details string) {
-	_, _ = s.db.Exec(
-		`INSERT INTO audit_logs (user_id, username, action, details) VALUES (?, ?, ?, ?)`,
-		userID, username, action, details,
-	)
+	logAudit(s.db, userID, username, action, details)
 }

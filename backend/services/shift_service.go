@@ -84,10 +84,11 @@ func (s *ShiftService) OpenShift(userID int64, username string, openingCash floa
 }
 
 // updateShiftTotals recalculates total sales count and cash totals for an open shift.
+// ExpectedCash only counts Cash payment sales, since Mobile Money doesn't go into the physical till.
 func (s *ShiftService) updateShiftTotals(shift *models.Shift) {
 	query := `
-		SELECT 
-			COALESCE(SUM(total_amount), 0) as cash_sum,
+		SELECT
+			COALESCE(SUM(CASE WHEN payment_method = 'Cash' THEN total_amount ELSE 0 END), 0) as cash_sum,
 			COUNT(id) as sales_count,
 			COALESCE(SUM(total_amount), 0) as gross_total
 		FROM sales
@@ -100,6 +101,7 @@ func (s *ShiftService) updateShiftTotals(shift *models.Shift) {
 	if err == nil {
 		shift.TotalSalesCount = count
 		shift.TotalSalesAmount = grossTotal
+		// ExpectedCash = opening float + only the cash sales received
 		shift.ExpectedCash = shift.OpeningCash + cashSum
 	}
 }
@@ -181,24 +183,26 @@ func (s *ShiftService) GetShiftZReport(shiftID int64) (*models.ShiftZReport, err
 		shift.EndedAt = &endedAt.Time
 	}
 
-	var cashSales, totalDiscounts float64
+	var cashSales, mobileMoneySales, totalDiscounts float64
 	query := `
-		SELECT 
-			COALESCE(SUM(total_amount), 0),
+		SELECT
+			COALESCE(SUM(CASE WHEN payment_method = 'Cash' THEN total_amount ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN payment_method != 'Cash' THEN total_amount ELSE 0 END), 0),
 			COALESCE(SUM(discount_amount), 0)
 		FROM sales
 		WHERE shift_id = ?
 	`
-	_ = s.db.QueryRow(query, shiftID).Scan(&cashSales, &totalDiscounts)
+	_ = s.db.QueryRow(query, shiftID).Scan(&cashSales, &mobileMoneySales, &totalDiscounts)
 
+	grossSales := cashSales + mobileMoneySales
 	expectedDrawer := shift.OpeningCash + cashSales
 
 	return &models.ShiftZReport{
 		Shift:           shift,
 		CashSalesTotal:  cashSales,
-		GrossSalesTotal: cashSales + totalDiscounts,
+		GrossSalesTotal: grossSales,
 		TotalDiscounts:  totalDiscounts,
-		NetSalesTotal:   cashSales,
+		NetSalesTotal:   grossSales,
 		ExpectedDrawer:  expectedDrawer,
 		ActualDrawer:    shift.ActualCash,
 		CashVariance:    shift.CashVariance,
