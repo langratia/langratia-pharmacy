@@ -10,6 +10,12 @@
     "name": "allaninfo-comp",
     "email": "allan.info.comp@gmail.com"
   },
+  "info": {
+    "companyName": "Langratia Systems",
+    "productName": "Langratia Pharmacy POS",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright 2026 Langratia Systems"
+  },
   "windows": {
     "webview2": "download",
     "nsis": {
