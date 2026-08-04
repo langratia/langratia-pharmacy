@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 import { GetDashboardSummary, GetSalesSummary } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 import { NavItemKey } from '../../components/layout/Sidebar';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 interface DashboardPageProps {
   onSelectView?: (view: NavItemKey, filter?: string) => void;
@@ -267,6 +268,75 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── ROW: Advanced Analytics (Recharts) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
+        {/* Sales Trend Chart */}
+        <div style={C({ display: 'flex', flexDirection: 'column', minHeight: '300px' })}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginBottom: '16px' }}>7-Day Revenue Trend</div>
+          <div style={{ flex: 1, width: '100%' }}>
+            {loading ? <Skeleton h={240} /> : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={summary.sales_trend || []} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="var(--muted)" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={(val) => {
+                      const d = new Date(val);
+                      return d.toLocaleDateString(undefined, { weekday: 'short' });
+                    }} 
+                  />
+                  <YAxis 
+                    stroke="var(--muted)" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(val) => `UGX ${(val/1000)}k`} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--line)', borderRadius: '8px', boxShadow: 'var(--shadow)', fontSize: '12px' }}
+                    itemStyle={{ color: 'var(--blue)', fontWeight: 700 }}
+                    formatter={(value: any) => [`UGX ${formatCurrency(value)}`, 'Revenue']}
+                    labelStyle={{ color: 'var(--muted)', marginBottom: '4px' }}
+                  />
+                  <Line type="monotone" dataKey="amount" stroke="var(--blue)" strokeWidth={3} dot={{ r: 4, fill: 'var(--surface)', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Top Products Bar Chart */}
+        <div style={C({ display: 'flex', flexDirection: 'column', minHeight: '300px' })}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginBottom: '16px' }}>Top Selling Products</div>
+          <div style={{ flex: 1, width: '100%' }}>
+            {loading ? <Skeleton h={240} /> : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={(salesSummary?.top_products || []).slice(0, 5)} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="medicine_name" type="category" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} width={100} tickFormatter={(val) => val.length > 12 ? val.substring(0, 12) + '...' : val} />
+                  <Tooltip 
+                    cursor={{ fill: 'var(--surface-soft)' }}
+                    contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--line)', borderRadius: '8px', boxShadow: 'var(--shadow)', fontSize: '12px' }}
+                    itemStyle={{ color: '#10b981', fontWeight: 700 }}
+                    formatter={(value: any) => [value, 'Qty Sold']}
+                  />
+                  <Bar dataKey="quantity_sold" radius={[0, 4, 4, 0]}>
+                    {((salesSummary?.top_products || []).slice(0, 5)).map((_: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={['#006FEE', '#06B6D4', '#10B981', '#F5A524', '#F31260'][index % 5]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── ROW 3: Activity feed (60%) + Alerts panel (40%) ── */}
