@@ -1,3 +1,20 @@
+export namespace db {
+	
+	export class DB {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new DB(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
+
+}
+
 export namespace main {
 	
 	export class ConnectionStatus {

@@ -250,6 +250,14 @@ export function RestoreDatabase(arg1, arg2, arg3) {
   return window['go']['main']['App']['RestoreDatabase'](arg1, arg2, arg3);
 }
 
+export function SetAPIURLForTest(arg1) {
+  return window['go']['main']['App']['SetAPIURLForTest'](arg1);
+}
+
+export function SetDatabaseForTest(arg1) {
+  return window['go']['main']['App']['SetDatabaseForTest'](arg1);
+}
+
 export function SetRolePermissions(arg1, arg2, arg3) {
   return window['go']['main']['App']['SetRolePermissions'](arg1, arg2, arg3);
 }

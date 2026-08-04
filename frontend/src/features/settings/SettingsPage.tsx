@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2, BarChart2, Trash2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -407,12 +408,13 @@ export const SettingsPage: React.FC = () => {
   const handleEnableHost = async () => {
     if (!user) return;
     setIsEnablingHost(true);
-    const loadingToast = toast.loading('Configuring Main Server mode...');
     try {
+      // Add slight delay for the animation to feel deliberate
+      await new Promise(r => setTimeout(r, 1200));
       await EnableMainServerMode(user.id);
-      toast.success('Main Server mode enabled! Visible to Cashier PCs.', { id: loadingToast, duration: 6000 });
+      toast.success('Main Server mode enabled! Visible to Cashier PCs.', { duration: 6000, position: 'top-center' });
     } catch (err: any) {
-      toast.error(err.message || 'Failed to enable Main Server mode.', { id: loadingToast });
+      toast.error(err.message || 'Failed to enable Main Server mode.', { position: 'top-center' });
     } finally {
       setIsEnablingHost(false);
     }
@@ -688,8 +690,68 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}>
+      <AnimatePresence>
+        {isEnablingHost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0, 0, 0, 0.4)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--line-strong)',
+                borderRadius: 'var(--r2)',
+                padding: '40px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '24px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                maxWidth: '400px',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ position: 'relative', width: '64px', height: '64px' }}>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  style={{
+                    width: '64px', height: '64px', borderRadius: '50%',
+                    border: '3px solid var(--line)',
+                    borderTopColor: 'var(--blue)', borderRightColor: 'var(--blue)',
+                    position: 'absolute', top: 0, left: 0
+                  }}
+                />
+                <Network size={24} color="var(--blue)" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--ink)' }}>Configuring Main Server</h3>
+                <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'var(--muted)', lineHeight: 1.5 }}>
+                  Setting up local network endpoints and applying firewall rules. This ensures Cashier PCs can connect securely.
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Navigation Categories Header Strip — STICKY PINNED TOP */}
       <div style={{ display: 'flex', gap: '8px', padding: '4px', background: 'var(--surface-soft)', borderRadius: 'var(--r2)', border: '1px solid var(--line)', flexShrink: 0 }}>
         {navTabBtn('users', 'User Accounts', <Users size={15} />)}

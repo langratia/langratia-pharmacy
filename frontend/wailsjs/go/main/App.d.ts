@@ -3,6 +3,7 @@
 import {models} from '../models';
 import {services} from '../models';
 import {main} from '../models';
+import {db} from '../models';
 
 export function AddBatch(arg1:models.Batch,arg2:number,arg3:string):Promise<models.Batch>;
 
@@ -127,6 +128,10 @@ export function RecordPurchase(arg1:string,arg2:any,arg3:Array<services.Incoming
 export function ResetAndSeedDatabase(arg1:number):Promise<void>;
 
 export function RestoreDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;
+
+export function SetAPIURLForTest(arg1:string):Promise<void>;
+
+export function SetDatabaseForTest(arg1:db.DB):Promise<void>;
 
 export function SetRolePermissions(arg1:string,arg2:Array<string>,arg3:number):Promise<void>;
 
