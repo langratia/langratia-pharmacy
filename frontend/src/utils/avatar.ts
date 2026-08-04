@@ -1,4 +1,4 @@
-const COLORS = ['#047857', '#2563EB', '#7C3AED', '#B91C1C', '#B45309', '#0D9488', '#BE123C', '#4F46E5', '#15803D', '#A21CAF'];
+const COLORS = ['#174B37', '#0F3526', '#15803D', '#047857', '#059669', '#20543C', '#2ECC71'];
 
 const hashString = (s: string): number => {
   let hash = 0;

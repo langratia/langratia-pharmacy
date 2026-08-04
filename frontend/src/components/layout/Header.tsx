@@ -347,15 +347,15 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
               alignItems: 'center',
               gap: '6px',
               padding: '5px 14px',
-              background: 'rgba(18, 108, 255, 0.08)',
-              border: '1px solid rgba(18, 108, 255, 0.25)',
-              borderRadius: '20px',
+              background: 'var(--color-success-bg)',
+              border: '1px solid var(--color-success-border)',
+              borderRadius: '9999px',
               fontSize: '13px',
               fontWeight: 700,
-              color: 'var(--blue)',
+              color: 'var(--green)',
             }}
           >
-            <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)' }}>Today</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Today</span>
             <span>{formatCurrency(todaySales)}</span>
           </div>
 
@@ -519,7 +519,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                 gap: '10px',
                 padding: '6px 12px 6px 6px',
                 background: showProfileMenu ? 'var(--overlay-active)' : 'var(--overlay-hover)',
-                border: showProfileMenu ? '1px solid var(--blue)' : '1px solid var(--line)',
+                border: showProfileMenu ? '1px solid var(--brand-primary)' : '1px solid var(--line)',
                 borderRadius: '9999px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
@@ -549,7 +549,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                     width: '26px',
                     height: '26px',
                     borderRadius: '50%',
-                    background: 'var(--blue)',
+                    background: 'var(--brand-primary)',
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
@@ -599,7 +599,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
               >
                 {/* User Info Header */}
                 <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--line)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--blue)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--brand-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
                     {(user?.username?.[0] || 'U').toUpperCase()}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>

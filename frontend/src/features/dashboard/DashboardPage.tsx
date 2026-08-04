@@ -186,18 +186,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       {/* ── ROW 1: Revenue tiles with dotted trend graphs ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
 
-        {/* Today's Revenue */}
-        <div style={C({ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' })}>
+        {/* Today's Revenue (Hero Card inspired by BARONT reference) */}
+        <div style={C({
+          background: 'var(--brand-primary)',
+          color: '#FFFFFF',
+          border: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          boxShadow: '0 8px 24px rgba(23, 75, 55, 0.25)',
+        })}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>Today's Revenue</div>
-              <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: 'var(--blue)', letterSpacing: '-0.8px', lineHeight: 1 }}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255, 255, 255, 0.7)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>Today's Revenue</div>
+              <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.8px', lineHeight: 1 }}>
                 {loading ? '—' : `UGX ${formatCurrency(summary.sales_today || 0)}`}
               </div>
             </div>
-            <TileTrendGraph data={summary.sales_trend || []} color="var(--blue)" />
+            <TileTrendGraph data={summary.sales_trend || []} color="#2ECC71" />
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>POS Terminal Sales</div>
+          <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.7)', marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.15)', fontSize: '10px', fontWeight: 700, color: '#2ECC71' }}>↑ POS Sales</span>
+          </div>
         </div>
 
         {/* This Week */}
@@ -205,11 +215,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>This Week</div>
-              <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: '#06b6d4', letterSpacing: '-0.8px', lineHeight: 1 }}>
+              <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.8px', lineHeight: 1 }}>
                 {loading ? '—' : `UGX ${formatCurrency(salesSummary.week_total || 0)}`}
               </div>
             </div>
-            <TileTrendGraph data={summary.sales_trend || []} color="#06b6d4" />
+            <TileTrendGraph data={summary.sales_trend || []} color="var(--brand-primary)" />
           </div>
           <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>Last 7 days</div>
         </div>
@@ -219,11 +229,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>This Month</div>
-              <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: '#10b981', letterSpacing: '-0.8px', lineHeight: 1 }}>
+              <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.8px', lineHeight: 1 }}>
                 {loading ? '—' : `UGX ${formatCurrency(salesSummary.month_total || 0)}`}
               </div>
             </div>
-            <TileTrendGraph data={summary.sales_trend || []} color="#10b981" />
+            <TileTrendGraph data={summary.sales_trend || []} color="var(--brand-primary)" />
           </div>
           <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '12px' }}>{new Date().toLocaleString('default', { month: 'long' })}</div>
         </div>

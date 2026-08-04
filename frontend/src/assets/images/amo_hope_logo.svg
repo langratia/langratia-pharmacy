@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <style>
+      .brand-green { fill: #174B37; }
+      .light-green { fill: #2ECC71; stroke: #174B37; }
+    </style>
+  </defs>
+
+  <!-- Hexagon Outer Border -->
+  <polygon points="200,30 330,105 330,255 200,330 70,255 70,105" fill="none" stroke="#174B37" stroke-width="12" stroke-linejoin="round"/>
+  <polygon points="200,44 318,112 318,248 200,316 82,248 82,112" fill="none" stroke="#2ECC71" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Cross Icon -->
+  <path d="M 180 75 H 220 V 105 H 250 V 145 H 220 V 175 H 180 V 145 H 150 V 105 H 180 Z" fill="#174B37" />
+
+  <!-- Mortar & Pestle -->
+  <path d="M 150 185 Q 200 170 250 185 L 235 240 Q 200 260 165 240 Z" fill="#174B37" />
+  <path d="M 215 160 L 245 130 Q 252 137 245 145 L 220 170 Z" fill="#174B37" />
+  <ellipse cx="200" cy="255" rx="35" ry="6" fill="#174B37" />
+
+  <!-- Laurel Leaves (Left) -->
+  <path d="M 45 130 Q 60 145 60 160 Q 45 150 45 130 Z" fill="#2ECC71" />
+  <path d="M 35 165 Q 52 180 52 195 Q 35 185 35 165 Z" fill="#2ECC71" />
+  <path d="M 35 200 Q 55 215 55 230 Q 35 220 35 200 Z" fill="#2ECC71" />
+  <path d="M 45 235 Q 65 250 65 265 Q 45 255 45 235 Z" fill="#2ECC71" />
+
+  <!-- Laurel Leaves (Right) -->
+  <path d="M 355 130 Q 340 145 340 160 Q 355 150 355 130 Z" fill="#2ECC71" />
+  <path d="M 365 165 Q 348 180 348 195 Q 365 185 365 165 Z" fill="#2ECC71" />
+  <path d="M 365 200 Q 345 215 345 230 Q 365 220 365 200 Z" fill="#2ECC71" />
+  <path d="M 355 235 Q 335 250 335 265 Q 355 255 355 235 Z" fill="#2ECC71" />
+
+  <!-- Text -->
+  <text x="200" y="365" font-family="'Inter', sans-serif" font-weight="900" font-size="28" fill="#174B37" text-anchor="middle" letter-spacing="1">A.M.O HOPE</text>
+  <text x="200" y="395" font-family="'Inter', sans-serif" font-weight="900" font-size="26" fill="#174B37" text-anchor="middle" letter-spacing="2">PHARMACY</text>
+</svg>

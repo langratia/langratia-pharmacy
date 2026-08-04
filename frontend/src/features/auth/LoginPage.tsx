@@ -9,9 +9,9 @@ import { IsFirstTimeSetup, CompleteFirstTimeSetup, UpdateDatabaseConfig, AutoDis
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '11px 14px 11px 42px',
-  background: 'var(--surface-soft)',
+  background: 'var(--color-bg-input)',
   border: '1px solid var(--line)',
-  borderRadius: '8px',
+  borderRadius: '12px',
   fontSize: '14px',
   color: 'var(--ink)',
   outline: 'none',
