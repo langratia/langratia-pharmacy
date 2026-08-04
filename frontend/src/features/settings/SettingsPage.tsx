@@ -6,7 +6,7 @@ import {
   AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo,
   ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions,
   SetRolePermissions, GetAllPermissionDefs, DeactivateUser, GetCashierPerformance,
-  GetNetworkStatus, UpdateDatabaseConfig, GetDBConnectionStatus, GetWorkstationName
+  GetNetworkStatus, UpdateDatabaseConfig, GetDBConnectionStatus, GetWorkstationName, GetLocalIP
 } from '../../../wailsjs/go/main/App';
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
@@ -176,6 +176,7 @@ export const SettingsPage: React.FC = () => {
   const [manualPath, setManualPath] = useState('');
   const [isSavingPath, setIsSavingPath] = useState(false);
   const [computerName, setComputerName] = useState('unknown');
+  const [localIP, setLocalIP] = useState('127.0.0.1');
 
   // Performance View State
   const [selectedUserPerf, setSelectedUserPerf] = useState<services.CashierPerformance | null>(null);
@@ -217,13 +218,15 @@ export const SettingsPage: React.FC = () => {
 
   const fetchNetworkStatus = async () => {
     try {
-      const [status, name] = await Promise.all([
+      const [status, name, ip] = await Promise.all([
         GetDBConnectionStatus(),
-        GetWorkstationName()
+        GetWorkstationName(),
+        GetLocalIP()
       ]);
       setDbStatus(status);
       setManualPath(status.configured_path);
       setComputerName(name);
+      setLocalIP(ip);
     } catch (err: any) {
       toast.error('Failed to load network status');
     }
@@ -907,11 +910,15 @@ export const SettingsPage: React.FC = () => {
                   fontSize: '12px'
                 }}>
                   <div>
-                    <span style={{ color: 'var(--muted)' }}>This PC's Network Hostname:</span>{' '}
-                    <strong style={{ color: 'var(--ink)', fontSize: '13px', fontFamily: 'monospace' }}>{computerName}</strong>
+                    <span style={{ color: 'var(--muted)' }}>This PC's Network IP:</span>{' '}
+                    <strong style={{ color: 'var(--ink)', fontSize: '13px', fontFamily: 'monospace' }}>
+                      {dbStatus?.is_host ? localIP : 'N/A (Not Host)'}
+                    </strong>
+                    <br />
+                    <span style={{ color: 'var(--muted)', fontSize: '11px' }}>Hostname: {computerName}</span>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                    Use this name to configure other terminals on the LAN.
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', maxWidth: '40%', textAlign: 'right' }}>
+                    If this PC is the Main Server, Cashier Terminals must use this IP address to connect.
                   </div>
                 </div>
 
@@ -953,16 +960,16 @@ export const SettingsPage: React.FC = () => {
                   gap: '14px'
                 }}>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Edit3 size={16} style={{ color: 'var(--blue)' }} /> Manual Database Path Override
+                    <Edit3 size={16} style={{ color: 'var(--blue)' }} /> Manual Server IP Override
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
-                    In case automatic discovery fails, enter the network database UNC share path manually (e.g. <code>\\MAIN-PC-NAME\LangratiaData$\pharmacy.db</code>).
+                    In case automatic discovery fails, enter the Main Server's API URL manually (e.g. <code>http://192.168.1.50:45556</code>).
                   </p>
 
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
-                      placeholder="e.g. \\DESKTOP-HOST-NAME\LangratiaData$\pharmacy.db"
+                      placeholder="e.g. http://192.168.1.50:45556"
                       value={manualPath}
                       onChange={(e) => setManualPath(e.target.value)}
                       style={inputStyle}

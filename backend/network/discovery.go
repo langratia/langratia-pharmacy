@@ -17,8 +17,8 @@ const (
 )
 
 // StartServerListener starts a UDP listener on the specified port.
-// When it receives a MagicRequest, it replies with the server's hostname and the shared folder name.
-func StartServerListener(shareName string) {
+// When it receives a MagicRequest, it replies with the server's hostname and API URL.
+func StartServerListener() {
 	addr := net.UDPAddr{
 		Port: DiscoveryPort,
 		IP:   net.ParseIP("0.0.0.0"),
@@ -52,9 +52,21 @@ func StartServerListener(shareName string) {
 				hostname = "UNKNOWN_HOST"
 			}
 			
-			// Format: LANGRATIA_SERVER|HOSTNAME|SHARE_NAME
-			response := fmt.Sprintf("%s|%s|%s", MagicResponse, hostname, shareName)
-			_, err := conn.WriteToUDP([]byte(response), remoteAddr)
+			// Find the primary local IP address to construct the API URL
+			localIP := "127.0.0.1"
+			addrs, err := net.InterfaceAddrs()
+			if err == nil {
+				for _, address := range addrs {
+					if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+						localIP = ipnet.IP.String()
+						break
+					}
+				}
+			}
+
+			// Format: LANGRATIA_SERVER|HOSTNAME|http://IP:45556
+			response := fmt.Sprintf("%s|%s|http://%s:45556", MagicResponse, hostname, localIP)
+			_, err = conn.WriteToUDP([]byte(response), remoteAddr)
 			if err != nil {
 				logger.Error("Failed to send UDP response to %v: %v", remoteAddr, err)
 			}
@@ -63,7 +75,7 @@ func StartServerListener(shareName string) {
 }
 
 // DiscoverServer broadcasts a UDP request to the local network and waits for a response.
-// Returns the constructed remote database path (e.g., "\\HOSTNAME\ShareName\pharmacy.db") or empty string if not found.
+// Returns the constructed API URL (e.g., "http://192.168.1.50:45556") or empty string if not found.
 func DiscoverServer() (string, error) {
 	// Enable SO_BROADCAST on the connection
 	addr := net.UDPAddr{
@@ -96,12 +108,8 @@ func DiscoverServer() (string, error) {
 	parts := strings.Split(msg, "|")
 	
 	if len(parts) == 3 && parts[0] == MagicResponse {
-		hostname := parts[1]
-		shareName := parts[2]
-		
-		// Construct the UNC path for Windows SMB: \\HOSTNAME\ShareName\pharmacy.db
-		path := fmt.Sprintf("\\\\%s\\%s\\pharmacy.db", hostname, shareName)
-		return path, nil
+		apiUrl := parts[2]
+		return apiUrl, nil
 	}
 
 	return "", fmt.Errorf("received invalid response format from server")

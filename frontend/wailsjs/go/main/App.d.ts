@@ -58,6 +58,8 @@ export function GetDashboardSummary():Promise<services.DashboardSummary>;
 
 export function GetExpiringBatches(arg1:number):Promise<Array<models.Batch>>;
 
+export function GetLocalIP():Promise<string>;
+
 export function GetLoginHistory(arg1:number,arg2:number):Promise<Array<models.LoginHistory>>;
 
 export function GetNetworkStatus():Promise<main.NetworkStatus>;

@@ -110,6 +110,10 @@ export function GetExpiringBatches(arg1) {
   return window['go']['main']['App']['GetExpiringBatches'](arg1);
 }
 
+export function GetLocalIP() {
+  return window['go']['main']['App']['GetLocalIP']();
+}
+
 export function GetLoginHistory(arg1, arg2) {
   return window['go']['main']['App']['GetLoginHistory'](arg1, arg2);
 }

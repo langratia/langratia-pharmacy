@@ -13,34 +13,37 @@ import (
 	"strings"
 	"time"
 
+	"app/backend/api"
 	"app/backend/db"
 	"app/backend/logger"
 	"app/backend/models"
 	"app/backend/network"
 	"app/backend/services"
+	"net"
 )
 
 // App struct
 type App struct {
-	ctx                 context.Context
-	database            *db.DB
-	dbPath              string
-	dbConnectionFailed  bool
-	dbConnectionError   string
-	authService         *services.AuthService
-	medicineService     *services.MedicineService
-	batchService        *services.BatchService
-	supplierService     *services.SupplierService
-	purchaseService     *services.PurchaseService
-	salesService        *services.SalesService
-	reportService       *services.ReportService
-	backupService       *services.BackupService
-	prescriptionService *services.PrescriptionService
-	notificationService *services.NotificationService
-	searchService       *services.SearchService
-	permissionService   *services.PermissionService
-	configService       *services.ConfigService
-	shiftService        *services.ShiftService
+	ctx			context.Context
+	database		*db.DB
+	dbPath			string
+	dbConnectionFailed	bool
+	dbConnectionError	string
+	authService		*services.AuthService
+	medicineService		*services.MedicineService
+	batchService		*services.BatchService
+	supplierService		*services.SupplierService
+	purchaseService		*services.PurchaseService
+	salesService		*services.SalesService
+	reportService		*services.ReportService
+	backupService		*services.BackupService
+	prescriptionService	*services.PrescriptionService
+	notificationService	*services.NotificationService
+	searchService		*services.SearchService
+	permissionService	*services.PermissionService
+	configService		*services.ConfigService
+	shiftService		*services.ShiftService
+	apiURL			string
 }
 
 // Config represents the local application configuration
@@ -49,8 +52,8 @@ type Config struct {
 }
 
 type NetworkStatus struct {
-	IsHost bool   `json:"is_host"`
-	DBPath string `json:"db_path"`
+	IsHost	bool	`json:"is_host"`
+	DBPath	string	`json:"db_path"`
 }
 
 // NewApp creates a new App application struct
@@ -169,9 +172,16 @@ func (a *App) startup(ctx context.Context) {
 		a.configService = services.NewConfigService(a.database)
 		a.shiftService = services.NewShiftService(a.database)
 
-		// If running in Host mode, start UDP Discovery Listener
-		if customConfig.DBPath == "" {
-			go network.StartServerListener("LangratiaData$")
+		// Network / Proxy Initialization
+		if customConfig.DBPath != "" && strings.HasPrefix(customConfig.DBPath, "http://") {
+			// Client mode: set the API URL so proxies take over
+			a.apiURL = customConfig.DBPath
+			logger.Info("Starting in CLIENT mode connecting to API: %s", a.apiURL)
+		} else if customConfig.DBPath == "" {
+			// Host mode: Start the RPC Server to serve clients, and start UDP discovery
+			logger.Info("Starting in HOST mode")
+			go api.StartServer(a)
+			go network.StartServerListener()
 		}
 
 		// Start Automated Backup Scheduler
@@ -197,11 +207,11 @@ func (a *App) startBackupScheduler() {
 	go func() {
 		// Run a backup once on startup to ensure we always get a snapshot if the app is opened
 		a.performAutomatedBackup()
-		
+
 		// Then run every 12 hours
 		ticker := time.NewTicker(12 * time.Hour)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-a.ctx.Done():
@@ -272,7 +282,33 @@ func (a *App) cleanupOldBackups(backupDir string, keepCount int) {
 	}
 }
 
-// Auth API Bindings
+// SetDatabaseForTest allows injecting a mock or in-memory DB for testing.
+func (a *App) SetDatabaseForTest(database *db.DB) {
+	a.database = database
+	
+	// Re-initialize services with the new DB
+	a.authService = services.NewAuthService(database)
+	a.medicineService = services.NewMedicineService(database)
+	a.batchService = services.NewBatchService(database)
+	a.supplierService = services.NewSupplierService(database)
+	a.purchaseService = services.NewPurchaseService(database, a.batchService)
+	a.salesService = services.NewSalesService(database, a.batchService)
+	a.reportService = services.NewReportService(database)
+	a.backupService = services.NewBackupService(database, a.dbPath)
+	a.prescriptionService = services.NewPrescriptionService(database)
+	a.notificationService = services.NewNotificationService(database)
+	a.searchService = services.NewSearchService(database)
+	a.permissionService = services.NewPermissionService(database)
+	a.configService = services.NewConfigService(database)
+	a.shiftService = services.NewShiftService(database)
+}
+
+// SetAPIURLForTest allows forcing the App into client mode for testing.
+func (a *App) SetAPIURLForTest(url string) {
+	a.apiURL = url
+}
+
+// IsFirstTimeSetup checks if the admin user exists
 func (a *App) IsFirstTimeSetup() (bool, error) {
 	if a.authService == nil {
 		return false, fmt.Errorf("service not initialized")
@@ -288,6 +324,21 @@ func (a *App) CompleteFirstTimeSetup(pharmacyName, fullName, username, password 
 }
 
 func (a *App) Login(username, password, workstation string) (*models.User, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			User
+		err := api.
+			CallRPC(a.apiURL,
+				"Login",
+				&reply,
+				username,
+				password,
+
+				workstation)
+		return reply, err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -295,6 +346,14 @@ func (a *App) Login(username, password, workstation string) (*models.User, error
 }
 
 func (a *App) Logout(userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"Logout",
+			nil, userID,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -302,6 +361,20 @@ func (a *App) Logout(userID int64) error {
 }
 
 func (a *App) ValidateSession(userID int64) (*models.User, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			User
+		err := api.
+			CallRPC(a.apiURL,
+				"ValidateSession",
+
+				&reply,
+				userID)
+
+		return reply, err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -319,6 +392,22 @@ func (a *App) ValidateSession(userID int64) (*models.User, error) {
 }
 
 func (a *App) CreateUser(username, password, role, fullName, phone, email, branch string, userID int64) (*models.User, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			User
+		err := api.
+			CallRPC(a.apiURL,
+				"CreateUser",
+				&reply, username,
+				password,
+
+				role, fullName,
+				phone, email,
+				branch, userID)
+		return reply, err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -329,6 +418,18 @@ func (a *App) CreateUser(username, password, role, fullName, phone, email, branc
 }
 
 func (a *App) ListUsers(userID int64) ([]models.User, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			User
+		err :=
+			api.CallRPC(a.apiURL,
+				"ListUsers",
+				&reply, userID,
+			)
+		return reply, err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -339,6 +440,20 @@ func (a *App) ListUsers(userID int64) ([]models.User, error) {
 }
 
 func (a *App) GetUser(targetID int64, userID int64) (*models.User, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			User
+		err := api.
+			CallRPC(a.apiURL,
+				"GetUser",
+				&reply,
+				targetID,
+				userID,
+			)
+		return reply, err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -349,6 +464,19 @@ func (a *App) GetUser(targetID int64, userID int64) (*models.User, error) {
 }
 
 func (a *App) UpdateUserInfo(id int64, role, fullName, phone, email, branch string, userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"UpdateUserInfo",
+			nil,
+			id, role,
+			fullName,
+			phone, email,
+			branch,
+
+			userID)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -359,6 +487,15 @@ func (a *App) UpdateUserInfo(id int64, role, fullName, phone, email, branch stri
 }
 
 func (a *App) ReactivateUser(id int64, userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ReactivateUser",
+			nil,
+			id, userID,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -369,6 +506,15 @@ func (a *App) ReactivateUser(id int64, userID int64) error {
 }
 
 func (a *App) DeactivateUser(id int64, userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"DeactivateUser",
+			nil,
+			id, userID,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -379,6 +525,15 @@ func (a *App) DeactivateUser(id int64, userID int64) error {
 }
 
 func (a *App) LockUser(targetID int64, userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"LockUser",
+			nil, targetID,
+			userID,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -389,6 +544,15 @@ func (a *App) LockUser(targetID int64, userID int64) error {
 }
 
 func (a *App) UnlockUser(adminID int64, targetUserID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"UnlockUser",
+			nil, adminID,
+			targetUserID,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -399,6 +563,15 @@ func (a *App) UnlockUser(adminID int64, targetUserID int64) error {
 }
 
 func (a *App) ForceLogout(targetID int64, userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ForceLogout",
+			nil, targetID,
+			userID,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -409,6 +582,20 @@ func (a *App) ForceLogout(targetID int64, userID int64) error {
 }
 
 func (a *App) VerifyPassword(userID int64, password string) bool {
+	if a.
+		apiURL != "" {
+		var reply bool
+		_ = api.
+			CallRPC(
+				a.apiURL, "VerifyPassword",
+
+				&reply,
+				userID, password,
+			)
+
+		return reply
+	}
+
 	if a.authService == nil {
 		return false
 	}
@@ -416,6 +603,17 @@ func (a *App) VerifyPassword(userID int64, password string) bool {
 }
 
 func (a *App) ChangePassword(userID int64, oldPassword, newPassword string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ChangePassword",
+			nil,
+			userID, oldPassword,
+
+			newPassword,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -423,6 +621,17 @@ func (a *App) ChangePassword(userID int64, oldPassword, newPassword string) erro
 }
 
 func (a *App) AdminResetPassword(adminID int64, targetUserID int64, newPassword string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"AdminResetPassword",
+
+			nil, adminID,
+			targetUserID,
+			newPassword,
+		)
+	}
+
 	if a.authService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -433,6 +642,20 @@ func (a *App) AdminResetPassword(adminID int64, targetUserID int64, newPassword 
 }
 
 func (a *App) GetLoginHistory(targetID int64, userID int64) ([]models.LoginHistory, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			LoginHistory
+
+		err := api.CallRPC(a.apiURL,
+			"GetLoginHistory",
+
+			&reply,
+
+			targetID, userID)
+		return reply, err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -443,6 +666,22 @@ func (a *App) GetLoginHistory(targetID int64, userID int64) ([]models.LoginHisto
 }
 
 func (a *App) GetUserActivity(targetID int64, limit int, userID int64) ([]models.AuditLog, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			AuditLog
+		err := api.CallRPC(a.
+			apiURL, "GetUserActivity",
+
+			&reply,
+			targetID,
+
+			limit, userID,
+		)
+		return reply,
+			err
+	}
+
 	if a.authService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -454,6 +693,18 @@ func (a *App) GetUserActivity(targetID int64, limit int, userID int64) ([]models
 
 // Permission API Bindings
 func (a *App) HasPermission(userID int64, permission string) (bool, error) {
+	if a.
+		apiURL != "" {
+		var reply bool
+		err :=
+			api.CallRPC(a.apiURL, "HasPermission",
+
+				&reply,
+				userID, permission,
+			)
+		return reply, err
+	}
+
 	if a.permissionService == nil {
 		return false, fmt.Errorf("service not initialized")
 	}
@@ -461,6 +712,17 @@ func (a *App) HasPermission(userID int64, permission string) (bool, error) {
 }
 
 func (a *App) GetRolePermissions(role string) ([]string, error) {
+	if a.
+		apiURL != "" {
+		var reply []string
+		err := api.CallRPC(a.apiURL,
+			"GetRolePermissions",
+
+			&reply,
+			role)
+		return reply, err
+	}
+
 	if a.permissionService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -468,6 +730,17 @@ func (a *App) GetRolePermissions(role string) ([]string, error) {
 }
 
 func (a *App) SetRolePermissions(role string, permissions []string, adminID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"SetRolePermissions",
+
+			nil, role,
+			permissions,
+			adminID,
+		)
+	}
+
 	if a.permissionService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -478,6 +751,19 @@ func (a *App) SetRolePermissions(role string, permissions []string, adminID int6
 }
 
 func (a *App) GetAllPermissionDefs() ([]models.PermissionInfo, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			PermissionInfo
+
+		err := api.CallRPC(a.apiURL,
+			"GetAllPermissionDefs",
+
+			&reply)
+		return reply,
+			err
+	}
+
 	if a.permissionService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -486,6 +772,20 @@ func (a *App) GetAllPermissionDefs() ([]models.PermissionInfo, error) {
 
 // Medicine API Bindings
 func (a *App) AddMedicine(med models.Medicine, userID int64, username string) (*models.Medicine, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Medicine
+		err := api.CallRPC(a.
+			apiURL, "AddMedicine",
+
+			&reply,
+			med, userID,
+
+			username)
+		return reply, err
+	}
+
 	if a.medicineService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -493,6 +793,16 @@ func (a *App) AddMedicine(med models.Medicine, userID int64, username string) (*
 }
 
 func (a *App) UpdateMedicine(med models.Medicine, userID int64, username string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"UpdateMedicine",
+			nil,
+			med, userID,
+			username,
+		)
+	}
+
 	if a.medicineService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -500,6 +810,17 @@ func (a *App) UpdateMedicine(med models.Medicine, userID int64, username string)
 }
 
 func (a *App) ArchiveMedicine(id int64, archive bool, userID int64, username string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ArchiveMedicine",
+			nil,
+			id, archive,
+			userID,
+			username,
+		)
+	}
+
 	if a.medicineService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -507,6 +828,21 @@ func (a *App) ArchiveMedicine(id int64, archive bool, userID int64, username str
 }
 
 func (a *App) ListMedicines(search, category string, includeArchived bool) ([]models.Medicine, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Medicine
+		err := api.CallRPC(a.
+			apiURL, "ListMedicines",
+
+			&reply,
+			search,
+
+			category, includeArchived,
+		)
+		return reply, err
+	}
+
 	if a.medicineService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -514,6 +850,22 @@ func (a *App) ListMedicines(search, category string, includeArchived bool) ([]mo
 }
 
 func (a *App) ListMedicinesPaginated(search, category string, includeArchived bool, page, pageSize int) (*models.PaginatedMedicines, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			PaginatedMedicines
+
+		err := api.
+			CallRPC(a.apiURL,
+				"ListMedicinesPaginated",
+
+				&reply, search,
+				category, includeArchived,
+				page, pageSize,
+			)
+		return reply, err
+	}
+
 	if a.medicineService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -521,6 +873,19 @@ func (a *App) ListMedicinesPaginated(search, category string, includeArchived bo
 }
 
 func (a *App) BulkImportMedicines(medicines []models.Medicine, userID int64, username string) (int, error) {
+	if a.
+		apiURL != "" {
+		var reply int
+		err :=
+			api.CallRPC(a.apiURL, "BulkImportMedicines",
+
+				&reply, medicines,
+				userID,
+
+				username)
+		return reply, err
+	}
+
 	if a.medicineService == nil {
 		return 0, fmt.Errorf("service not initialized")
 	}
@@ -532,6 +897,21 @@ func (a *App) BulkImportMedicines(medicines []models.Medicine, userID int64, use
 
 // Batch & FEFO API Bindings
 func (a *App) AddBatch(batch models.Batch, userID int64, username string) (*models.Batch, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Batch
+		err :=
+			api.CallRPC(a.apiURL,
+				"AddBatch",
+				&reply,
+				batch,
+				userID,
+
+				username)
+		return reply, err
+	}
+
 	if a.batchService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -539,6 +919,20 @@ func (a *App) AddBatch(batch models.Batch, userID int64, username string) (*mode
 }
 
 func (a *App) GetBatchesByMedicine(medicineID int64) ([]models.Batch, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Batch
+		err :=
+			api.CallRPC(a.apiURL,
+				"GetBatchesByMedicine",
+
+				&reply,
+				medicineID,
+			)
+		return reply, err
+	}
+
 	if a.batchService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -546,6 +940,21 @@ func (a *App) GetBatchesByMedicine(medicineID int64) ([]models.Batch, error) {
 }
 
 func (a *App) GetExpiringBatches(withinDays int) ([]models.Batch, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Batch
+		err :=
+			api.CallRPC(a.apiURL,
+				"GetExpiringBatches",
+
+				&reply,
+				withinDays,
+			)
+		return reply,
+			err
+	}
+
 	if a.batchService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -553,6 +962,20 @@ func (a *App) GetExpiringBatches(withinDays int) ([]models.Batch, error) {
 }
 
 func (a *App) AdjustStock(medicineID int64, batchID *int64, userID int64, username string, qtyAdjusted int, reason, notes string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"AdjustStock",
+			nil, medicineID,
+
+			batchID,
+			userID, username,
+
+			qtyAdjusted,
+			reason,
+			notes)
+	}
+
 	if a.batchService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -561,6 +984,20 @@ func (a *App) AdjustStock(medicineID int64, batchID *int64, userID int64, userna
 
 // Supplier API Bindings
 func (a *App) AddSupplier(sup models.Supplier, userID int64, username string) (*models.Supplier, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Supplier
+		err := api.CallRPC(a.
+			apiURL, "AddSupplier",
+
+			&reply,
+			sup, userID,
+
+			username)
+		return reply, err
+	}
+
 	if a.supplierService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -571,6 +1008,16 @@ func (a *App) AddSupplier(sup models.Supplier, userID int64, username string) (*
 }
 
 func (a *App) UpdateSupplier(sup models.Supplier, userID int64, username string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"UpdateSupplier",
+			nil,
+			sup, userID,
+			username,
+		)
+	}
+
 	if a.supplierService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -581,6 +1028,19 @@ func (a *App) UpdateSupplier(sup models.Supplier, userID int64, username string)
 }
 
 func (a *App) ListSuppliers(includeArchived bool) ([]models.Supplier, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Supplier
+		err := api.CallRPC(a.
+			apiURL, "ListSuppliers",
+
+			&reply,
+			includeArchived,
+		)
+		return reply, err
+	}
+
 	if a.supplierService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -588,6 +1048,17 @@ func (a *App) ListSuppliers(includeArchived bool) ([]models.Supplier, error) {
 }
 
 func (a *App) ArchiveSupplier(id int64, archive bool, userID int64, username string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ArchiveSupplier",
+			nil,
+			id, archive,
+			userID,
+			username,
+		)
+	}
+
 	if a.supplierService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -599,6 +1070,22 @@ func (a *App) ArchiveSupplier(id int64, archive bool, userID int64, username str
 
 // Purchase / Stock Receiving API Bindings
 func (a *App) RecordPurchase(invoiceNumber string, supplierID *int64, items []services.IncomingStockItem, notes string, userID int64, username string) (*models.Purchase, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Purchase
+		err := api.CallRPC(a.
+			apiURL, "RecordPurchase",
+
+			&reply,
+			invoiceNumber,
+
+			supplierID,
+			items, notes, userID,
+			username)
+		return reply, err
+	}
+
 	if a.purchaseService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -609,6 +1096,18 @@ func (a *App) RecordPurchase(invoiceNumber string, supplierID *int64, items []se
 }
 
 func (a *App) ListPurchases() ([]models.Purchase, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Purchase
+		err := api.CallRPC(a.
+			apiURL, "ListPurchases",
+
+			&reply,
+		)
+		return reply, err
+	}
+
 	if a.purchaseService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -616,6 +1115,20 @@ func (a *App) ListPurchases() ([]models.Purchase, error) {
 }
 
 func (a *App) ListPurchaseItems(purchaseID int64) ([]models.PurchaseItem, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			PurchaseItem
+
+		err := api.CallRPC(a.apiURL,
+			"ListPurchaseItems",
+
+			&reply,
+
+			purchaseID)
+		return reply, err
+	}
+
 	if a.purchaseService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -623,6 +1136,20 @@ func (a *App) ListPurchaseItems(purchaseID int64) ([]models.PurchaseItem, error)
 }
 
 func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurchases, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			PaginatedPurchases
+
+		err := api.
+			CallRPC(a.apiURL,
+				"ListPurchasesPaginated",
+
+				&reply, page,
+				pageSize)
+		return reply, err
+	}
+
 	if a.purchaseService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -631,6 +1158,25 @@ func (a *App) ListPurchasesPaginated(page, pageSize int) (*models.PaginatedPurch
 
 // Sales / POS API Bindings
 func (a *App) ProcessSale(userID int64, username string, items []services.CartItemInput, paymentMethod string, discountAmount float64, discountType string, shiftID *int64) (*models.Sale, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Sale
+		err := api.
+			CallRPC(a.apiURL,
+				"ProcessSale",
+
+				&reply, userID,
+				username,
+
+				items, paymentMethod,
+				discountAmount,
+				discountType, shiftID,
+			)
+		return reply,
+			err
+	}
+
 	if a.dbConnectionFailed || a.database == nil {
 		return nil, fmt.Errorf("Cannot complete sale: Connection to the main computer is currently offline. Please check your network cables or make sure the main computer is powered on.")
 	}
@@ -641,6 +1187,20 @@ func (a *App) ProcessSale(userID int64, username string, items []services.CartIt
 }
 
 func (a *App) ListRecentSales(limit int) ([]models.Sale, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Sale
+		err :=
+			api.CallRPC(a.apiURL,
+				"ListRecentSales",
+
+				&reply,
+				limit)
+
+		return reply, err
+	}
+
 	if a.salesService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -649,6 +1209,20 @@ func (a *App) ListRecentSales(limit int) ([]models.Sale, error) {
 
 // Till Shift Reconciliation Bindings
 func (a *App) GetActiveShift(userID int64) (*models.Shift, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Shift
+		err :=
+			api.CallRPC(a.apiURL,
+				"GetActiveShift",
+
+				&reply,
+				userID)
+
+		return reply, err
+	}
+
 	if a.shiftService == nil {
 		return nil, fmt.Errorf("shift service not initialized")
 	}
@@ -656,6 +1230,20 @@ func (a *App) GetActiveShift(userID int64) (*models.Shift, error) {
 }
 
 func (a *App) OpenShift(userID int64, username string, openingCash float64) (*models.Shift, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Shift
+		err :=
+			api.CallRPC(a.apiURL,
+				"OpenShift",
+				&reply, userID,
+				username,
+
+				openingCash)
+		return reply, err
+	}
+
 	if a.shiftService == nil {
 		return nil, fmt.Errorf("shift service not initialized")
 	}
@@ -663,6 +1251,22 @@ func (a *App) OpenShift(userID int64, username string, openingCash float64) (*mo
 }
 
 func (a *App) CloseShift(shiftID int64, actualCash float64, notes string) (*models.ShiftZReport, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			ShiftZReport
+
+		err := api.CallRPC(a.apiURL,
+			"CloseShift",
+			&reply,
+			shiftID,
+
+			actualCash, notes,
+		)
+		return reply,
+			err
+	}
+
 	if a.shiftService == nil {
 		return nil, fmt.Errorf("shift service not initialized")
 	}
@@ -670,6 +1274,21 @@ func (a *App) CloseShift(shiftID int64, actualCash float64, notes string) (*mode
 }
 
 func (a *App) GetShiftZReport(shiftID int64) (*models.ShiftZReport, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			ShiftZReport
+
+		err := api.CallRPC(a.apiURL,
+			"GetShiftZReport",
+
+			&reply,
+
+			shiftID)
+		return reply,
+			err
+	}
+
 	if a.shiftService == nil {
 		return nil, fmt.Errorf("shift service not initialized")
 	}
@@ -678,6 +1297,19 @@ func (a *App) GetShiftZReport(shiftID int64) (*models.ShiftZReport, error) {
 
 // Report & Dashboard API Bindings
 func (a *App) GetDashboardSummary() (*services.DashboardSummary, error) {
+	if a.
+		apiURL != "" {
+		var reply *services.
+			DashboardSummary
+
+		err := api.
+			CallRPC(a.apiURL,
+				"GetDashboardSummary",
+
+				&reply)
+		return reply, err
+	}
+
 	if a.reportService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -685,6 +1317,19 @@ func (a *App) GetDashboardSummary() (*services.DashboardSummary, error) {
 }
 
 func (a *App) GetSalesSummary() (*services.SalesSummary, error) {
+	if a.
+		apiURL != "" {
+		var reply *services.
+			SalesSummary
+
+		err := api.CallRPC(a.apiURL,
+			"GetSalesSummary",
+
+			&reply,
+		)
+		return reply, err
+	}
+
 	if a.reportService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -693,6 +1338,16 @@ func (a *App) GetSalesSummary() (*services.SalesSummary, error) {
 
 // Backup & Audit Log API Bindings
 func (a *App) ExportDatabase(destPath string, userID int64, username string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ExportDatabase",
+			nil,
+			destPath,
+			userID,
+			username)
+	}
+
 	if a.backupService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -703,6 +1358,18 @@ func (a *App) ExportDatabase(destPath string, userID int64, username string) err
 }
 
 func (a *App) RestoreDatabase(sourceBackupPath string, userID int64, username string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"RestoreDatabase",
+			nil,
+			sourceBackupPath,
+
+			userID, username,
+		)
+
+	}
+
 	if a.backupService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -713,6 +1380,20 @@ func (a *App) RestoreDatabase(sourceBackupPath string, userID int64, username st
 }
 
 func (a *App) ListAuditLogs(limit int, userID int64) ([]models.AuditLog, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			AuditLog
+		err := api.CallRPC(a.
+			apiURL, "ListAuditLogs",
+
+			&reply,
+			limit,
+
+			userID)
+		return reply, err
+	}
+
 	if a.backupService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -724,6 +1405,14 @@ func (a *App) ListAuditLogs(limit int, userID int64) ([]models.AuditLog, error) 
 
 // ResetAndSeedDatabase drops all table contents and seeds realistic testing records.
 func (a *App) ClearSampleData(userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ClearSampleData",
+			nil,
+			userID)
+	}
+
 	if a.database == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -734,6 +1423,15 @@ func (a *App) ClearSampleData(userID int64) error {
 }
 
 func (a *App) ResetAndSeedDatabase(userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"ResetAndSeedDatabase",
+
+			nil, userID,
+		)
+	}
+
 	if a.database == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -745,6 +1443,17 @@ func (a *App) ResetAndSeedDatabase(userID int64) error {
 
 // User Daily Sales API Binding
 func (a *App) GetUserTodaySalesTotal(userID int64) (float64, error) {
+	if a.
+		apiURL != "" {
+		var reply float64
+		err := api.CallRPC(a.apiURL, "GetUserTodaySalesTotal",
+
+			&reply,
+			userID,
+		)
+		return reply, err
+	}
+
 	if a.salesService == nil {
 		return 0.0, fmt.Errorf("service not initialized")
 	}
@@ -752,6 +1461,22 @@ func (a *App) GetUserTodaySalesTotal(userID int64) (float64, error) {
 }
 
 func (a *App) GetCashierPerformance(userID int64) (*services.CashierPerformance, error) {
+	if a.
+		apiURL != "" {
+		var reply *services.
+			CashierPerformance
+
+		err := api.
+			CallRPC(a.
+				apiURL,
+				"GetCashierPerformance",
+
+				&reply, userID,
+			)
+		return reply,
+			err
+	}
+
 	if a.salesService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -760,6 +1485,20 @@ func (a *App) GetCashierPerformance(userID int64) (*services.CashierPerformance,
 
 // Notification API Binding
 func (a *App) GetNotificationsSummary() (*models.NotificationSummary, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			NotificationSummary
+
+		err := api.
+			CallRPC(a.
+				apiURL,
+				"GetNotificationsSummary",
+
+				&reply)
+		return reply, err
+	}
+
 	if a.notificationService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -768,6 +1507,20 @@ func (a *App) GetNotificationsSummary() (*models.NotificationSummary, error) {
 
 // Global Search API Binding
 func (a *App) GlobalSearch(query string, userRole string) ([]models.SearchResultItem, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			SearchResultItem
+
+		err := api.CallRPC(a.apiURL,
+			"GlobalSearch",
+
+			&reply,
+
+			query, userRole)
+		return reply, err
+	}
+
 	if a.searchService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -776,6 +1529,24 @@ func (a *App) GlobalSearch(query string, userRole string) ([]models.SearchResult
 
 // Prescription API Bindings
 func (a *App) CreatePrescription(userID int64, username string, patientName string, patientAge int, patientPhone string, doctorName string, doctorContact string, notes string, items []services.PrescriptionItemInput) (*models.Prescription, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Prescription
+
+		err := api.CallRPC(a.apiURL,
+			"CreatePrescription",
+
+			&reply,
+
+			userID, username,
+			patientName, patientAge,
+			patientPhone,
+			doctorName, doctorContact,
+			notes, items)
+		return reply, err
+	}
+
 	if a.prescriptionService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -783,6 +1554,22 @@ func (a *App) CreatePrescription(userID int64, username string, patientName stri
 }
 
 func (a *App) ListPrescriptions(status string, search string, limit int) ([]models.Prescription, error) {
+	if a.
+		apiURL != "" {
+		var reply []models.
+			Prescription
+
+		err := api.CallRPC(a.apiURL,
+			"ListPrescriptions",
+
+			&reply,
+
+			status, search,
+			limit)
+		return reply,
+			err
+	}
+
 	if a.prescriptionService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -790,6 +1577,20 @@ func (a *App) ListPrescriptions(status string, search string, limit int) ([]mode
 }
 
 func (a *App) GetPrescriptionDetails(prescriptionID int64) (*models.Prescription, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			Prescription
+
+		err := api.CallRPC(a.apiURL,
+			"GetPrescriptionDetails",
+
+			&reply, prescriptionID,
+		)
+		return reply,
+			err
+	}
+
 	if a.prescriptionService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -797,6 +1598,19 @@ func (a *App) GetPrescriptionDetails(prescriptionID int64) (*models.Prescription
 }
 
 func (a *App) UpdatePrescriptionStatus(userID int64, username string, prescriptionID int64, status string) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"UpdatePrescriptionStatus",
+
+			nil,
+			userID,
+			username,
+			prescriptionID,
+
+			status)
+	}
+
 	if a.prescriptionService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -805,6 +1619,17 @@ func (a *App) UpdatePrescriptionStatus(userID int64, username string, prescripti
 
 // GetCurrencySymbol returns the configured currency symbol for display formatting.
 func (a *App) GetCurrencySymbol() (string, error) {
+	if a.
+		apiURL != "" {
+		var reply string
+		err := api.CallRPC(a.apiURL, "GetCurrencySymbol",
+
+			&reply)
+		return reply,
+
+			err
+	}
+
 	if a.configService == nil {
 		return "", fmt.Errorf("service not initialized")
 	}
@@ -817,6 +1642,20 @@ func (a *App) GetCurrencySymbol() (string, error) {
 
 // Pharmacy Config API Bindings
 func (a *App) GetPharmacyConfig(userID int64) (*models.PharmacyConfig, error) {
+	if a.
+		apiURL != "" {
+		var reply *models.
+			PharmacyConfig
+
+		err := api.CallRPC(a.apiURL,
+			"GetPharmacyConfig",
+
+			&reply,
+
+			userID)
+		return reply, err
+	}
+
 	if a.configService == nil {
 		return nil, fmt.Errorf("service not initialized")
 	}
@@ -827,6 +1666,16 @@ func (a *App) GetPharmacyConfig(userID int64) (*models.PharmacyConfig, error) {
 }
 
 func (a *App) UpdatePharmacyConfig(cfg *models.PharmacyConfig, userID int64) error {
+	if a.
+		apiURL != "" {
+		return api.CallRPC(a.apiURL,
+			"UpdatePharmacyConfig",
+
+			nil, cfg,
+			userID,
+		)
+	}
+
 	if a.configService == nil {
 		return fmt.Errorf("service not initialized")
 	}
@@ -838,6 +1687,18 @@ func (a *App) UpdatePharmacyConfig(cfg *models.PharmacyConfig, userID int64) err
 
 // GetWorkstationName returns the machine hostname for session tracking.
 func (a *App) GetWorkstationName() string {
+	if a.
+		apiURL != "" {
+		var reply string
+		_ =
+			api.CallRPC(a.apiURL, "GetWorkstationName",
+
+				&reply,
+			)
+		return reply
+
+	}
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		return "unknown"
@@ -860,22 +1721,47 @@ func (a *App) isHostMode() bool {
 
 // Network Config API Bindings
 func (a *App) GetNetworkStatus() NetworkStatus {
+	if a.
+		apiURL != "" {
+		var reply NetworkStatus
+
+		_ = api.
+			CallRPC(a.apiURL,
+				"GetNetworkStatus",
+
+				&reply)
+		return reply
+	}
+
 	isHost := a.isHostMode()
 	return NetworkStatus{
-		IsHost: isHost,
-		DBPath: a.dbPath,
+		IsHost:	isHost,
+		DBPath:	a.dbPath,
 	}
 }
 
 type ConnectionStatus struct {
-	ConfiguredPath  string `json:"configured_path"`
-	ActivePath      string `json:"active_path"`
-	IsConnected     bool   `json:"is_connected"`
-	IsHost          bool   `json:"is_host"`
-	FriendlyMessage string `json:"friendly_message"`
+	ConfiguredPath	string	`json:"configured_path"`
+	ActivePath	string	`json:"active_path"`
+	IsConnected	bool	`json:"is_connected"`
+	IsHost		bool	`json:"is_host"`
+	FriendlyMessage	string	`json:"friendly_message"`
 }
 
 func (a *App) GetDBConnectionStatus() ConnectionStatus {
+	if a.
+		apiURL != "" {
+		var reply ConnectionStatus
+
+		_ =
+			api.CallRPC(a.apiURL,
+				"GetDBConnectionStatus",
+
+				&reply)
+
+		return reply
+	}
+
 	isHost := a.isHostMode()
 	isConnected := !a.dbConnectionFailed && a.database != nil
 
@@ -889,11 +1775,11 @@ func (a *App) GetDBConnectionStatus() ConnectionStatus {
 	}
 
 	return ConnectionStatus{
-		ConfiguredPath:  a.dbPath,
-		ActivePath:      a.dbPath,
-		IsConnected:     isConnected,
-		IsHost:          isHost,
-		FriendlyMessage: friendlyMsg,
+		ConfiguredPath:		a.dbPath,
+		ActivePath:		a.dbPath,
+		IsConnected:		isConnected,
+		IsHost:			isHost,
+		FriendlyMessage:	friendlyMsg,
 	}
 }
 
@@ -915,7 +1801,20 @@ func (a *App) UpdateDatabaseConfig(newPath string) error {
 	return nil
 }
 
-// EnableMainServerMode automatically configures Windows to share the DB folder.
+// GetLocalIP returns the primary local IP address of this machine.
+func (a *App) GetLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err == nil {
+		for _, address := range addrs {
+			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return "127.0.0.1"
+}
+
+// EnableMainServerMode clears DBPath so that this instance acts as Host.
 func (a *App) EnableMainServerMode(userID int64) error {
 	if err := a.requireAdmin(userID); err != nil {
 		return err

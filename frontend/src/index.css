@@ -122,24 +122,27 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  --bg:            #F8FAFC;
-  --surface:       #ffffff;
-  --surface-soft:  #F1F5F9;
+  /* Premium White Theme Palette */
+  --bg:            #F8FAFC;       /* Crisp, cool slate-50 background */
+  --surface:       #FFFFFF;       /* Pure white cards */
+  --surface-soft:  #F1F5F9;       /* Slate-100 for inputs/soft areas */
   --surface-card:  #FFFFFF;
-  --line:          rgba(0, 0, 0, 0.10);
-  --line-focus:    #126cff;
-  --line-strong:   rgba(0, 0, 0, 0.20);
-  --ink:           #1a1d23;
-  --muted:         #5f6b7a;
-  --muted-dark:    #8a99aa;
+  
+  --line:          rgba(15, 23, 42, 0.08); /* Slate-900 at 8% for ultra clean borders */
+  --line-focus:    #006FEE;       /* Modern vibrant blue */
+  --line-strong:   rgba(15, 23, 42, 0.16);
+  
+  --ink:           #0F172A;       /* Slate-900, extremely crisp text */
+  --muted:         #64748B;       /* Slate-500 for secondary text */
+  --muted-dark:    #94A3B8;       /* Slate-400 */
 
-  --blue:    #126cff;
-  --cyan:    #0891b2;
-  --green:   #059669;
-  --lime:    #65a30d;
-  --red:     #dc2626;
-  --yellow:  #d97706;
-  --purple:  #7c3aed;
+  --blue:    #006FEE; /* Premium vibrant blue */
+  --cyan:    #06B6D4;
+  --green:   #10B981; /* Modern emerald */
+  --lime:    #84CC16;
+  --red:     #F31260; /* Vibrant rose/red */
+  --yellow:  #F5A524;
+  --purple:  #7828C8;
 
   --color-success-bg:     rgba(5, 150, 105, 0.08);
   --color-success-border: rgba(5, 150, 105, 0.25);
@@ -161,11 +164,11 @@
   --color-bg-panel:       var(--surface);
   --color-bg-elevated:    var(--surface-soft);
   --color-bg-input:       var(--surface-soft);
-  --color-bg-hover:       rgba(0, 0, 0, 0.04);
-  --color-bg-active:      rgba(0, 0, 0, 0.07);
+  --color-bg-hover:       rgba(15, 23, 42, 0.04);
+  --color-bg-active:      rgba(15, 23, 42, 0.08);
   --color-accent-base:    var(--blue);
   --color-accent-solid:   var(--blue);
-  --color-accent-solid-hover: #0056e0;
+  --color-accent-solid-hover: #005BC4;
   --color-accent-subtle:  rgba(18, 108, 255, 0.10);
   --color-border-subtle:  var(--line);
   --color-border-default: var(--line);
@@ -178,19 +181,20 @@
   --color-selection:      rgba(18, 108, 255, 0.10);
   --color-selection-border: var(--blue);
 
-  --shadow:       0 12px 32px rgba(0, 0, 0, 0.08);
-  --shadow-sm:    0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-glow:  0 0 15px rgba(5, 150, 105, 0.25);
-  --shadow-blue:  0 8px 24px rgba(18, 108, 255, 0.20);
-  --shadow-dropdown: 0 20px 48px rgba(0, 0, 0, 0.12);
+  /* Layered premium shadows */
+  --shadow:       0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.025);
+  --shadow-sm:    0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.025);
+  --shadow-glow:  0 0 15px rgba(16, 185, 129, 0.3);
+  --shadow-blue:  0 8px 24px rgba(0, 111, 238, 0.25);
+  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
 
-  --overlay-hover:   rgba(0, 0, 0, 0.04);
-  --overlay-active:  rgba(0, 0, 0, 0.07);
-  --overlay-strong:  rgba(0, 0, 0, 0.10);
-  --overlay-line:    rgba(0, 0, 0, 0.03);
+  --overlay-hover:   rgba(15, 23, 42, 0.04);
+  --overlay-active:  rgba(15, 23, 42, 0.08);
+  --overlay-strong:  rgba(15, 23, 42, 0.12);
+  --overlay-line:    rgba(15, 23, 42, 0.035);
 
-  --topbar-bg:   rgba(244, 246, 249, 0.82);
-  --card-accent: rgba(0, 0, 0, 0.03);
+  --topbar-bg:   rgba(255, 255, 255, 0.85); /* Frosty white topbar */
+  --card-accent: rgba(15, 23, 42, 0.02);
 }
 
 /* ── Base HTML ──────────────────────────────────────────────────────────────── */
@@ -317,7 +321,7 @@ button:hover {
   background: var(--overlay-active);
   border-color: var(--line-strong);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow);
 }
 
 button:active {
@@ -396,7 +400,7 @@ select option {
   background: var(--overlay-active);
   border-color: var(--line-strong);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-dropdown);
 }
 
 .btn:active {
@@ -454,7 +458,7 @@ select option {
   background: var(--overlay-active);
   border-color: var(--line-strong);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Small icon-only button */
