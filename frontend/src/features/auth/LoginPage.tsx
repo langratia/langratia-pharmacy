@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, User as UserIcon, ShieldAlert, Pill, Building2, Network } from 'lucide-react';
+import { Lock, User as UserIcon, ShieldAlert, Building2, Network } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { IsFirstTimeSetup, CompleteFirstTimeSetup, UpdateDatabaseConfig, AutoDiscoverServer } from '../../../wailsjs/go/main/App';
+import amoLogo from '../../assets/images/amo_hope_logo.svg';
 
 /* ── Shared input style ────────────────────────────────────────────────── */
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  padding: '11px 14px 11px 42px',
+  padding: '12px 14px 12px 42px',
   background: 'var(--color-bg-input)',
   border: '1px solid var(--line)',
   borderRadius: '12px',
@@ -23,10 +24,10 @@ const inputStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: '12px',
-  fontWeight: 600,
+  fontWeight: 700,
   color: 'var(--muted)',
-  marginBottom: '8px',
-  letterSpacing: '0.03em',
+  marginBottom: '6px',
+  letterSpacing: '0.02em',
 };
 
 const iconWrapStyle: React.CSSProperties = {
@@ -96,14 +97,14 @@ export const LoginPage: React.FC = () => {
       let userRes: any = null;
       try {
         userRes = await CompleteFirstTimeSetup(
-          setupPharmacyName.trim() || 'My Pharmacy',
+          setupPharmacyName.trim() || 'A.M.O HOPE PHARMACY',
           setupFullName.trim(), setupUsername.trim(), setupPassword
         );
       } catch {
         const wailsApp = (window as any)?.go?.main?.App;
         if (wailsApp?.CompleteFirstTimeSetup) {
           userRes = await wailsApp.CompleteFirstTimeSetup(
-            setupPharmacyName.trim() || 'My Pharmacy',
+            setupPharmacyName.trim() || 'A.M.O HOPE PHARMACY',
             setupFullName.trim(), setupUsername.trim(), setupPassword
           );
         }
@@ -132,7 +133,6 @@ export const LoginPage: React.FC = () => {
     try {
       await UpdateDatabaseConfig(connectUrl.trim());
       toast.success('Connected! Restarting application to apply settings...', { id: toastId, duration: 4000 });
-      // Reload window to force Go backend to re-initialize with new config
       setTimeout(() => window.location.reload(), 2000);
     } catch (err: any) {
       setSetupError(err?.message || 'Failed to connect to server.');
@@ -163,32 +163,164 @@ export const LoginPage: React.FC = () => {
       <div style={{
         minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'var(--bg)', color: 'var(--muted)', fontSize: '14px',
-        backgroundImage: 'radial-gradient(circle, var(--overlay-line) 1px, transparent 1px)',
-        backgroundSize: '24px 24px',
       }}>
         Initializing system…
       </div>
     );
   }
 
-  /* Shared page wrapper */
+  /* ── Split-Screen Page Wrapper inspired by Fillianta Reference Design ───────── */
   const pageWrapper = (content: React.ReactNode) => (
     <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--bg)', padding: '24px',
-      backgroundImage: 'radial-gradient(circle, var(--overlay-line) 1px, transparent 1px)',
-      backgroundSize: '24px 24px',
+      minHeight: '100vh',
+      width: '100vw',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'var(--bg)',
+      padding: '24px',
+      boxSizing: 'border-box',
     }}>
       <div style={{
-        width: '100%', maxWidth: '420px',
+        width: '100%',
+        maxWidth: '960px',
         background: 'var(--surface)',
         border: '1px solid var(--line)',
-        borderRadius: 'var(--r2)',
-        boxShadow: 'var(--shadow)',
-        padding: '40px 36px 32px',
+        borderRadius: '28px',
+        boxShadow: 'var(--shadow-dropdown)',
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        overflow: 'hidden',
+        minHeight: '560px',
         animation: 'popupEnter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
       }}>
-        {content}
+        {/* Left Form Panel */}
+        <div style={{
+          padding: '48px 40px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}>
+          {content}
+        </div>
+
+        {/* Right Showcase Banner (Rich Deep Forest Green Panel) */}
+        <div style={{
+          padding: '16px',
+          display: 'flex',
+        }}>
+          <div style={{
+            flex: 1,
+            borderRadius: '20px',
+            background: 'linear-gradient(145deg, #174B37 0%, #0F3526 60%, #0A241A 100%)',
+            padding: '40px 32px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: 'inset 0 0 30px rgba(0,0,0,0.2)',
+          }}>
+            {/* Subtle background glow */}
+            <div style={{
+              position: 'absolute', right: '-40px', top: '-40px',
+              width: '220px', height: '220px', borderRadius: '50%',
+              background: 'rgba(46, 204, 113, 0.15)', filter: 'blur(40px)',
+              pointerEvents: 'none',
+            }} />
+
+            {/* Headline */}
+            <div style={{ zIndex: 2 }}>
+              <div style={{
+                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontStyle: 'italic',
+                fontSize: '34px',
+                color: 'rgba(255, 255, 255, 0.95)',
+                lineHeight: 1.15,
+                letterSpacing: '-0.5px',
+              }}>
+                Enter the Future
+              </div>
+              <div style={{
+                fontSize: '32px',
+                fontWeight: 800,
+                color: '#FFFFFF',
+                lineHeight: 1.15,
+                letterSpacing: '-0.8px',
+                marginTop: '4px',
+              }}>
+                of Pharmacy,<br />today
+              </div>
+            </div>
+
+            {/* Creative Showcase Card (Glassmorphism & Feature Highlights) */}
+            <div style={{
+              zIndex: 2,
+              background: 'rgba(255, 255, 255, 0.96)',
+              borderRadius: '20px',
+              padding: '24px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              border: '1px solid rgba(255, 255, 255, 0.5)',
+            }}>
+              {/* Header with Logo */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px', height: '42px', borderRadius: '12px',
+                  background: '#FFFFFF', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', padding: '4px', boxSizing: 'border-box',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  flexShrink: 0,
+                }}>
+                  <img src={amoLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#111827', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+                    {pharmacyName || 'A.M.O HOPE PHARMACY'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px', fontWeight: 500 }}>
+                    Pharmacy Management Suite
+                  </div>
+                </div>
+              </div>
+
+              {/* Feature pills grid */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                <span style={{
+                  fontSize: '11px', fontWeight: 700, color: '#174B37',
+                  background: 'rgba(23, 75, 55, 0.08)', border: '1px solid rgba(23, 75, 55, 0.15)',
+                  padding: '5px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center',
+                }}>
+                  Fast POS Checkout
+                </span>
+                <span style={{
+                  fontSize: '11px', fontWeight: 700, color: '#174B37',
+                  background: 'rgba(23, 75, 55, 0.08)', border: '1px solid rgba(23, 75, 55, 0.15)',
+                  padding: '5px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center',
+                }}>
+                  Inventory & Batch Tracking
+                </span>
+                <span style={{
+                  fontSize: '11px', fontWeight: 700, color: '#174B37',
+                  background: 'rgba(23, 75, 55, 0.08)', border: '1px solid rgba(23, 75, 55, 0.15)',
+                  padding: '5px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center',
+                }}>
+                  Secure Offline & Network Mode
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                paddingTop: '12px', borderTop: '1px solid #E5E7EB', fontSize: '11px',
+                color: '#6B7280', fontWeight: 600,
+              }}>
+                <span>Langratia POS</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -197,24 +329,23 @@ export const LoginPage: React.FC = () => {
   if (isFirstTime) {
     return pageWrapper(
       <>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '60px', height: '60px', borderRadius: '50%',
-            background: 'rgba(18, 108, 255, 0.12)',
-            border: '1px solid rgba(18, 108, 255, 0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', color: 'var(--blue)',
-          }}>
-            <Pill size={28} />
-          </div>
-          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.2px' }}>
-            Initial Setup
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
-            {isConnectingMode ? 'Connect to an existing Main Server' : 'Configure your pharmacy and admin credentials'}
-          </p>
+        {/* Logo Icon */}
+        <div style={{
+          width: '52px', height: '52px', borderRadius: '14px',
+          background: '#FFFFFF', border: '1px solid var(--line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '6px', boxSizing: 'border-box',
+          boxShadow: 'var(--shadow-sm)', marginBottom: '20px',
+        }}>
+          <img src={amoLogo} alt="A.M.O Hope Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
+
+        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+          Initial Setup
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 24px' }}>
+          {isConnectingMode ? 'Connect to an existing Main Server' : 'Configure your pharmacy and admin credentials'}
+        </p>
 
         {/* Error */}
         {setupError && (
@@ -222,15 +353,14 @@ export const LoginPage: React.FC = () => {
             display: 'flex', alignItems: 'center', gap: '10px',
             background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)',
             color: 'var(--color-danger-text)', padding: '12px 14px',
-            borderRadius: '8px', fontSize: '13px', marginBottom: '20px',
+            borderRadius: '10px', fontSize: '13px', marginBottom: '20px',
           }}>
             <ShieldAlert size={16} style={{ flexShrink: 0 }} />
             <span>{setupError}</span>
           </div>
         )}
 
-        <form onSubmit={handleSetupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* Pharmacy name */}
+        <form onSubmit={handleSetupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Pharmacy / Company Name</label>
             <div style={{ position: 'relative' }}>
@@ -238,15 +368,12 @@ export const LoginPage: React.FC = () => {
               <input
                 type="text" value={setupPharmacyName}
                 onChange={(e) => setSetupPharmacyName(e.target.value)}
-                placeholder="e.g. City Pharmacy Ltd" autoFocus
+                placeholder="e.g. A.M.O HOPE PHARMACY" autoFocus
                 style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
 
-          {/* Full name */}
           <div>
             <label style={labelStyle}>Admin Full Name *</label>
             <div style={{ position: 'relative' }}>
@@ -256,21 +383,16 @@ export const LoginPage: React.FC = () => {
                 onChange={(e) => setSetupFullName(e.target.value)}
                 placeholder="e.g. John Doe"
                 style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
 
-          {/* Username + Password row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={labelStyle}>Admin Username *</label>
               <input type="text" required value={setupUsername}
                 onChange={(e) => setSetupUsername(e.target.value)} placeholder="admin"
                 style={{ ...inputStyle, paddingLeft: '14px' }}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
             <div>
@@ -278,54 +400,44 @@ export const LoginPage: React.FC = () => {
               <input type="password" required value={setupPassword}
                 onChange={(e) => setSetupPassword(e.target.value)} placeholder="Min 4 chars"
                 style={{ ...inputStyle, paddingLeft: '14px' }}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
 
-          {/* Confirm password */}
           <div>
             <label style={labelStyle}>Confirm Password *</label>
             <input type="password" required value={setupConfirmPassword}
               onChange={(e) => setSetupConfirmPassword(e.target.value)} placeholder="Re-enter password"
               style={{ ...inputStyle, paddingLeft: '14px' }}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
 
           <button
             type="submit" disabled={isSettingUp}
             style={{
-              width: '100%', height: '46px', borderRadius: 'var(--r)',
-              background: 'var(--blue)', color: '#fff', border: 'none',
-              fontSize: '15px', fontWeight: 700, cursor: isSettingUp ? 'not-allowed' : 'pointer',
+              width: '100%', height: '48px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #174B37 0%, #0F3526 100%)',
+              color: '#FFFFFF', border: 'none',
+              fontSize: '15px', fontWeight: 700,
+              cursor: isSettingUp ? 'not-allowed' : 'pointer',
               opacity: isSettingUp ? 0.7 : 1,
-              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              marginTop: '4px',
+              boxShadow: '0 4px 14px rgba(23, 75, 55, 0.3)',
+              transition: 'all 0.2s ease',
+              marginTop: '6px',
             }}
-            onMouseEnter={(e) => { if (!isSettingUp) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
           >
             {isSettingUp ? 'Configuring System…' : 'Initialize & Complete Setup'}
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <div style={{ height: '1px', background: 'var(--line)', width: '100%', marginBottom: '16px' }} />
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <button
             type="button"
-            onClick={() => {
-              setIsConnectingMode(true);
-              setSetupError('');
-            }}
+            onClick={() => { setIsConnectingMode(true); setSetupError(''); }}
             style={{
-              background: 'none', border: 'none', color: 'var(--blue)',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              background: 'none', border: 'none', color: '#174B37',
+              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
             }}
-            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
           >
             Or connect to an existing Main Server
           </button>
@@ -338,39 +450,36 @@ export const LoginPage: React.FC = () => {
   if (isFirstTime && isConnectingMode) {
     return pageWrapper(
       <>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '60px', height: '60px', borderRadius: '50%',
-            background: 'rgba(18, 108, 255, 0.12)',
-            border: '1px solid rgba(18, 108, 255, 0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', color: 'var(--blue)',
-          }}>
-            <Network size={28} />
-          </div>
-          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.2px' }}>
-            Connect to Server
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
-            Enter the Main Server API URL to join the network.
-          </p>
+        <div style={{
+          width: '52px', height: '52px', borderRadius: '14px',
+          background: '#FFFFFF', border: '1px solid var(--line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '6px', boxSizing: 'border-box',
+          boxShadow: 'var(--shadow-sm)', marginBottom: '20px',
+        }}>
+          <img src={amoLogo} alt="A.M.O Hope Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
 
-        {/* Error */}
+        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.4px' }}>
+          Connect to Server
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 24px' }}>
+          Enter the Main Server API URL to join the network.
+        </p>
+
         {setupError && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)',
             color: 'var(--color-danger-text)', padding: '12px 14px',
-            borderRadius: '8px', fontSize: '13px', marginBottom: '20px',
+            borderRadius: '10px', fontSize: '13px', marginBottom: '20px',
           }}>
             <ShieldAlert size={16} style={{ flexShrink: 0 }} />
             <span>{setupError}</span>
           </div>
         )}
 
-        <form onSubmit={handleConnectSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <form onSubmit={handleConnectSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={labelStyle}>Server API URL *</label>
             <div style={{ position: 'relative' }}>
@@ -380,18 +489,14 @@ export const LoginPage: React.FC = () => {
                 onChange={(e) => setConnectUrl(e.target.value)}
                 placeholder="http://192.168.1.50:45556" autoFocus
                 style={inputStyle}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
             <div style={{ marginTop: '8px', textAlign: 'right' }}>
               <button
-                type="button"
-                onClick={handleAutoDiscoverSetup}
-                disabled={isConnecting}
+                type="button" onClick={handleAutoDiscoverSetup} disabled={isConnecting}
                 style={{
                   background: 'var(--surface-soft)', border: '1px solid var(--line)', color: 'var(--ink)',
-                  fontSize: '12px', padding: '4px 10px', borderRadius: '4px', cursor: isConnecting ? 'not-allowed' : 'pointer'
+                  fontSize: '12px', padding: '4px 10px', borderRadius: '6px', cursor: isConnecting ? 'not-allowed' : 'pointer'
                 }}
               >
                 Auto-Discover
@@ -402,32 +507,29 @@ export const LoginPage: React.FC = () => {
           <button
             type="submit" disabled={isConnecting}
             style={{
-              width: '100%', height: '46px', borderRadius: 'var(--r)',
-              background: 'var(--blue)', color: '#fff', border: 'none',
-              fontSize: '15px', fontWeight: 700, cursor: isConnecting ? 'not-allowed' : 'pointer',
+              width: '100%', height: '48px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #174B37 0%, #0F3526 100%)',
+              color: '#FFFFFF', border: 'none',
+              fontSize: '15px', fontWeight: 700,
+              cursor: isConnecting ? 'not-allowed' : 'pointer',
               opacity: isConnecting ? 0.7 : 1,
-              transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              marginTop: '4px',
+              boxShadow: '0 4px 14px rgba(23, 75, 55, 0.3)',
+              transition: 'all 0.2s ease',
+              marginTop: '6px',
             }}
           >
             {isConnecting ? 'Connecting…' : 'Connect to Server'}
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', textAlign: 'center' }}>
-          <div style={{ height: '1px', background: 'var(--line)', width: '100%', marginBottom: '16px' }} />
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <button
             type="button"
-            onClick={() => {
-              setIsConnectingMode(false);
-              setSetupError('');
-            }}
+            onClick={() => { setIsConnectingMode(false); setSetupError(''); }}
             style={{
-              background: 'none', border: 'none', color: 'var(--blue)',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              background: 'none', border: 'none', color: '#174B37',
+              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
             }}
-            onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
-            onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
           >
             Or setup as a new Main Server
           </button>
@@ -436,42 +538,35 @@ export const LoginPage: React.FC = () => {
     );
   }
 
-  /* ── Standard Login Screen ───────────────────────────────────────────── */
+  /* ── Standard Login Screen (Matching Fillianta Reference Design) ────────── */
   return pageWrapper(
     <>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <div style={{
-          width: '60px', height: '60px', borderRadius: '50%',
-          background: 'rgba(18, 108, 255, 0.12)',
-          border: '1px solid rgba(18, 108, 255, 0.25)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 16px', color: 'var(--blue)',
-          boxShadow: '0 0 20px rgba(18, 108, 255, 0.2)',
-        }}>
-          <Pill size={28} />
-        </div>
-        <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.3px' }}>
-          {pharmacyName}
-        </h1>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          fontSize: '11px', color: 'var(--muted)',
-          background: 'var(--surface-soft)', border: '1px solid var(--line)',
-          padding: '4px 12px', borderRadius: '20px', fontWeight: 600,
-        }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', boxShadow: '0 0 6px var(--green)', display: 'inline-block' }} />
-          ENTERPRISE POS • SECURE AUTH
-        </div>
+      {/* Brand Logo Icon Box */}
+      <div style={{
+        width: '52px', height: '52px', borderRadius: '14px',
+        background: '#FFFFFF', border: '1px solid var(--line)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '6px', boxSizing: 'border-box',
+        boxShadow: 'var(--shadow-sm)', marginBottom: '24px',
+      }}>
+        <img src={amoLogo} alt="A.M.O Hope Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
 
-      {/* Error */}
+      {/* Header text */}
+      <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
+        Login
+      </h1>
+      <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 28px', lineHeight: 1.4 }}>
+        Welcome to {pharmacyName || 'A.M.O HOPE PHARMACY'} — Let's sign in to your POS account
+      </p>
+
+      {/* Error Alert */}
       {error && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)',
           color: 'var(--color-danger-text)', padding: '12px 14px',
-          borderRadius: '8px', fontSize: '13px', marginBottom: '24px',
+          borderRadius: '10px', fontSize: '13px', marginBottom: '20px',
         }}>
           <ShieldAlert size={16} style={{ flexShrink: 0 }} />
           <span>{error}</span>
@@ -479,7 +574,7 @@ export const LoginPage: React.FC = () => {
       )}
 
       <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        {/* Username */}
+        {/* Username field */}
         <div>
           <label style={labelStyle}>Username</label>
           <div style={{ position: 'relative' }}>
@@ -487,57 +582,58 @@ export const LoginPage: React.FC = () => {
             <input
               type="text" value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter username" required autoFocus
+              placeholder="admin" required autoFocus
               style={inputStyle}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
         </div>
 
-        {/* Password */}
+        {/* Password field */}
         <div>
-          <label style={labelStyle}>Password</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+          </div>
           <div style={{ position: 'relative' }}>
             <span style={iconWrapStyle}><Lock size={16} /></span>
             <input
               type="password" value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password" required
+              placeholder="••••••••" required
               style={inputStyle}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--line)'; e.target.style.boxShadow = 'none'; }}
             />
           </div>
         </div>
 
-        {/* Submit */}
+        {/* Submit button */}
         <button
           type="submit" disabled={isLoading}
           style={{
-            width: '100%', height: '48px', borderRadius: 'var(--r)',
-            background: 'var(--blue)', color: '#fff', border: 'none',
+            width: '100%', height: '48px', borderRadius: '12px',
+            background: 'linear-gradient(135deg, #174B37 0%, #0F3526 100%)',
+            color: '#FFFFFF', border: 'none',
             fontSize: '15px', fontWeight: 700,
             cursor: isLoading ? 'not-allowed' : 'pointer',
             opacity: isLoading ? 0.7 : 1,
+            boxShadow: '0 4px 14px rgba(23, 75, 55, 0.3)',
             transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-            marginTop: '4px',
+            marginTop: '6px',
           }}
-          onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-blue)'; } }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+          onMouseEnter={(e) => { if (!isLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(23, 75, 55, 0.4)'; } }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(23, 75, 55, 0.3)'; }}
         >
-          {isLoading ? 'Authenticating…' : 'Sign In'}
+          {isLoading ? 'Authenticating…' : 'Sign in'}
         </button>
       </form>
 
-      {/* Footer */}
+      {/* Footer info */}
       <div style={{
-        marginTop: '28px', paddingTop: '16px',
+        marginTop: '32px', paddingTop: '16px',
         borderTop: '1px solid var(--line)',
-        textAlign: 'center', fontSize: '12px',
-        color: 'var(--muted-dark)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        fontSize: '12px', color: 'var(--muted-dark)',
       }}>
-        {pharmacyName} · v1.0.0
+        <span>Langratia POS</span>
+        <span>{pharmacyName || 'A.M.O HOPE PHARMACY'}</span>
       </div>
     </>
   );
