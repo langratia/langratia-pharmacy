@@ -55,7 +55,7 @@ export function GetCurrencySymbol():Promise<string>;
 
 export function GetDBConnectionStatus():Promise<main.ConnectionStatus>;
 
-export function GetDashboardSummary():Promise<services.DashboardSummary>;
+export function GetDashboardSummary(arg1:string):Promise<services.DashboardSummary>;
 
 export function GetExpiringBatches(arg1:number):Promise<Array<models.Batch>>;
 
@@ -73,7 +73,7 @@ export function GetPrescriptionDetails(arg1:number):Promise<models.Prescription>
 
 export function GetRolePermissions(arg1:string):Promise<Array<string>>;
 
-export function GetSalesSummary():Promise<services.SalesSummary>;
+export function GetSalesSummary(arg1:string):Promise<services.SalesSummary>;
 
 export function GetShiftZReport(arg1:number):Promise<models.ShiftZReport>;
 

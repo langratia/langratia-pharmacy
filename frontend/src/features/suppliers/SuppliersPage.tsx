@@ -8,6 +8,7 @@ import { Panel } from '../../components/ui/Panel';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
+import { capitalizeWords } from '../../utils/formatters';
 
 export const SuppliersPage: React.FC = () => {
   const { user } = useAuth();
@@ -238,12 +239,12 @@ export const SuppliersPage: React.FC = () => {
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Supplier Company Name *</label>
-            <input ref={nameInputRef} type="text" required disabled={!canManage} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
+            <input ref={nameInputRef} type="text" required disabled={!canManage} value={formData.name} onChange={e => setFormData({ ...formData, name: capitalizeWords(e.target.value) })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
           </div>
 
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '6px' }}>Contact Person</label>
-            <input type="text" disabled={!canManage} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: e.target.value })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
+            <input type="text" disabled={!canManage} value={formData.contact_person} onChange={e => setFormData({ ...formData, contact_person: capitalizeWords(e.target.value) })}             style={{ width: '100%', height: '36px', padding: '0 10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>

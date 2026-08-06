@@ -71,6 +71,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [alertTab, setAlertTab] = useState<'low' | 'expiring'>('low');
+  const [period, setPeriod] = useState<string>('today');
 
   const [summary, setSummary] = useState<any>({
     sales_today: 0, total_medicines: 0,
@@ -84,19 +85,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
   const fetchData = useCallback(async () => {
     setLoading(true); setHasError(false);
     try {
-      const callWails = async (fn: any, key: string) => {
-        try { return await fn(); }
-        catch { const w = (window as any)?.go?.main?.App; if (w?.[key]) return await w[key](); return null; }
+      const callWails = async (fn: any, key: string, arg?: any) => {
+        try { return await fn(arg); }
+        catch { const w = (window as any)?.go?.main?.App; if (w?.[key]) return await w[key](arg); return null; }
       };
       const [dash, sales] = await Promise.all([
-        callWails(GetDashboardSummary, 'GetDashboardSummary'),
-        callWails(GetSalesSummary, 'GetSalesSummary'),
+        callWails(GetDashboardSummary, 'GetDashboardSummary', period),
+        callWails(GetSalesSummary, 'GetSalesSummary', period),
       ]);
       if (!dash) { setHasError(true); toast.error('Failed to load dashboard'); }
       else { setSummary(dash); if (sales) setSalesSummary(sales); }
     } catch { setHasError(true); toast.error('Failed to load dashboard'); }
     finally { setLoading(false); }
-  }, []);
+  }, [period]);
 
   useEffect(() => {
     fetchData();
@@ -155,22 +156,47 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>Real-time pharmacy metrics & inventory performance</div>
         </div>
 
-        {/* Business Stock Valuation Pill */}
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--line)',
-          borderRadius: '24px',
-          padding: '8px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-        }}>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--blue)' }} />
-          <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>Business Stock Valuation:</span>
-          <span className="tabular-nums" style={{ color: 'var(--blue)', fontWeight: 800, fontSize: '14px' }}>
-            {loading ? '—' : `UGX ${formatCurrency(summary.stock_valuation || 0)}`}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Period Filter */}
+          <select 
+            value={period} 
+            onChange={(e) => setPeriod(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '24px',
+              border: '1px solid var(--line)',
+              background: 'var(--surface)',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: 'var(--ink)',
+              outline: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            }}
+          >
+            <option value="today">Today</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+          </select>
+
+          {/* Business Stock Valuation Pill */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--line)',
+            borderRadius: '24px',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--blue)' }} />
+            <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>Business Stock Valuation:</span>
+            <span className="tabular-nums" style={{ color: 'var(--blue)', fontWeight: 800, fontSize: '14px' }}>
+              {loading ? '—' : `UGX ${formatCurrency(summary.stock_valuation || 0)}`}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -198,7 +224,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
         })}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255, 255, 255, 0.7)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>Today's Revenue</div>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255, 255, 255, 0.7)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
+                Revenue ({period.replace('_', ' ')})
+              </div>
               <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.8px', lineHeight: 1 }}>
                 {loading ? '—' : `UGX ${formatCurrency(summary.sales_today || 0)}`}
               </div>

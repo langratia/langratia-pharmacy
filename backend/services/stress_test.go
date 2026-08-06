@@ -179,8 +179,8 @@ func TestStressSuite(t *testing.T) {
 				case <-stopCh:
 					return
 				default:
-					_, err1 := reportService.GetSalesSummary()
-					_, err2 := reportService.GetDashboardSummary()
+					_, err1 := reportService.GetSalesSummary("today")
+					_, err2 := reportService.GetDashboardSummary("today")
 					if err1 != nil || err2 != nil {
 						atomic.AddInt64(&reportFailures, 1)
 					} else {

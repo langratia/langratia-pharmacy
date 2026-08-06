@@ -33,11 +33,11 @@ function saveSession(user: User): void {
   const session: SessionStore = {
     id: user.id,
   };
-  localStorage.setItem('langratia_session', JSON.stringify(session));
+  sessionStorage.setItem('langratia_session', JSON.stringify(session));
 }
 
 function loadSavedUserId(): number | null {
-  const saved = localStorage.getItem('langratia_session');
+  const saved = sessionStorage.getItem('langratia_session');
   if (!saved) return null;
   try {
     const session: SessionStore = JSON.parse(saved);
@@ -48,7 +48,7 @@ function loadSavedUserId(): number | null {
 }
 
 function clearSession(): void {
-  localStorage.removeItem('langratia_session');
+  sessionStorage.removeItem('langratia_session');
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

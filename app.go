@@ -1328,7 +1328,7 @@ func (a *App) GetShiftZReport(shiftID int64) (*models.ShiftZReport, error) {
 }
 
 // Report & Dashboard API Bindings
-func (a *App) GetDashboardSummary() (*services.DashboardSummary, error) {
+func (a *App) GetDashboardSummary(period string) (*services.DashboardSummary, error) {
 	if a.
 		apiURL != "" {
 		var reply *services.
@@ -1338,17 +1338,17 @@ func (a *App) GetDashboardSummary() (*services.DashboardSummary, error) {
 			CallRPC(a.apiURL,
 				"GetDashboardSummary",
 
-				&reply)
+				&reply, period)
 		return reply, err
 	}
 
 	if a.reportService == nil {
-		return nil, fmt.Errorf("service not initialized")
+		return nil, fmt.Errorf("report service not initialized")
 	}
-	return a.reportService.GetDashboardSummary()
+	return a.reportService.GetDashboardSummary(period)
 }
 
-func (a *App) GetSalesSummary() (*services.SalesSummary, error) {
+func (a *App) GetSalesSummary(period string) (*services.SalesSummary, error) {
 	if a.
 		apiURL != "" {
 		var reply *services.
@@ -1358,14 +1358,15 @@ func (a *App) GetSalesSummary() (*services.SalesSummary, error) {
 			"GetSalesSummary",
 
 			&reply,
+			period,
 		)
 		return reply, err
 	}
 
 	if a.reportService == nil {
-		return nil, fmt.Errorf("service not initialized")
+		return nil, fmt.Errorf("report service not initialized")
 	}
-	return a.reportService.GetSalesSummary()
+	return a.reportService.GetSalesSummary(period)
 }
 
 // Backup & Audit Log API Bindings

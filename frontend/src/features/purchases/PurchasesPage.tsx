@@ -347,7 +347,7 @@ export const PurchasesPage: React.FC = () => {
                   </select>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Batch #</label>
                     <input
@@ -377,6 +377,12 @@ export const PurchasesPage: React.FC = () => {
                       onChange={e => setBuyPrice(e.target.value ? Number(e.target.value) : '')}
                       style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }}
                     />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Line Total</label>
+                    <div style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--blue)', outline: 'none', fontSize: '13px', display: 'flex', alignItems: 'center', fontWeight: 700 }}>
+                      UGX {formatCurrency((typeof qty === 'number' ? qty : 0) * (typeof buyPrice === 'number' ? buyPrice : 0))}
+                    </div>
                   </div>
                 </div>
 

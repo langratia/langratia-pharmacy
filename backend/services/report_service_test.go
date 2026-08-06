@@ -45,7 +45,7 @@ func TestReportService(t *testing.T) {
 		ExpiryDate:       expiry,
 	}, 1, "admin")
 
-	summary, err := reportService.GetDashboardSummary()
+	summary, err := reportService.GetDashboardSummary("today")
 	if err != nil {
 		t.Fatalf("GetDashboardSummary failed: %v", err)
 	}

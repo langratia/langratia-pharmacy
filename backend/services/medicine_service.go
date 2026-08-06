@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -512,6 +513,9 @@ func (s *MedicineService) populateUnits(medicines []models.Medicine) ([]models.M
 			u.IsBaseUnit = isBase == 1
 			unitMap[u.MedicineID] = append(unitMap[u.MedicineID], u)
 		}
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("medicine_service: error iterating units: %v", err)
 	}
 
 	for i := range medicines {

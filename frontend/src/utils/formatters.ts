@@ -49,3 +49,10 @@ export const sanitizePriceInput = (val: number | string | null | undefined): num
   return parseFloat(formattedStr) || 0;
 };
 
+/**
+ * Capitalizes the first letter of each word in a string.
+ */
+export const capitalizeWords = (str: string): string => {
+  if (!str) return '';
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+};

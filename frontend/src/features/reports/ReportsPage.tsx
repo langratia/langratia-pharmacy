@@ -54,12 +54,20 @@ export const ReportsPage: React.FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [salesPeriod, setSalesPeriod] = useState<string>('this_month');
   const abortRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Refetch sales when period changes
+  useEffect(() => {
+    if (activeTab === 'sales') {
+      loadTabData('sales');
+    }
+  }, [salesPeriod]);
 
   const loadTabData = async (tab: TabKey) => {
     setIsLoading(true);
@@ -90,7 +98,7 @@ export const ReportsPage: React.FC = () => {
       }
 
       if (tab === 'sales') {
-        const summary = await tryLoad(() => GetSalesSummary(), () => (window as any)?.go?.main?.App?.GetSalesSummary?.());
+        const summary = await tryLoad(() => GetSalesSummary(salesPeriod), () => (window as any)?.go?.main?.App?.GetSalesSummary?.(salesPeriod));
         if (abortRef.current) return;
         if (summary) setSalesSummary(summary);
       }
@@ -365,6 +373,30 @@ export const ReportsPage: React.FC = () => {
           {activeTab === 'sales' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
               
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>Period Analysis</div>
+                <select 
+                  value={salesPeriod} 
+                  onChange={(e) => setSalesPeriod(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '24px',
+                    border: '1px solid var(--line)',
+                    background: 'var(--surface)',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--ink)',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="today">Today</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="last_month">Last Month</option>
+                </select>
+              </div>
+
               {/* Sales Metric KPI Cards */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                 <Panel style={{ padding: '16px' }}>
@@ -389,7 +421,9 @@ export const ReportsPage: React.FC = () => {
                 </Panel>
 
                 <Panel style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Completed Orders</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+                    Orders ({salesPeriod.replace('_', ' ')})
+                  </div>
                   <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--ink)' }}>
                     {salesSummary?.total_sales || 0}
                   </div>

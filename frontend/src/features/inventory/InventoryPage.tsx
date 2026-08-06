@@ -69,7 +69,7 @@ import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
 import { ListMedicines, GetExpiringBatches } from '../../../wailsjs/go/main/App';
 
-import { formatCurrency, sanitizePriceInput } from '../../utils/formatters';
+import { formatCurrency, sanitizePriceInput, capitalizeWords } from '../../utils/formatters';
 
 interface InventoryPageProps {
   initialFilter?: string;
@@ -629,7 +629,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   required
                   placeholder="e.g. Amoxicillin Trihydrate 500mg"
                   value={modalFormData.name}
-                  onChange={(e) => setModalFormData({ ...modalFormData, name: e.target.value })}
+                  onChange={(e) => setModalFormData({ ...modalFormData, name: capitalizeWords(e.target.value) })}
                   style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                 />
               </div>
@@ -641,7 +641,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     placeholder="e.g. Amoxicillin"
                     value={modalFormData.generic_name}
-                    onChange={(e) => setModalFormData({ ...modalFormData, generic_name: e.target.value })}
+                    onChange={(e) => setModalFormData({ ...modalFormData, generic_name: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -651,7 +651,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     placeholder="e.g. Amoxil"
                     value={modalFormData.brand_name}
-                    onChange={(e) => setModalFormData({ ...modalFormData, brand_name: e.target.value })}
+                    onChange={(e) => setModalFormData({ ...modalFormData, brand_name: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -825,7 +825,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   required
                   disabled={!canEdit}
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, name: capitalizeWords(e.target.value) })}
                   style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                 />
               </div>
@@ -837,7 +837,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     disabled={!canEdit}
                     value={formData.generic_name}
-                    onChange={(e) => setFormData({ ...formData, generic_name: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, generic_name: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -847,7 +847,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     disabled={!canEdit}
                     value={formData.brand_name}
-                    onChange={(e) => setFormData({ ...formData, brand_name: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, brand_name: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>

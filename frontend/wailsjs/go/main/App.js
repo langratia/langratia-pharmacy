@@ -102,8 +102,8 @@ export function GetDBConnectionStatus() {
   return window['go']['main']['App']['GetDBConnectionStatus']();
 }
 
-export function GetDashboardSummary() {
-  return window['go']['main']['App']['GetDashboardSummary']();
+export function GetDashboardSummary(arg1) {
+  return window['go']['main']['App']['GetDashboardSummary'](arg1);
 }
 
 export function GetExpiringBatches(arg1) {
@@ -138,8 +138,8 @@ export function GetRolePermissions(arg1) {
   return window['go']['main']['App']['GetRolePermissions'](arg1);
 }
 
-export function GetSalesSummary() {
-  return window['go']['main']['App']['GetSalesSummary']();
+export function GetSalesSummary(arg1) {
+  return window['go']['main']['App']['GetSalesSummary'](arg1);
 }
 
 export function GetShiftZReport(arg1) {

@@ -74,8 +74,38 @@ func NewReportService(database *db.DB) *ReportService {
 	return &ReportService{db: database}
 }
 
+// GetDateRange returns the start and end date strings (YYYY-MM-DD) for a given period.
+func GetDateRange(period string) (string, string) {
+	now := time.Now()
+	var startDate, endDate time.Time
+
+	switch period {
+	case "this_week":
+		offset := int(time.Monday - now.Weekday())
+		if offset > 0 {
+			offset = -6
+		}
+		startDate = now.AddDate(0, 0, offset)
+		endDate = now
+	case "this_month":
+		startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+		endDate = now
+	case "last_month":
+		startDate = time.Date(now.Year(), now.Month()-1, 1, 0, 0, 0, 0, now.Location())
+		endDate = startDate.AddDate(0, 1, -1)
+	case "today":
+		fallthrough
+	default:
+		startDate = now
+		endDate = now
+	}
+
+	return startDate.Format("2006-01-02"), endDate.Format("2006-01-02")
+}
+
 // GetDashboardSummary returns operational statistics for the main dashboard.
-func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
+func (s *ReportService) GetDashboardSummary(period string) (*DashboardSummary, error) {
+	startDateStr, endDateStr := GetDateRange(period)
 	todayStr := time.Now().Format("2006-01-02")
 	ninetyDaysStr := time.Now().AddDate(0, 0, 90).Format("2006-01-02")
 
@@ -87,10 +117,10 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		SalesTrend:      []SalesTrendPoint{},
 	}
 
-	// 1. Sales Today (UGX)
-	salesQuery := `SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date) = date(?)`
-	if err := s.db.QueryRow(salesQuery, todayStr).Scan(&summary.SalesToday); err != nil {
-		return nil, fmt.Errorf("failed to query sales today: %w", err)
+	// 1. Sales (UGX)
+	salesQuery := `SELECT COALESCE(SUM(total_amount), 0.0) FROM sales WHERE date(sale_date, 'localtime') >= date(?) AND date(sale_date, 'localtime') <= date(?)`
+	if err := s.db.QueryRow(salesQuery, startDateStr, endDateStr).Scan(&summary.SalesToday); err != nil {
+		return nil, fmt.Errorf("failed to query sales for period: %w", err)
 	}
 
 	// 2. Total active medicines
@@ -121,7 +151,8 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		SELECT s.id, s.invoice_number, COALESCE(u.username, 'System'), s.sale_date, s.total_amount, s.payment_method
 		FROM sales s
 		LEFT JOIN users u ON s.user_id = u.id
-		ORDER BY s.sale_date DESC LIMIT 5`)
+		WHERE date(s.sale_date, 'localtime') >= date(?) AND date(s.sale_date, 'localtime') <= date(?)
+		ORDER BY s.sale_date DESC LIMIT 5`, startDateStr, endDateStr)
 	if err == nil {
 		defer salesRows.Close()
 		for salesRows.Next() {
@@ -142,7 +173,8 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		SELECT p.id, p.invoice_number, COALESCE(sup.name, 'Direct'), p.purchase_date, p.total_amount, COALESCE(p.notes, '')
 		FROM purchases p
 		LEFT JOIN suppliers sup ON p.supplier_id = sup.id
-		ORDER BY p.purchase_date DESC LIMIT 5`)
+		WHERE date(p.purchase_date, 'localtime') >= date(?) AND date(p.purchase_date, 'localtime') <= date(?)
+		ORDER BY p.purchase_date DESC LIMIT 5`, startDateStr, endDateStr)
 	if err == nil {
 		defer purRows.Close()
 		for purRows.Next() {
@@ -202,16 +234,15 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		}
 	}
 
-	// 10. 7-Day Sales Trend — single query instead of 7 individual queries
+	// 10. Sales Trend — Dynamic based on period
 	trendRows, err := s.db.Query(`
 		SELECT date(sale_date, 'localtime') as day, COALESCE(SUM(total_amount), 0.0)
 		FROM sales
-		WHERE date(sale_date, 'localtime') >= date('now', '-6 days', 'localtime')
+		WHERE date(sale_date, 'localtime') >= date(?) AND date(sale_date, 'localtime') <= date(?)
 		GROUP BY date(sale_date, 'localtime')
-		ORDER BY day ASC`)
+		ORDER BY day ASC`, startDateStr, endDateStr)
 	if err == nil {
 		defer trendRows.Close()
-		// Build a map of existing data
 		trendMap := make(map[string]float64)
 		for trendRows.Next() {
 			var day string
@@ -223,9 +254,38 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 		if err := trendRows.Err(); err != nil {
 			log.Printf("dashboard: error in sales trend iteration: %v", err)
 		}
-		// Fill in all 7 days (including 0 for missing days)
-		for i := 6; i >= 0; i-- {
-			dStr := time.Now().AddDate(0, 0, -i).Format("2006-01-02")
+		// Fill in all days in the range
+		startT, _ := time.Parse("2006-01-02", startDateStr)
+		endT, _ := time.Parse("2006-01-02", endDateStr)
+		
+		// If period is today, show last 7 days so the trend graph isn't a single dot
+		if period == "today" || period == "" {
+			startT = time.Now().AddDate(0, 0, -6)
+			endT = time.Now()
+			
+			// Re-query just for the trend in this specific case to get the right data
+			trendRows7, err7 := s.db.Query(`
+				SELECT date(sale_date, 'localtime') as day, COALESCE(SUM(total_amount), 0.0)
+				FROM sales
+				WHERE date(sale_date, 'localtime') >= date(?) AND date(sale_date, 'localtime') <= date(?)
+				GROUP BY date(sale_date, 'localtime')`, startT.Format("2006-01-02"), endT.Format("2006-01-02"))
+			if err7 == nil {
+				defer trendRows7.Close()
+				for trendRows7.Next() {
+					var day string
+					var amt float64
+					if trendRows7.Scan(&day, &amt) == nil {
+						trendMap[day] = amt
+					}
+				}
+				if err := trendRows7.Err(); err != nil {
+					log.Printf("dashboard: error in trend 7 days iteration: %v", err)
+				}
+			}
+		}
+
+		for d := startT; !d.After(endT); d = d.AddDate(0, 0, 1) {
+			dStr := d.Format("2006-01-02")
 			summary.SalesTrend = append(summary.SalesTrend, SalesTrendPoint{
 				Date:   dStr,
 				Amount: trendMap[dStr],
@@ -239,7 +299,8 @@ func (s *ReportService) GetDashboardSummary() (*DashboardSummary, error) {
 }
 
 // GetSalesSummary returns aggregated sales data for reports.
-func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
+func (s *ReportService) GetSalesSummary(period string) (*SalesSummary, error) {
+	startDateStr, endDateStr := GetDateRange(period)
 	todayStr := time.Now().Format("2006-01-02")
 	weekAgoStr := time.Now().AddDate(0, 0, -6).Format("2006-01-02")
 	monthStart := time.Now().AddDate(0, 0, -(time.Now().Day()-1)).Format("2006-01-02")
@@ -258,15 +319,16 @@ func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
 	// Month total
 	s.db.QueryRow(`SELECT COALESCE(SUM(total_amount),0.0) FROM sales WHERE date(sale_date)>=date(?)`, monthStart).Scan(&ss.MonthTotal)
 
-	// Total sales count
-	s.db.QueryRow(`SELECT COUNT(*) FROM sales`).Scan(&ss.TotalSales)
+	// Total sales count in period
+	s.db.QueryRow(`SELECT COUNT(*) FROM sales WHERE date(sale_date, 'localtime') >= date(?) AND date(sale_date, 'localtime') <= date(?)`, startDateStr, endDateStr).Scan(&ss.TotalSales)
 
 	// By payment method — group by actual payment_method column
 	rows, err := s.db.Query(`
 		SELECT payment_method, COUNT(*), COALESCE(SUM(total_amount), 0.0)
 		FROM sales
+		WHERE date(sale_date, 'localtime') >= date(?) AND date(sale_date, 'localtime') <= date(?)
 		GROUP BY payment_method
-		ORDER BY payment_method`)
+		ORDER BY payment_method`, startDateStr, endDateStr)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -282,14 +344,16 @@ func (s *ReportService) GetSalesSummary() (*SalesSummary, error) {
 		}
 	}
 
-	// Top 10 products by quantity sold
+	// Top 10 products by quantity sold in period
 	prodRows, err := s.db.Query(`
 		SELECT si.medicine_id, COALESCE(m.name,'Unknown'), SUM(si.quantity), COALESCE(SUM(si.subtotal),0.0)
 		FROM sale_items si
+		JOIN sales s ON si.sale_id = s.id
 		JOIN medicines m ON si.medicine_id = m.id
+		WHERE date(s.sale_date, 'localtime') >= date(?) AND date(s.sale_date, 'localtime') <= date(?)
 		GROUP BY si.medicine_id
 		ORDER BY SUM(si.quantity) DESC
-		LIMIT 10`)
+		LIMIT 10`, startDateStr, endDateStr)
 	if err == nil {
 		defer prodRows.Close()
 		for prodRows.Next() {
