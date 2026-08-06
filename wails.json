@@ -1,36 +1,36 @@
 {
-    "$schema":  "https://wails.io/schemas/config.v2.json",
-    "name":  "langratia-pharmacy-pos",
-    "outputfilename":  "LangratiaPharmacyPOS",
-    "frontend:install":  "npm install",
-    "frontend:build":  "npm run build",
-    "frontend:dev:watcher":  "npm run dev",
-    "frontend:dev:serverUrl":  "auto",
-    "author":  {
-                   "name":  "allaninfo-comp",
-                   "email":  "allan.info.comp@gmail.com"
-               },
-    "info":  {
-                 "companyName":  "Langratia Systems",
-                 "productName":  "Langratia Pharmacy POS",
-                 "productVersion":  "2.3.0",
-                 "copyright":  "Copyright 2026 Langratia Systems"
-             },
-    "windows":  {
-                    "webview2":  "download",
-                    "nsis":  {
-                                 "name":  "Langratia Pharmacy POS",
-                                 "displayName":  "Langratia Pharmacy Point of Sale",
-                                 "publisher":  "Langratia Systems",
-                                 "description":  "Enterprise Pharmacy Management \u0026 POS System",
-                                 "installMode":  "perMachine",
-                                 "installerIcon":  "build/windows/icon.ico",
-                                 "installerHeaderIcon":  "build/windows/icon.ico",
-                                 "includeDesktopShortcut":  true,
-                                 "includeStartMenuShortcut":  true,
-                                 "createDesktopShortcut":  true,
-                                 "createStartMenuShortcut":  true,
-                                 "shortcutName":  "Langratia Pharmacy POS"
-                             }
-                }
+    "$schema": "https://wails.io/schemas/config.v2.json",
+    "name": "langratia-pharmacy-pos",
+    "outputfilename": "LangratiaPharmacyPOS",
+    "frontend:install": "npm install",
+    "frontend:build": "npm run build",
+    "frontend:dev:watcher": "npm run dev",
+    "frontend:dev:serverUrl": "auto",
+    "author": {
+        "name": "allaninfo-comp",
+        "email": "allan.info.comp@gmail.com"
+    },
+    "info": {
+        "companyName": "Langratia Systems",
+        "productName": "Langratia Pharmacy POS",
+        "productVersion": "2.4.0",
+        "copyright": "Copyright 2026 Langratia Systems"
+    },
+    "windows": {
+        "webview2": "download",
+        "nsis": {
+            "name": "Langratia Pharmacy POS",
+            "displayName": "Langratia Pharmacy Point of Sale",
+            "publisher": "Langratia Systems",
+            "description": "Enterprise Pharmacy Management \u0026 POS System",
+            "installMode": "perMachine",
+            "installerIcon": "build/windows/icon.ico",
+            "installerHeaderIcon": "build/windows/icon.ico",
+            "includeDesktopShortcut": true,
+            "includeStartMenuShortcut": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "shortcutName": "Langratia Pharmacy POS"
+        }
+    }
 }
