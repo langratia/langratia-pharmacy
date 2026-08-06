@@ -54,6 +54,16 @@ type Medicine struct {
 	ProductStatus       string    `json:"product_status"`
 	IsArchived          bool      `json:"is_archived"`
 	CreatedAt           time.Time `json:"created_at"`
+	Units               []MedicineUnit `json:"units,omitempty"`
+}
+
+type MedicineUnit struct {
+	ID               int64   `json:"id"`
+	MedicineID       int64   `json:"medicine_id"`
+	UnitName         string  `json:"unit_name"`
+	ConversionFactor int     `json:"conversion_factor"`
+	Price            float64 `json:"price"`
+	IsBaseUnit       bool    `json:"is_base_unit"`
 }
 
 type Batch struct {
@@ -113,10 +123,12 @@ type SaleItem struct {
 	MedicineID   int64   `json:"medicine_id"`
 	MedicineName string  `json:"medicine_name,omitempty"`
 	BatchID      int64   `json:"batch_id"`
-	BatchNumber  string  `json:"batch_number,omitempty"`
-	Quantity     int     `json:"quantity"`
-	UnitPrice    float64 `json:"unit_price"`
-	Subtotal     float64 `json:"subtotal"`
+	BatchNumber      string  `json:"batch_number,omitempty"`
+	UnitName         string  `json:"unit_name,omitempty"`
+	ConversionFactor int     `json:"conversion_factor,omitempty"`
+	Quantity         int     `json:"quantity"`
+	UnitPrice        float64 `json:"unit_price"`
+	Subtotal         float64 `json:"subtotal"`
 }
 
 type StockAdjustment struct {

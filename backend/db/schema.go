@@ -342,6 +342,23 @@ var Migrations = []Migration{
 			CREATE INDEX IF NOT EXISTS idx_prescriptions_status ON prescriptions(status, created_at);
 		`,
 	},
-}
+	{
+		Version:     10,
+		Description: "Add medicine_units table and unit tracking to sale_items for multi-unit sales",
+		Script: `
+			CREATE TABLE IF NOT EXISTS medicine_units (
+			    id INTEGER PRIMARY KEY AUTOINCREMENT,
+			    medicine_id INTEGER NOT NULL,
+			    unit_name TEXT NOT NULL,
+			    conversion_factor INTEGER NOT NULL DEFAULT 1,
+			    price REAL NOT NULL,
+			    is_base_unit INTEGER NOT NULL DEFAULT 0,
+			    FOREIGN KEY(medicine_id) REFERENCES medicines(id) ON DELETE CASCADE
+			);
 
+			ALTER TABLE sale_items ADD COLUMN unit_name TEXT DEFAULT '';
+			ALTER TABLE sale_items ADD COLUMN conversion_factor INTEGER DEFAULT 1;
+		`,
+	},
+}
 

@@ -42,6 +42,16 @@ export interface Medicine {
   barcode?: string;
   is_archived: boolean;
   created_at: string;
+  units?: MedicineUnit[];
+}
+
+export interface MedicineUnit {
+  id: number;
+  medicine_id: number;
+  unit_name: string;
+  conversion_factor: number;
+  price: number;
+  is_base_unit: boolean;
 }
 
 export interface Batch {

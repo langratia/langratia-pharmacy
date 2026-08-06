@@ -6,6 +6,7 @@ import { PermissionProvider } from './context/PermissionContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { PharmacyProvider } from './context/PharmacyContext';
 import { LoginPage } from './features/auth/LoginPage';
+import { ActivationPage } from './features/auth/ActivationPage';
 import { MainLayout } from './components/layout/MainLayout';
 import { NavItemKey } from './components/layout/Sidebar';
 import { CommandPalette } from './components/ui/CommandPalette';
@@ -32,6 +33,33 @@ const MainApp: React.FC = () => {
   const [inventoryFilter, setInventoryFilter] = useState<string>('all');
   const [posCartItems, setPosCartItems] = useState<any[]>([]);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  // --- License State ---
+  const [isLocked, setIsLocked] = useState(false);
+  const [machineId, setMachineId] = useState('');
+  const [lockReason, setLockReason] = useState('');
+  const [isCheckingLicense, setIsCheckingLicense] = useState(true);
+
+  useEffect(() => {
+    const checkLicense = async () => {
+      try {
+        const wailsApp = (window as any).go?.main?.App;
+        if (!wailsApp) {
+          setIsCheckingLicense(false);
+          return;
+        }
+        const res = await wailsApp.GetLicenseStatus();
+        setIsLocked(res.is_locked);
+        setMachineId(res.machine_id);
+        setLockReason(res.reason);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsCheckingLicense(false);
+      }
+    };
+    checkLicense();
+  }, []);
 
   useEffect(() => { loadCurrency(); }, []);
 
@@ -60,6 +88,24 @@ const MainApp: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  if (isCheckingLicense) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100vw', background: '#0F3526', color: '#fff' }}>
+        <Loader size={24} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <ActivationPage 
+        machineId={machineId} 
+        lockReason={lockReason} 
+        onActivated={() => setIsLocked(false)} 
+      />
+    );
+  }
 
   if (!user) {
     return <LoginPage />;

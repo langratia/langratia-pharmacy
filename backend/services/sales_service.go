@@ -42,10 +42,12 @@ func NewSalesService(database *db.DB, batchService *BatchService) *SalesService 
 
 
 type CartItemInput struct {
-	MedicineID     int64   `json:"medicine_id"`
-	Quantity       int     `json:"quantity"`
-	UnitPrice      float64 `json:"unit_price"`
-	PrescriptionID *int64  `json:"prescription_id,omitempty"`
+	MedicineID       int64   `json:"medicine_id"`
+	Quantity         int     `json:"quantity"` // Quantity in the selected unit
+	UnitPrice        float64 `json:"unit_price"` // Price per selected unit
+	UnitName         string  `json:"unit_name,omitempty"`
+	ConversionFactor int     `json:"conversion_factor,omitempty"`
+	PrescriptionID   *int64  `json:"prescription_id,omitempty"`
 }
 
 
@@ -129,8 +131,14 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 			_, _ = tx.Exec(`UPDATE prescription_items SET quantity_dispensed = quantity_prescribed WHERE prescription_id = ? AND medicine_id = ?`, *cartItem.PrescriptionID, cartItem.MedicineID)
 		}
 
-		// Deduct stock using FEFO
-		deductions, err := s.batchService.DeductStockFEFO(tx, cartItem.MedicineID, cartItem.Quantity)
+		// Deduct stock using FEFO. Quantity to deduct is Cart Quantity * ConversionFactor.
+		factor := cartItem.ConversionFactor
+		if factor <= 0 {
+			factor = 1
+		}
+		baseQuantityToDeduct := cartItem.Quantity * factor
+		
+		deductions, err := s.batchService.DeductStockFEFO(tx, cartItem.MedicineID, baseQuantityToDeduct)
 		if err != nil {
 			return nil, fmt.Errorf("failed FEFO stock deduction for medicine ID %d: %w", cartItem.MedicineID, err)
 		}
@@ -143,11 +151,13 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 		}
 
 		for _, d := range deductions {
-			subtotal := cartItem.UnitPrice * float64(d.QuantityDeducted)
+			// Subtotal for this specific batch deduction based on proportion of base units
+			proportion := float64(d.QuantityDeducted) / float64(baseQuantityToDeduct)
+			subtotal := (cartItem.UnitPrice * float64(cartItem.Quantity)) * proportion
 
 			itemRes, err := tx.Exec(
-				`INSERT INTO sale_items (sale_id, medicine_id, batch_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?)`,
-				saleID, cartItem.MedicineID, d.BatchID, d.QuantityDeducted, cartItem.UnitPrice, subtotal,
+				`INSERT INTO sale_items (sale_id, medicine_id, batch_id, quantity, unit_price, subtotal, unit_name, conversion_factor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				saleID, cartItem.MedicineID, d.BatchID, d.QuantityDeducted, cartItem.UnitPrice, subtotal, cartItem.UnitName, factor,
 			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to record sale item: %w", err)

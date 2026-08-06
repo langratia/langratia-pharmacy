@@ -757,7 +757,7 @@ export const SettingsPage: React.FC = () => {
         {navTabBtn('users', 'User Accounts', <Users size={15} />)}
         {can('export_data') && navTabBtn('backups', 'DB & Backups', <Database size={15} />)}
         {can('view_audit_logs') && navTabBtn('audit', 'Audit Logs', <Shield size={15} />)}
-        {navTabBtn('network', 'Network Setup', <Network size={15} />)}
+
         {can('manage_users') && navTabBtn('permissions', 'Permissions', <CheckSquare size={15} />)}
         {can('manage_settings') && navTabBtn('pharmacy', 'Pharmacy Setup', <Building2 size={15} />)}
       </div>

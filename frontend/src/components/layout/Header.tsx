@@ -316,29 +316,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
             <Search size={16} />
           </button>
 
-          {/* Network status */}
-          {networkStatus && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '5px 12px',
-                background: networkStatus.is_host
-                  ? 'rgba(20, 240, 109, 0.08)'
-                  : 'rgba(18, 108, 255, 0.08)',
-                border: `1px solid ${networkStatus.is_host ? 'rgba(20, 240, 109, 0.25)' : 'rgba(18, 108, 255, 0.25)'}`,
-                borderRadius: '20px',
-                color: networkStatus.is_host ? 'var(--green)' : 'var(--blue)',
-                fontSize: '12px',
-                fontWeight: 600,
-              }}
-              title={networkStatus.is_host ? 'Local Database' : `Connected: ${networkStatus.db_path}`}
-            >
-              {networkStatus.is_host ? <Server size={13} /> : <Monitor size={13} />}
-              <span>{networkStatus.is_host ? 'Main Server' : 'Connected'}</span>
-            </div>
-          )}
+
 
           {/* Today's sales */}
           <div

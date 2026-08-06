@@ -43,6 +43,7 @@ type App struct {
 	permissionService	*services.PermissionService
 	configService		*services.ConfigService
 	shiftService		*services.ShiftService
+	licenseService		*services.LicenseService
 	apiURL			string
 }
 
@@ -54,6 +55,12 @@ type Config struct {
 type NetworkStatus struct {
 	IsHost	bool	`json:"is_host"`
 	DBPath	string	`json:"db_path"`
+}
+
+type LicenseStatusResponse struct {
+	IsLocked  bool   `json:"is_locked"`
+	MachineID string `json:"machine_id"`
+	Reason    string `json:"reason"`
 }
 
 // NewApp creates a new App application struct
@@ -171,6 +178,7 @@ func (a *App) startup(ctx context.Context) {
 		a.permissionService = services.NewPermissionService(a.database)
 		a.configService = services.NewConfigService(a.database)
 		a.shiftService = services.NewShiftService(a.database)
+		a.licenseService = services.NewLicenseService(a.database)
 
 		// Network / Proxy Initialization
 		if customConfig.DBPath != "" && strings.HasPrefix(customConfig.DBPath, "http://") {
@@ -301,6 +309,7 @@ func (a *App) SetDatabaseForTest(database *db.DB) {
 	a.permissionService = services.NewPermissionService(database)
 	a.configService = services.NewConfigService(database)
 	a.shiftService = services.NewShiftService(database)
+	a.licenseService = services.NewLicenseService(database)
 }
 
 // SetAPIURLForTest allows forcing the App into client mode for testing.
@@ -321,6 +330,29 @@ func (a *App) CompleteFirstTimeSetup(pharmacyName, fullName, username, password 
 		return nil, fmt.Errorf("service not initialized")
 	}
 	return a.authService.CompleteFirstTimeSetup(pharmacyName, fullName, username, password)
+}
+
+// DRM / Licensing API Bindings
+func (a *App) GetLicenseStatus() LicenseStatusResponse {
+	if a.licenseService == nil {
+		return LicenseStatusResponse{IsLocked: true, MachineID: "", Reason: "Service not initialized"}
+	}
+	err := a.licenseService.VerifyLicense()
+	isLocked := err != nil
+	
+	machineID, _ := a.licenseService.GetMachineID()
+	var reason string
+	if err != nil {
+		reason = err.Error()
+	}
+	return LicenseStatusResponse{IsLocked: isLocked, MachineID: machineID, Reason: reason}
+}
+
+func (a *App) ActivateLicense(key string) error {
+	if a.licenseService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.licenseService.ActivateLicense(key)
 }
 
 func (a *App) Login(username, password, workstation string) (*models.User, error) {

@@ -14,7 +14,52 @@ import {
   X,
   CheckCircle2
 } from 'lucide-react';
-import { Medicine, Supplier } from '../../types';
+import { Medicine, Supplier, MedicineUnit } from '../../types';
+
+const UgandanUnits = ['Tablet', 'Capsule', 'Tin', 'Sachet', 'Strip / Blister', 'Box', 'Bottle', 'Piece', 'Dose', 'Vial', 'Ampoule'];
+
+function UnitsEditor({ units, onChange }: { units: MedicineUnit[], onChange: (units: MedicineUnit[]) => void }) {
+  const handleAdd = () => {
+    onChange([...units, { id: 0, medicine_id: 0, unit_name: 'Box', conversion_factor: 10, price: 0, is_base_unit: false }]);
+  };
+  const handleRemove = (index: number) => {
+    onChange(units.filter((_, i) => i !== index));
+  };
+  const handleChange = (index: number, field: keyof MedicineUnit, value: any) => {
+    const newUnits = [...units];
+    newUnits[index] = { ...newUnits[index], [field]: value };
+    onChange(newUnits);
+  };
+  return (
+    <div style={{ marginTop: '4px', padding: '16px', background: 'var(--surface-soft)', borderRadius: '8px', border: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h4 style={{ margin: 0, fontSize: '13px', color: 'var(--ink)' }}>Packaging & Units</h4>
+        <button type="button" onClick={handleAdd} className="btn" style={{ padding: '4px 8px', fontSize: '12px' }}>+ Add Unit</button>
+      </div>
+      {units.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>No custom units defined. Sales will default to the Base Selling Price.</p> : null}
+      {units.map((u, i) => (
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '8px', marginBottom: '8px', alignItems: 'end' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>Unit Name (e.g. Box, Strip)</label>
+            <select value={u.unit_name} onChange={e => handleChange(i, 'unit_name', e.target.value)} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }}>
+               {UgandanUnits.map(uu => <option key={uu} value={uu}>{uu}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>Qty per Unit</label>
+            <input type="number" min="1" value={u.conversion_factor} onChange={e => handleChange(i, 'conversion_factor', parseInt(e.target.value) || 1)} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>Price (UGX)</label>
+            <input type="number" min="0" value={u.price} onChange={e => handleChange(i, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }} />
+          </div>
+          <button type="button" onClick={() => handleRemove(i)} className="btn" style={{ height: '32px', padding: '0 8px', color: 'var(--red)' }}><X size={14}/></button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
 import { Panel } from '../../components/ui/Panel';
@@ -48,7 +93,8 @@ const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'cre
   description: '',
   tax_rate: 0,
   requires_prescription: false,
-  product_status: 'active'
+  product_status: 'active',
+  units: []
 };
 
 export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onFilterChange }) => {
@@ -124,9 +170,9 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       }
       setMedicines(data || []);
 
-      // Auto select first medicine only on initial load
+      // Auto select first medicine only on initial load (without opening the modal)
       if (data && data.length > 0 && !selectedMedicine && !isNewRecord && medicines.length === 0) {
-        handleSelectMedicine(data[0]);
+        handleSelectMedicine(data[0], false);
       }
     } catch (err: any) {
       console.error('Failed to fetch medicines', err);
@@ -152,7 +198,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     })();
   }, []);
 
-  const handleSelectMedicine = (med: Medicine) => {
+  const handleSelectMedicine = (med: Medicine, openModal: boolean = true) => {
     setSelectedMedicine(med);
     setInspectorError(null);
     setFormData({
@@ -172,9 +218,12 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       description: med.description,
       tax_rate: med.tax_rate,
       requires_prescription: med.requires_prescription,
-      product_status: med.product_status
+      product_status: med.product_status,
+      units: med.units || []
     });
-    setIsEditModalOpen(true);
+    if (openModal) {
+      setIsEditModalOpen(true);
+    }
   };
 
   const handleCreateNewRecord = () => {
@@ -713,6 +762,11 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 </label>
               </div>
 
+              <UnitsEditor 
+                units={modalFormData.units || []} 
+                onChange={u => setModalFormData({ ...modalFormData, units: u })} 
+              />
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn">Cancel</button>
                 <button type="submit" className="btn btn-primary" style={{ gap: '6px' }}>
@@ -896,6 +950,13 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   />
                 </div>
               </div>
+
+              {canEdit && (
+                <UnitsEditor 
+                  units={formData.units || []} 
+                  onChange={u => setFormData({ ...formData, units: u })} 
+                />
+              )}
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px' }}>
                 {canEdit && selectedMedicine && (

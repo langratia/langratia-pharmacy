@@ -77,6 +77,10 @@ func (s *MedicineService) AddMedicine(med models.Medicine, userID int64, usernam
 		)
 	}
 
+	if err := s.syncMedicineUnits(id, med.Units); err != nil {
+		s.logAction(userID, username, "ADD_MEDICINE_WARNING", fmt.Sprintf("Added medicine %s but failed to sync units: %v", med.Name, err))
+	}
+
 	s.logAction(userID, username, "ADD_MEDICINE", fmt.Sprintf("Added medicine %s (ID: %d)", med.Name, med.ID))
 	return &med, nil
 }
@@ -146,6 +150,12 @@ func (s *MedicineService) UpdateMedicine(med models.Medicine, userID int64, user
 		s.logAction(userID, username, "UPDATE_MEDICINE",
 			fmt.Sprintf("Updated medicine %s (ID: %d) — no field changes", med.Name, med.ID))
 	}
+
+	// Always sync units, since we don't track field-level changes for nested arrays easily yet
+	if err := s.syncMedicineUnits(med.ID, med.Units); err != nil {
+		s.logAction(userID, username, "UPDATE_MEDICINE_WARNING", fmt.Sprintf("Failed to sync units for %s: %v", med.Name, err))
+	}
+
 	return nil
 }
 
@@ -228,7 +238,7 @@ func (s *MedicineService) ListMedicines(search, category string, includeArchived
 		return nil, err
 	}
 
-	return medicines, nil
+	return s.populateUnits(medicines)
 }
 
 // ListMedicinesPaginated retrieves medicines with pagination support.
@@ -301,6 +311,8 @@ func (s *MedicineService) ListMedicinesPaginated(search, category string, includ
 		return nil, err
 	}
 
+	medicines, _ = s.populateUnits(medicines)
+
 	return &models.PaginatedMedicines{
 		Items:      medicines,
 		TotalCount: totalCount,
@@ -324,12 +336,18 @@ func (s *MedicineService) GetMedicineByID(id int64) (*models.Medicine, error) {
 		&m.TaxRate, &reqRxInt, &m.ProductStatus,
 		&isArchivedInt, &m.CreatedAt, &supName,
 	)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("medicine not found")
-	}
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("medicine not found")
+		}
 		return nil, err
 	}
+	
+	meds, _ := s.populateUnits([]models.Medicine{m})
+	if len(meds) > 0 {
+		return &meds[0], nil
+	}
+	
 	m.IsArchived = isArchivedInt == 1
 	m.RequiresPrescription = reqRxInt == 1
 	if supName.Valid {
@@ -450,4 +468,61 @@ func checkChangeSupplier(changes *[]string, field string, oldID *int64, oldName 
 	if (oldID == nil && newID != nil) || (oldID != nil && newID == nil) || (oldID != nil && newID != nil && *oldID != *newID) {
 		*changes = append(*changes, fmt.Sprintf("%s: %s -> %s", field, oldStr, newStr))
 	}
+}
+
+func (s *MedicineService) syncMedicineUnits(medID int64, units []models.MedicineUnit) error {
+	// Simple approach: delete existing and insert new ones
+	if _, err := s.db.Exec(`DELETE FROM medicine_units WHERE medicine_id = ?`, medID); err != nil {
+		return err
+	}
+	
+	if len(units) == 0 {
+		return nil
+	}
+	
+	for _, u := range units {
+		isBase := 0
+		if u.IsBaseUnit {
+			isBase = 1
+		}
+		if _, err := s.db.Exec(`INSERT INTO medicine_units (medicine_id, unit_name, conversion_factor, price, is_base_unit) VALUES (?, ?, ?, ?, ?)`,
+			medID, u.UnitName, u.ConversionFactor, u.Price, isBase); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *MedicineService) populateUnits(medicines []models.Medicine) ([]models.Medicine, error) {
+	if len(medicines) == 0 {
+		return medicines, nil
+	}
+	
+	rows, err := s.db.Query(`SELECT id, medicine_id, unit_name, conversion_factor, price, is_base_unit FROM medicine_units`)
+	if err != nil {
+		return medicines, nil
+	}
+	defer rows.Close()
+
+	unitMap := make(map[int64][]models.MedicineUnit)
+	for rows.Next() {
+		var u models.MedicineUnit
+		var isBase int
+		if err := rows.Scan(&u.ID, &u.MedicineID, &u.UnitName, &u.ConversionFactor, &u.Price, &isBase); err == nil {
+			u.IsBaseUnit = isBase == 1
+			unitMap[u.MedicineID] = append(unitMap[u.MedicineID], u)
+		}
+	}
+
+	for i := range medicines {
+		if units, ok := unitMap[medicines[i].ID]; ok && len(units) > 0 {
+			medicines[i].Units = units
+		} else {
+			medicines[i].Units = []models.MedicineUnit{
+				{MedicineID: medicines[i].ID, UnitName: "Tablet/Item", ConversionFactor: 1, Price: medicines[i].SellingPrice, IsBaseUnit: true},
+			}
+		}
+	}
+
+	return medicines, nil
 }

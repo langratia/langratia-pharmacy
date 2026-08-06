@@ -6,3 +6,6 @@ frontend/dist
 *.db-shm
 config.json
 dummy_medicines.csv
+scratch/
+app
+*.exe

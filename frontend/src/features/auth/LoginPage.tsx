@@ -302,13 +302,7 @@ export const LoginPage: React.FC = () => {
                 }}>
                   Inventory & Batch Tracking
                 </span>
-                <span style={{
-                  fontSize: '11px', fontWeight: 700, color: '#174B37',
-                  background: 'rgba(23, 75, 55, 0.08)', border: '1px solid rgba(23, 75, 55, 0.15)',
-                  padding: '5px 12px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center',
-                }}>
-                  Secure Offline & Network Mode
-                </span>
+
               </div>
 
               <div style={{
@@ -430,18 +424,7 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => { setIsConnectingMode(true); setSetupError(''); }}
-            style={{
-              background: 'none', border: 'none', color: '#174B37',
-              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            Or connect to an existing Main Server
-          </button>
-        </div>
+
       </>
     );
   }

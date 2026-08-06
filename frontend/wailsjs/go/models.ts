@@ -191,6 +191,28 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class MedicineUnit {
+	    id: number;
+	    medicine_id: number;
+	    unit_name: string;
+	    conversion_factor: number;
+	    price: number;
+	    is_base_unit: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new MedicineUnit(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.medicine_id = source["medicine_id"];
+	        this.unit_name = source["unit_name"];
+	        this.conversion_factor = source["conversion_factor"];
+	        this.price = source["price"];
+	        this.is_base_unit = source["is_base_unit"];
+	    }
+	}
 	export class Medicine {
 	    id: number;
 	    name: string;
@@ -214,6 +236,7 @@ export namespace models {
 	    is_archived: boolean;
 	    // Go type: time
 	    created_at: any;
+	    units?: MedicineUnit[];
 	
 	    static createFrom(source: any = {}) {
 	        return new Medicine(source);
@@ -242,6 +265,7 @@ export namespace models {
 	        this.product_status = source["product_status"];
 	        this.is_archived = source["is_archived"];
 	        this.created_at = this.convertValues(source["created_at"], null);
+	        this.units = this.convertValues(source["units"], MedicineUnit);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -262,6 +286,7 @@ export namespace models {
 		    return a;
 		}
 	}
+	
 	export class NotificationItem {
 	    id: string;
 	    type: string;
@@ -626,6 +651,8 @@ export namespace models {
 	    medicine_name?: string;
 	    batch_id: number;
 	    batch_number?: string;
+	    unit_name?: string;
+	    conversion_factor?: number;
 	    quantity: number;
 	    unit_price: number;
 	    subtotal: number;
@@ -642,6 +669,8 @@ export namespace models {
 	        this.medicine_name = source["medicine_name"];
 	        this.batch_id = source["batch_id"];
 	        this.batch_number = source["batch_number"];
+	        this.unit_name = source["unit_name"];
+	        this.conversion_factor = source["conversion_factor"];
 	        this.quantity = source["quantity"];
 	        this.unit_price = source["unit_price"];
 	        this.subtotal = source["subtotal"];
@@ -939,6 +968,8 @@ export namespace services {
 	    medicine_id: number;
 	    quantity: number;
 	    unit_price: number;
+	    unit_name?: string;
+	    conversion_factor?: number;
 	    prescription_id?: number;
 	
 	    static createFrom(source: any = {}) {
@@ -950,6 +981,8 @@ export namespace services {
 	        this.medicine_id = source["medicine_id"];
 	        this.quantity = source["quantity"];
 	        this.unit_price = source["unit_price"];
+	        this.unit_name = source["unit_name"];
+	        this.conversion_factor = source["conversion_factor"];
 	        this.prescription_id = source["prescription_id"];
 	    }
 	}

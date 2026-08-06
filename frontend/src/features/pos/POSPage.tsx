@@ -21,7 +21,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { Modal } from '../../components/ui/Modal';
 
-interface CartItem { medicine: Medicine; quantity: number; }
+interface CartItem { medicine: Medicine; quantity: number; selectedUnit?: import('../../types').MedicineUnit; }
 interface POSPageProps { externalCartItems?: CartItem[]; onClearExternalCart?: () => void; }
 
 type PaymentMethod = 'Cash' | 'MobileMoney';
@@ -49,7 +49,13 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   const [categories, setCategories] = useState<string[]>(['All']);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('pos_draft_cart');
+      if (saved) return JSON.parse(saved);
+    } catch { }
+    return [];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isTenderOpen, setIsTenderOpen] = useState(false);
@@ -104,6 +110,11 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
   }, [externalCartItems]);
 
+  /* ── Persist Cart to LocalStorage ───────────────────────────────── */
+  useEffect(() => {
+    localStorage.setItem('pos_draft_cart', JSON.stringify(cart));
+  }, [cart]);
+
   /* ── Fetch medicines (uses debouncedSearch — fix #18) ────────────── */
   const fetchMedicines = useCallback(async () => {
     setIsLoading(true);
@@ -127,7 +138,8 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         if (existing.quantity >= med.current_stock) { toast.error(`Maximum stock reached for ${med.name}`); return prev; }
         return prev.map(i => i.medicine.id === med.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { medicine: med, quantity: 1 }];
+      const defaultUnit = med.units && med.units.length > 0 ? med.units[0] : undefined;
+      return [...prev, { medicine: med, quantity: 1, selectedUnit: defaultUnit }];
     });
   };
 
@@ -137,15 +149,33 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       if (!item) return prev;
       const newQty = item.quantity + delta;
       if (newQty <= 0) { toast.success(`${item.medicine.name} removed`); return prev.filter(i => i.medicine.id !== medId); }
-      if (newQty > item.medicine.current_stock) { toast.error('Stock limit reached'); return prev; }
+      
+      const factor = item.selectedUnit?.conversion_factor || 1;
+      const baseQtyRequired = newQty * factor;
+      if (baseQtyRequired > item.medicine.current_stock) { toast.error('Stock limit reached for selected unit'); return prev; }
+      
       return prev.map(i => i.medicine.id === medId ? { ...i, quantity: newQty } : i);
+    });
+  };
+
+  const handleUpdateUnit = (medId: number, unitId: string) => {
+    setCart(prev => {
+      const item = prev.find(i => i.medicine.id === medId);
+      if (!item) return prev;
+      const unit = item.medicine.units?.find(u => u.id.toString() === unitId) || item.medicine.units?.[0];
+      
+      const factor = unit?.conversion_factor || 1;
+      const baseQtyRequired = item.quantity * factor;
+      if (baseQtyRequired > item.medicine.current_stock) { toast.error('Stock limit reached for this unit change'); return prev; }
+      
+      return prev.map(i => i.medicine.id === medId ? { ...i, selectedUnit: unit } : i);
     });
   };
 
   const handleRemoveFromCart = (medId: number) => setCart(prev => prev.filter(i => i.medicine.id !== medId));
 
   /* ── Totals ──────────────────────────────────────────────────────── */
-  const grossTotal = cart.reduce((sum, item) => sum + (item.medicine.selling_price * item.quantity), 0);
+  const grossTotal = cart.reduce((sum, item) => sum + ((item.selectedUnit?.price || item.medicine.selling_price) * item.quantity), 0);
   let calculatedDiscount = 0;
   if (discountAmount > 0) {
     calculatedDiscount = discountType === 'percent' ? grossTotal * (discountAmount / 100) : discountAmount;
@@ -170,7 +200,14 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     }
 
     setIsProcessing(true);
-    const cartInput = cart.map(item => ({ medicine_id: item.medicine.id, quantity: item.quantity, unit_price: item.medicine.selling_price, prescription_id: (item as any).prescription_id || undefined }));
+    const cartInput = cart.map(item => ({ 
+      medicine_id: item.medicine.id, 
+      quantity: item.quantity, 
+      unit_price: item.selectedUnit?.price || item.medicine.selling_price, 
+      unit_name: item.selectedUnit?.unit_name || 'Item',
+      conversion_factor: item.selectedUnit?.conversion_factor || 1,
+      prescription_id: (item as any).prescription_id || undefined 
+    }));
     try {
       let sale: any = null;
       try { sale = await ProcessSale(user?.id || 1, user?.username || 'cashier', cartInput as any, paymentMethod, discountAmount, discountType, null); }
@@ -535,8 +572,21 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>UGX {formatCurrency(item.medicine.selling_price)}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>UGX {formatCurrency(item.selectedUnit?.price || item.medicine.selling_price)}</span>
+                      {item.medicine.units && item.medicine.units.length > 0 && (
+                        <select
+                          value={item.selectedUnit?.id || ''}
+                          onChange={(e) => handleUpdateUnit(item.medicine.id, e.target.value)}
+                          style={{ fontSize: '11px', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface)' }}
+                        >
+                          {item.medicine.units.map(u => (
+                            <option key={u.id} value={u.id}>{u.unit_name} (x{u.conversion_factor})</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
 
                     {/* Qty controls */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--surface)', border: '1px solid var(--line-strong)', borderRadius: '8px', padding: '3px' }}>
@@ -575,7 +625,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                       </button>
                     </div>
 
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>UGX {formatCurrency(subtotal)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>UGX {formatCurrency((item.selectedUnit?.price || item.medicine.selling_price) * item.quantity)}</span>
                   </div>
                 </div>
               );
