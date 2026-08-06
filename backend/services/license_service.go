@@ -1,12 +1,9 @@
 package services
 
 import (
-	"crypto/ecdsa"
+	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/x509"
-	"encoding/base64"
-	"encoding/json"
-	"encoding/pem"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -15,40 +12,16 @@ import (
 	"app/backend/db"
 )
 
-// The embedded PUBLIC KEY used to verify licenses mathematically.
-// The private key is strictly kept off the customer's machine.
-const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpg5rCaweIpTDA9f99kuecSr/A90R
-Sdd0zihmLsX9sMvWSo+MNgkfexh2uHfjQ98ynFFot38PFcI+IPA/Q0JjBA==
------END PUBLIC KEY-----`
-
-type LicensePayload struct {
-	MachineID string `json:"machine_id"`
-	Signature string `json:"signature"`
-}
+// The embedded SECRET KEY used to verify licenses symmetrically.
+const secretKey = "LANGRATIA_OFFLINE_SECRET_KEY_V1_2026"
 
 type LicenseService struct {
 	db *db.DB
-	publicKey *ecdsa.PublicKey
 }
 
 func NewLicenseService(database *db.DB) *LicenseService {
-	block, _ := pem.Decode([]byte(publicKeyPEM))
-	if block == nil {
-		panic("failed to parse PEM block containing the public key")
-	}
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		panic("failed to parse DER encoded public key: " + err.Error())
-	}
-	ecdsaPub, ok := pub.(*ecdsa.PublicKey)
-	if !ok {
-		panic("public key is not ECDSA")
-	}
-
 	return &LicenseService{
 		db: database,
-		publicKey: ecdsaPub,
 	}
 }
 
@@ -71,7 +44,6 @@ func (s *LicenseService) GetMachineID() (string, error) {
 
 	out, err := cmd.Output()
 	if err != nil {
-		// Fallback for Linux if /etc/machine-id isn't present
 		if runtime.GOOS == "linux" {
 			out, err = exec.Command("cat", "/var/lib/dbus/machine-id").Output()
 			if err != nil {
@@ -84,7 +56,6 @@ func (s *LicenseService) GetMachineID() (string, error) {
 
 	id := strings.TrimSpace(string(out))
 	if runtime.GOOS == "darwin" {
-		// Clean up macOS output to just the UUID string
 		parts := strings.Split(id, "\" = \"")
 		if len(parts) == 2 {
 			id = strings.Trim(parts[1], "\"")
@@ -98,14 +69,25 @@ func (s *LicenseService) GetMachineID() (string, error) {
 	return id, nil
 }
 
-// ActivateLicense takes the base64 JSON payload, verifies it, and saves it.
+// GenerateLicense deterministically generates the 16-character license key for a given Machine ID.
+func (s *LicenseService) GenerateLicense(machineID string) string {
+	mac := hmac.New(sha256.New, []byte(secretKey))
+	mac.Write([]byte(machineID))
+	hashBytes := mac.Sum(nil)
+	hashHex := strings.ToUpper(hex.EncodeToString(hashBytes))
+	
+	// Take first 16 characters and format as XXXX-XXXX-XXXX-XXXX
+	clean := hashHex[:16]
+	return fmt.Sprintf("%s-%s-%s-%s", clean[0:4], clean[4:8], clean[8:12], clean[12:16])
+}
+
+// ActivateLicense takes the 16-character key, verifies it, and saves it.
 func (s *LicenseService) ActivateLicense(licenseKey string) error {
 	err := s.verifyStrict(licenseKey)
 	if err != nil {
 		return fmt.Errorf("invalid license: %w", err)
 	}
 
-	// Save to database
 	s.db.Lock()
 	defer s.db.Unlock()
 	_, err = s.db.Exec("INSERT INTO system_config (key, value) VALUES ('license_key', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", licenseKey)
@@ -128,37 +110,22 @@ func (s *LicenseService) VerifyLicense() error {
 }
 
 func (s *LicenseService) verifyStrict(licenseKey string) error {
-	// 1. Decode base64
-	decodedBytes, err := base64.StdEncoding.DecodeString(licenseKey)
-	if err != nil {
-		return errors.New("malformed license format")
-	}
-
-	// 2. Parse JSON
-	var payload LicensePayload
-	if err := json.Unmarshal(decodedBytes, &payload); err != nil {
-		return errors.New("invalid license payload")
-	}
-
-	// 3. Verify hardware match
 	actualID, err := s.GetMachineID()
 	if err != nil {
 		return fmt.Errorf("could not verify hardware: %w", err)
 	}
-	if payload.MachineID != actualID {
-		return errors.New("machine ID mismatch. This license is tied to different hardware.")
-	}
 
-	// 4. Verify Signature
-	sigBytes, err := base64.StdEncoding.DecodeString(payload.Signature)
-	if err != nil {
-		return errors.New("invalid signature format")
-	}
+	expectedKey := s.GenerateLicense(actualID)
+	
+	// Ensure comparison is clean of spaces
+	cleanInput := strings.ReplaceAll(strings.TrimSpace(strings.ToUpper(licenseKey)), " ", "")
+	
+	// They could paste it with or without dashes, let's normalize both to without dashes for comparison
+	expectedClean := strings.ReplaceAll(expectedKey, "-", "")
+	inputClean := strings.ReplaceAll(cleanInput, "-", "")
 
-	hash := sha256.Sum256([]byte(payload.MachineID))
-	valid := ecdsa.VerifyASN1(s.publicKey, hash[:], sigBytes)
-	if !valid {
-		return errors.New("cryptographic signature verification failed")
+	if inputClean != expectedClean {
+		return errors.New("cryptographic verification failed: key does not match hardware")
 	}
 
 	return nil
