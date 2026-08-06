@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
 )
 
@@ -108,7 +110,24 @@ func (db *DB) Migrate() error {
 	return nil
 }
 
-// seedDefaultAdmin is maintained for backward compatibility migrations, but leaves the users table empty on clean installs to enforce initial onboarding setup.
+// seedDefaultAdmin initializes the default admin user if the users table is empty.
 func (db *DB) seedDefaultAdmin() error {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check users count: %w", err)
+	}
+	if count == 0 {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("7172002"), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		_, err = db.Exec(`INSERT INTO users (username, password_hash, role, full_name, password_changed_at, active) 
+			VALUES (?, ?, 'admin', 'System Administrator', ?, 1)`,
+			"admin@amopharmacy", string(hashedPassword), time.Now())
+		if err != nil {
+			return fmt.Errorf("failed to seed default admin: %w", err)
+		}
+	}
 	return nil
 }

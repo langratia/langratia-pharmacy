@@ -67,6 +67,8 @@ func (s *LicenseService) GetMachineID() (string, error) {
 		return "", fmt.Errorf("unsupported platform")
 	}
 
+	hideWindow(cmd)
+
 	out, err := cmd.Output()
 	if err != nil {
 		// Fallback for Linux if /etc/machine-id isn't present
