@@ -13,6 +13,8 @@ import {
   Smartphone,
   AlertCircle,
   List,
+  RotateCcw,
+  Tag,
 } from 'lucide-react';
 import { Medicine } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -21,7 +23,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { usePharmacy } from '../../context/PharmacyContext';
 import { Modal } from '../../components/ui/Modal';
 
-interface CartItem { medicine: Medicine; quantity: number; selectedUnit?: import('../../types').MedicineUnit; }
+interface CartItem { medicine: Medicine; quantity: number; selectedUnit?: import('../../types').MedicineUnit; customUnitPrice?: number; }
 interface POSPageProps { externalCartItems?: CartItem[]; onClearExternalCart?: () => void; }
 
 type PaymentMethod = 'Cash' | 'MobileMoney';
@@ -176,8 +178,41 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   const handleRemoveFromCart = (medId: number) => setCart(prev => prev.filter(i => i.medicine.id !== medId));
 
+  const getItemUnitPrice = (item: CartItem): number => {
+    if (item.customUnitPrice !== undefined && item.customUnitPrice !== null && !isNaN(item.customUnitPrice) && item.customUnitPrice >= 0) {
+      return item.customUnitPrice;
+    }
+    return item.selectedUnit?.price || item.medicine.selling_price;
+  };
+
+  const handleUpdateCustomPrice = (medId: number, priceStr: string) => {
+    if (priceStr.trim() === '') {
+      setCart(prev => prev.map(i => {
+        if (i.medicine.id === medId) {
+          const { customUnitPrice, ...rest } = i;
+          return rest;
+        }
+        return i;
+      }));
+      return;
+    }
+    const val = parseFloat(priceStr);
+    if (isNaN(val) || val < 0) return;
+    setCart(prev => prev.map(i => i.medicine.id === medId ? { ...i, customUnitPrice: val } : i));
+  };
+
+  const handleResetCustomPrice = (medId: number) => {
+    setCart(prev => prev.map(i => {
+      if (i.medicine.id === medId) {
+        const { customUnitPrice, ...rest } = i;
+        return rest;
+      }
+      return i;
+    }));
+  };
+
   /* ── Totals ──────────────────────────────────────────────────────── */
-  const grossTotal = cart.reduce((sum, item) => sum + ((item.selectedUnit?.price || item.medicine.selling_price) * item.quantity), 0);
+  const grossTotal = cart.reduce((sum, item) => sum + (getItemUnitPrice(item) * item.quantity), 0);
   let calculatedDiscount = 0;
   if (discountAmount > 0) {
     calculatedDiscount = discountType === 'percent' ? grossTotal * (discountAmount / 100) : discountAmount;
@@ -205,7 +240,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
     const cartInput = cart.map(item => ({ 
       medicine_id: item.medicine.id, 
       quantity: item.quantity, 
-      unit_price: item.selectedUnit?.price || item.medicine.selling_price, 
+      unit_price: getItemUnitPrice(item), 
       unit_name: item.selectedUnit?.unit_name || 'Item',
       conversion_factor: item.selectedUnit?.conversion_factor || 1,
       prescription_id: (item as any).prescription_id || undefined 
@@ -579,14 +614,25 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
             </div>
           ) : (
             cart.map(item => {
-              const subtotal = item.medicine.selling_price * item.quantity;
+              const currentUnitPrice = getItemUnitPrice(item);
+              const regularUnitPrice = item.selectedUnit?.price || item.medicine.selling_price;
+              const hasCustomPrice = item.customUnitPrice !== undefined && item.customUnitPrice !== regularUnitPrice;
+              const lineTotal = currentUnitPrice * item.quantity;
+
               return (
                 <div
                   key={item.medicine.id}
-                  style={{ background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: '10px', padding: '12px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}
+                  style={{ background: 'var(--surface-soft)', border: hasCustomPrice ? '1px solid var(--blue)' : '1px solid var(--line)', borderRadius: '10px', padding: '12px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', flex: 1, paddingRight: '8px', lineHeight: 1.3 }}>{item.medicine.name}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', flex: 1, paddingRight: '8px', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>{item.medicine.name}</span>
+                      {hasCustomPrice && (
+                        <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(18,108,255,0.12)', border: '1px solid rgba(18,108,255,0.3)', color: 'var(--blue)', fontWeight: 700 }}>
+                          Custom Price
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={() => handleRemoveFromCart(item.medicine.id)}
                       style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none', flexShrink: 0 }}
@@ -598,8 +644,8 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>UGX {formatCurrency(item.selectedUnit?.price || item.medicine.selling_price)}</span>
+                    {/* Unit selector & Custom Price input */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       {item.medicine.units && item.medicine.units.length > 0 && (
                         <select
                           value={item.selectedUnit?.id || ''}
@@ -611,6 +657,42 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                           ))}
                         </select>
                       )}
+
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'var(--surface)', padding: '2px 6px', borderRadius: '6px', border: '1px solid var(--line)' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--muted)' }}>UGX</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={item.customUnitPrice !== undefined ? item.customUnitPrice : regularUnitPrice}
+                          onChange={(e) => handleUpdateCustomPrice(item.medicine.id, e.target.value)}
+                          title="Override selling price per unit for this customer"
+                          style={{
+                            width: '68px',
+                            height: '22px',
+                            padding: '0 4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            borderRadius: '4px',
+                            border: hasCustomPrice ? '1px solid var(--blue)' : '1px solid transparent',
+                            background: hasCustomPrice ? 'rgba(18,108,255,0.08)' : 'transparent',
+                            color: hasCustomPrice ? 'var(--blue)' : 'var(--ink)',
+                            outline: 'none',
+                            minHeight: 'unset',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                        {hasCustomPrice && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetCustomPrice(item.medicine.id)}
+                            title="Reset to regular price"
+                            style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '1px', display: 'flex', alignItems: 'center', minHeight: 'unset', height: 'auto', transform: 'none', boxShadow: 'none' }}
+                          >
+                            <RotateCcw size={11} />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Qty controls */}
@@ -650,7 +732,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                       </button>
                     </div>
 
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>UGX {formatCurrency((item.selectedUnit?.price || item.medicine.selling_price) * item.quantity)}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>UGX {formatCurrency(lineTotal)}</span>
                   </div>
                 </div>
               );
