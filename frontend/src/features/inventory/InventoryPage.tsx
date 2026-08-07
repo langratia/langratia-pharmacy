@@ -14,7 +14,9 @@ import {
   X,
   CheckCircle2,
   Edit3,
-  Trash2
+  Trash2,
+  Download,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Medicine, Supplier, MedicineUnit } from '../../types';
 
@@ -422,6 +424,61 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     reader.readAsText(file);
   };
 
+  const handleDownloadSampleCSV = () => {
+    const headers = [
+      'name',
+      'generic_name',
+      'brand_name',
+      'category',
+      'dosage_strength',
+      'medicine_form',
+      'pack_size',
+      'buying_price',
+      'selling_price',
+      'current_stock',
+      'reorder_level',
+      'manufacturer'
+    ];
+    const exampleRow1 = [
+      'Amoxicillin 250mg',
+      'Amoxicillin',
+      'Amoxil',
+      'Antibiotics',
+      '250mg',
+      'Capsule',
+      '10x10',
+      '80',
+      '100',
+      '500',
+      '50',
+      'Elys Chemical'
+    ];
+    const exampleRow2 = [
+      'Paracetamol 500mg',
+      'Paracetamol',
+      'Panadol',
+      'Analgesics',
+      '500mg',
+      'Tablet',
+      '100s',
+      '30',
+      '50',
+      '1000',
+      '100',
+      'GSK'
+    ];
+    const csvContent = [headers.join(','), exampleRow1.join(','), exampleRow2.join(',')].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'medicine_batch_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Sample CSV template downloaded!');
+  };
+
   // Define Columns for DataGrid
   const columns: Column<Medicine>[] = [
     {
@@ -629,12 +686,16 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
 
         {canEdit && (
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-            <button onClick={() => fileInputRef.current?.click()} disabled={csvLoading} className="btn" style={{ gap: '6px' }}>
-              <Upload size={14} />
+            <button onClick={handleDownloadSampleCSV} type="button" className="btn" title="Download sample CSV template for batch import" style={{ gap: '6px', fontSize: '12px' }}>
+              <Download size={13} />
+              CSV Template
+            </button>
+            <button onClick={() => fileInputRef.current?.click()} disabled={csvLoading} className="btn" style={{ gap: '6px', fontSize: '12px' }}>
+              <Upload size={13} />
               {csvLoading ? 'Importing…' : 'Import CSV'}
             </button>
-            <button onClick={handleCreateNewRecord} className="btn btn-primary" style={{ gap: '6px' }}>
-              <Plus size={14} /> Add Medicine
+            <button onClick={handleCreateNewRecord} className="btn btn-primary" style={{ gap: '6px', fontSize: '12px' }}>
+              <Plus size={13} /> Add Medicine
             </button>
           </div>
         )}
