@@ -267,8 +267,18 @@ export const ReportsPage: React.FC = () => {
           ...salesSummary.who_sold.map(w => [w.full_name || w.username, w.role, String(w.invoices_count), String(w.items_sold), String(w.total_revenue)]),
           [],
           ['--- PRODUCTS SOLD & PROFIT MARGINS ---'],
-          ['Medicine Name', 'Category', 'Units Sold', 'Unit Price (UGX)', 'Total Revenue (UGX)', 'Cost (UGX)', 'Profit (UGX)'],
-          ...salesSummary.top_products.map(p => [p.medicine_name, p.category, String(p.quantity_sold), String(p.unit_price), String(p.revenue), String(p.cost), String(p.profit)])
+          ['Medicine Name', 'Category', 'Units Sold', 'Catalog Price (UGX)', 'Actual Sold Price (UGX)', 'Price Status / Variance', 'Total Revenue (UGX)', 'Cost (UGX)', 'Profit (UGX)'],
+          ...salesSummary.top_products.map(p => [
+            p.medicine_name,
+            p.category,
+            String(p.quantity_sold),
+            String(p.catalog_price || p.unit_price),
+            String(p.unit_price),
+            p.price_variance && Math.abs(p.price_variance) >= 0.5 ? (p.price_variance < 0 ? `${Math.round(p.price_variance)}% Discount` : `+${Math.round(p.price_variance)}% Higher`) : 'Standard',
+            String(p.revenue),
+            String(p.cost),
+            String(p.profit)
+          ])
         ];
         downloadCSV(`sales_report_${salesPeriod}_${new Date().toISOString().slice(0, 10)}.csv`, rows);
       }
@@ -632,7 +642,9 @@ export const ReportsPage: React.FC = () => {
                         <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Name</th>
                         <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Category</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Unit Price</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Catalog Price</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Actual Sold Price</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)' }}>Price Variance</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total Revenue</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Est. Cost</th>
                         <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Gross Profit</th>
@@ -647,12 +659,32 @@ export const ReportsPage: React.FC = () => {
                           </td>
                           <td style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: '12px' }}>{prod.category}</td>
                           <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>{prod.quantity_sold}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--ink, #111827)' }}>{formatCurrency(prod.unit_price)}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>UGX {formatCurrency(prod.revenue)}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--ink, #111827)' }}>UGX {formatCurrency(prod.cost)}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 800, color: 'var(--ink, #111827)' }}>
-                            UGX {formatCurrency(prod.profit)}
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)', fontSize: '12px' }}>
+                            UGX {formatCurrency(prod.catalog_price || prod.unit_price)}
                           </td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                            UGX {formatCurrency(prod.unit_price)}
+                          </td>
+                          <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                            {prod.price_variance !== undefined && Math.abs(prod.price_variance) >= 0.5 ? (
+                              prod.price_variance < 0 ? (
+                                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--green)', fontWeight: 700, display: 'inline-block' }}>
+                                  {Math.round(prod.price_variance)}% Discount
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.35)', color: '#d97706', fontWeight: 700, display: 'inline-block' }}>
+                                  +{Math.round(prod.price_variance)}% Higher
+                                </span>
+                              )
+                            ) : (
+                              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'var(--surface-soft)', border: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 600, display: 'inline-block' }}>
+                                Standard
+                              </span>
+                            )}
+                          </td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>{formatCurrency(prod.revenue)}</td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{formatCurrency(prod.cost)}</td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: prod.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>{formatCurrency(prod.profit)}</td>
                         </tr>
                       ))}
                     </tbody>

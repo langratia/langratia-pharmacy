@@ -1086,6 +1086,8 @@ export namespace services {
 	    dosage: string;
 	    quantity_sold: number;
 	    unit_price: number;
+	    catalog_price: number;
+	    price_variance: number;
 	    buying_price: number;
 	    revenue: number;
 	    cost: number;
@@ -1103,6 +1105,8 @@ export namespace services {
 	        this.dosage = source["dosage"];
 	        this.quantity_sold = source["quantity_sold"];
 	        this.unit_price = source["unit_price"];
+	        this.catalog_price = source["catalog_price"];
+	        this.price_variance = source["price_variance"];
 	        this.buying_price = source["buying_price"];
 	        this.revenue = source["revenue"];
 	        this.cost = source["cost"];

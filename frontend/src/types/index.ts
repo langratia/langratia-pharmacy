@@ -114,6 +114,8 @@ export interface TopProductSummary {
   dosage: string;
   quantity_sold: number;
   unit_price: number;
+  catalog_price?: number;
+  price_variance?: number;
   buying_price: number;
   revenue: number;
   cost: number;

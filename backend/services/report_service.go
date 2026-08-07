@@ -52,16 +52,18 @@ type CashierSalesSummary struct {
 }
 
 type TopProductSummary struct {
-	MedicineID   int64   `json:"medicine_id"`
-	MedicineName string  `json:"medicine_name"`
-	Category     string  `json:"category"`
-	Dosage       string  `json:"dosage"`
-	QuantitySold int     `json:"quantity_sold"`
-	UnitPrice    float64 `json:"unit_price"`
-	BuyingPrice  float64 `json:"buying_price"`
-	Revenue      float64 `json:"revenue"`
-	Cost         float64 `json:"cost"`
-	Profit       float64 `json:"profit"`
+	MedicineID    int64   `json:"medicine_id"`
+	MedicineName  string  `json:"medicine_name"`
+	Category      string  `json:"category"`
+	Dosage        string  `json:"dosage"`
+	QuantitySold  int     `json:"quantity_sold"`
+	UnitPrice     float64 `json:"unit_price"`
+	CatalogPrice  float64 `json:"catalog_price"`
+	PriceVariance float64 `json:"price_variance"`
+	BuyingPrice   float64 `json:"buying_price"`
+	Revenue       float64 `json:"revenue"`
+	Cost          float64 `json:"cost"`
+	Profit        float64 `json:"profit"`
 }
 
 type SalesSummary struct {
@@ -375,6 +377,7 @@ func (s *ReportService) GetDashboardSummary(period string) (*DashboardSummary, e
 			COALESCE(m.dosage_strength, ''), 
 			SUM(si.quantity), 
 			COALESCE(AVG(si.unit_price), 0.0), 
+			COALESCE(m.selling_price, 0.0),
 			COALESCE(m.buying_price, 0.0), 
 			COALESCE(SUM(si.subtotal), 0.0), 
 			COALESCE(SUM(si.quantity * COALESCE(m.buying_price, 0.0)), 0.0),
@@ -390,7 +393,10 @@ func (s *ReportService) GetDashboardSummary(period string) (*DashboardSummary, e
 		defer prodRows.Close()
 		for prodRows.Next() {
 			var tp TopProductSummary
-			if prodRows.Scan(&tp.MedicineID, &tp.MedicineName, &tp.Category, &tp.Dosage, &tp.QuantitySold, &tp.UnitPrice, &tp.BuyingPrice, &tp.Revenue, &tp.Cost, &tp.Profit) == nil {
+			if prodRows.Scan(&tp.MedicineID, &tp.MedicineName, &tp.Category, &tp.Dosage, &tp.QuantitySold, &tp.UnitPrice, &tp.CatalogPrice, &tp.BuyingPrice, &tp.Revenue, &tp.Cost, &tp.Profit) == nil {
+				if tp.CatalogPrice > 0 {
+					tp.PriceVariance = ((tp.UnitPrice - tp.CatalogPrice) / tp.CatalogPrice) * 100.0
+				}
 				summary.TopProducts = append(summary.TopProducts, tp)
 			}
 		}
@@ -568,6 +574,7 @@ func (s *ReportService) GetSalesSummary(period string) (*SalesSummary, error) {
 			COALESCE(m.dosage_strength, ''), 
 			SUM(si.quantity), 
 			COALESCE(AVG(si.unit_price), 0.0), 
+			COALESCE(m.selling_price, 0.0),
 			COALESCE(m.buying_price, 0.0), 
 			COALESCE(SUM(si.subtotal), 0.0), 
 			COALESCE(SUM(si.quantity * COALESCE(m.buying_price, 0.0)), 0.0),
@@ -583,7 +590,10 @@ func (s *ReportService) GetSalesSummary(period string) (*SalesSummary, error) {
 		defer prodRows.Close()
 		for prodRows.Next() {
 			var tp TopProductSummary
-			if prodRows.Scan(&tp.MedicineID, &tp.MedicineName, &tp.Category, &tp.Dosage, &tp.QuantitySold, &tp.UnitPrice, &tp.BuyingPrice, &tp.Revenue, &tp.Cost, &tp.Profit) == nil {
+			if prodRows.Scan(&tp.MedicineID, &tp.MedicineName, &tp.Category, &tp.Dosage, &tp.QuantitySold, &tp.UnitPrice, &tp.CatalogPrice, &tp.BuyingPrice, &tp.Revenue, &tp.Cost, &tp.Profit) == nil {
+				if tp.CatalogPrice > 0 {
+					tp.PriceVariance = ((tp.UnitPrice - tp.CatalogPrice) / tp.CatalogPrice) * 100.0
+				}
 				ss.TopProducts = append(ss.TopProducts, tp)
 			}
 		}
