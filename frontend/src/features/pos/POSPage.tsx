@@ -640,9 +640,15 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', flex: 1, paddingRight: '8px', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span>{item.medicine.name}</span>
                       {hasCustomPrice && (
-                        <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(18,108,255,0.12)', border: '1px solid rgba(18,108,255,0.3)', color: 'var(--blue)', fontWeight: 700 }}>
-                          Custom Price
-                        </span>
+                        currentUnitPrice < regularUnitPrice ? (
+                          <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--green)', fontWeight: 700 }}>
+                            Discount ({Math.round(((regularUnitPrice - currentUnitPrice) / regularUnitPrice) * 100)}% off)
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.35)', color: '#d97706', fontWeight: 700 }}>
+                            Higher Price (+{Math.round(((currentUnitPrice - regularUnitPrice) / regularUnitPrice) * 100)}%)
+                          </span>
+                        )
                       )}
                     </div>
                     <button
@@ -686,9 +692,9 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                             fontSize: '11px',
                             fontWeight: 700,
                             borderRadius: '4px',
-                            border: hasCustomPrice ? '1px solid var(--blue)' : '1px solid transparent',
-                            background: hasCustomPrice ? 'rgba(18,108,255,0.08)' : 'transparent',
-                            color: hasCustomPrice ? 'var(--blue)' : 'var(--ink)',
+                            border: hasCustomPrice ? (currentUnitPrice > regularUnitPrice ? '1px solid #d97706' : '1px solid var(--blue)') : '1px solid transparent',
+                            background: hasCustomPrice ? (currentUnitPrice > regularUnitPrice ? 'rgba(245,158,11,0.12)' : 'rgba(18,108,255,0.08)') : 'transparent',
+                            color: hasCustomPrice ? (currentUnitPrice > regularUnitPrice ? '#d97706' : 'var(--blue)') : 'var(--ink)',
                             outline: 'none',
                             minHeight: 'unset',
                             boxSizing: 'border-box'
@@ -746,18 +752,23 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        {hasCustomPrice && currentUnitPrice < regularUnitPrice && (
+                        {hasCustomPrice && (
                           <span style={{ fontSize: '11px', color: 'var(--muted)', textDecoration: 'line-through' }}>
                             UGX {formatCurrency(regularUnitPrice * item.quantity)}
                           </span>
                         )}
-                        <span style={{ fontSize: '13px', fontWeight: 700, color: hasCustomPrice && currentUnitPrice < regularUnitPrice ? 'var(--green)' : 'var(--ink)' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: hasCustomPrice ? (currentUnitPrice < regularUnitPrice ? 'var(--green)' : '#d97706') : 'var(--ink)' }}>
                           UGX {formatCurrency(lineTotal)}
                         </span>
                       </div>
                       {hasCustomPrice && currentUnitPrice < regularUnitPrice && (
                         <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: 700 }}>
                           Saved UGX {formatCurrency((regularUnitPrice - currentUnitPrice) * item.quantity)} ({Math.round(((regularUnitPrice - currentUnitPrice) / regularUnitPrice) * 100)}% off)
+                        </span>
+                      )}
+                      {hasCustomPrice && currentUnitPrice > regularUnitPrice && (
+                        <span style={{ fontSize: '10px', color: '#d97706', fontWeight: 700 }}>
+                          +UGX {formatCurrency((currentUnitPrice - regularUnitPrice) * item.quantity)} (+{Math.round(((currentUnitPrice - regularUnitPrice) / regularUnitPrice) * 100)}%)
                         </span>
                       )}
                     </div>
