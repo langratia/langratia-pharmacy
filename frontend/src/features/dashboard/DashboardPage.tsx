@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 import { GetDashboardSummary, GetSalesSummary } from '../../../wailsjs/go/main/App';
 import { formatCurrency } from '../../utils/formatters';
 import { NavItemKey } from '../../components/layout/Sidebar';
+import { DateFilterBar } from '../../components/ui/DateFilterBar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 interface DashboardPageProps {
@@ -14,7 +15,6 @@ interface DashboardPageProps {
 const TileTrendGraph: React.FC<{ data: any[]; color: string }> = ({ data, color }) => {
   if (!data || data.length === 0) return null;
 
-  // Use provided sales trend points or generate smooth curve points
   const pointsData = data.length >= 2 ? data : [
     { amount: 10 }, { amount: 25 }, { amount: 18 }, { amount: 40 }, { amount: 35 }, { amount: 55 }, { amount: 70 }
   ];
@@ -37,7 +37,6 @@ const TileTrendGraph: React.FC<{ data: any[]; color: string }> = ({ data, color 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
       <svg width={width} height={height} style={{ overflow: 'visible' }}>
-        {/* Connecting Line */}
         <polyline
           fill="none"
           stroke={color}
@@ -47,7 +46,6 @@ const TileTrendGraph: React.FC<{ data: any[]; color: string }> = ({ data, color 
           points={polylineStr}
           style={{ opacity: 0.8 }}
         />
-        {/* Graph Dots */}
         {points.map((p, idx) => (
           <circle
             key={idx}
@@ -79,7 +77,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
     recent_sales: [], recent_purchases: [], expiring_items: [], low_stock_items: [], sales_trend: [],
   });
   const [salesSummary, setSalesSummary] = useState<any>({
-    today_total: 0, week_total: 0, month_total: 0,
+    today_total: 0, week_total: 0, month_total: 0, top_products: [],
   });
 
   const fetchData = useCallback(async () => {
@@ -94,7 +92,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
         callWails(GetSalesSummary, 'GetSalesSummary', period),
       ]);
       if (!dash) { setHasError(true); toast.error('Failed to load dashboard'); }
-      else { setSummary(dash); if (sales) setSalesSummary(sales); }
+      else { 
+        setSummary(dash); 
+        if (sales) setSalesSummary(sales); 
+      }
     } catch { setHasError(true); toast.error('Failed to load dashboard'); }
     finally { setLoading(false); }
   }, [period]);
@@ -146,8 +147,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
     <div style={{ height: `${h}px`, background: 'var(--surface-soft)', borderRadius: '8px', animation: 'pulse-glow 1.5s infinite' }} />
   );
 
+  const formattedPeriodLabel = summary.period_label || (
+    period === 'today' ? 'Today' :
+    period === 'yesterday' ? 'Yesterday' :
+    period === 'this_week' ? 'This Week' :
+    period === 'last_week' ? 'Last Week' :
+    period === 'this_month' ? 'This Month' :
+    period === 'last_month' ? 'Last Month' :
+    period === 'this_year' ? 'This Year' :
+    period
+  );
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: '16px' }}>
 
       {/* ── Top Header Strip with Stock Valuation Pill ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 0' }}>
@@ -157,29 +169,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Period Filter */}
-          <select 
-            value={period} 
-            onChange={(e) => setPeriod(e.target.value)}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '24px',
-              border: '1px solid var(--line)',
-              background: 'var(--surface)',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--ink)',
-              outline: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-            }}
-          >
-            <option value="today">Today</option>
-            <option value="this_week">This Week</option>
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-          </select>
-
           {/* Business Stock Valuation Pill */}
           <div style={{
             background: 'var(--surface)',
@@ -199,6 +188,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           </div>
         </div>
       </div>
+
+      {/* ── All Filters Bar (Presets + Date Picker) ── */}
+      <DateFilterBar
+        value={period}
+        onChange={(newPeriod) => setPeriod(newPeriod)}
+        periodLabel={formattedPeriodLabel}
+      />
 
       {/* ── Error banner ── */}
       {hasError && !loading && (
@@ -225,7 +221,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255, 255, 255, 0.7)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px' }}>
-                Revenue ({period.replace('_', ' ')})
+                Revenue ({formattedPeriodLabel})
               </div>
               <div style={{ fontSize: loading ? '22px' : '26px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.8px', lineHeight: 1 }}>
                 {loading ? '—' : `UGX ${formatCurrency(summary.sales_today || 0)}`}
@@ -312,7 +308,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px' }}>
         {/* Sales Trend Chart */}
         <div style={C({ display: 'flex', flexDirection: 'column', minHeight: '300px' })}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginBottom: '16px' }}>7-Day Revenue Trend</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginBottom: '16px' }}>Revenue Trend ({formattedPeriodLabel})</div>
           <div style={{ flex: 1, width: '100%' }}>
             {loading ? <Skeleton h={240} /> : (
               <ResponsiveContainer width="100%" height="100%">
@@ -325,8 +321,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
                     tickLine={false} 
                     axisLine={false}
                     tickFormatter={(val) => {
-                      const d = new Date(val);
-                      return d.toLocaleDateString(undefined, { weekday: 'short' });
+                      if (!val) return '';
+                      if (val.includes(':')) return val; // Hourly e.g. "08:00"
+                      if (val.length === 7 && val.includes('-')) {
+                        // Month e.g. "2026-03" -> "Mar"
+                        const parts = val.split('-');
+                        const mIdx = parseInt(parts[1], 10) - 1;
+                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return monthNames[mIdx] || val;
+                      }
+                      const d = new Date(val + 'T00:00:00');
+                      if (isNaN(d.getTime())) return val;
+                      if (period === 'this_week' || period === 'last_week') {
+                        return d.toLocaleDateString(undefined, { weekday: 'short' });
+                      }
+                      return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
                     }} 
                   />
                   <YAxis 
@@ -340,6 +349,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
                     contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--line)', borderRadius: '8px', boxShadow: 'var(--shadow)', fontSize: '12px' }}
                     itemStyle={{ color: 'var(--blue)', fontWeight: 700 }}
                     formatter={(value: any) => [`UGX ${formatCurrency(value)}`, 'Revenue']}
+                    labelFormatter={(label: any) => {
+                      if (!label) return '';
+                      if (typeof label === 'string' && label.includes(':')) return `Time: ${label}`;
+                      if (typeof label === 'string' && label.length === 7 && label.includes('-')) {
+                        const parts = label.split('-');
+                        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+                        return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+                      }
+                      const d = new Date(label + 'T00:00:00');
+                      if (isNaN(d.getTime())) return label;
+                      return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                    }}
                     labelStyle={{ color: 'var(--muted)', marginBottom: '4px' }}
                   />
                   <Line type="monotone" dataKey="amount" stroke="var(--blue)" strokeWidth={3} dot={{ r: 4, fill: 'var(--surface)', strokeWidth: 2 }} activeDot={{ r: 6 }} />
@@ -355,10 +376,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
           <div style={{ flex: 1, width: '100%' }}>
             {loading ? <Skeleton h={240} /> : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={(salesSummary?.top_products || []).slice(0, 5)} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <BarChart data={(salesSummary?.top_products || summary?.top_products || []).slice(0, 5)} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
                   <XAxis type="number" hide />
-                  <YAxis dataKey="medicine_name" type="category" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} width={100} tickFormatter={(val) => val.length > 12 ? val.substring(0, 12) + '...' : val} />
+                  <YAxis dataKey="medicine_name" type="category" stroke="var(--muted)" fontSize={11} tickLine={false} axisLine={false} width={100} tickFormatter={(val) => val && val.length > 12 ? val.substring(0, 12) + '...' : (val || '')} />
                   <Tooltip 
                     cursor={{ fill: 'var(--surface-soft)' }}
                     contentStyle={{ backgroundColor: 'var(--surface)', borderColor: 'var(--line)', borderRadius: '8px', boxShadow: 'var(--shadow)', fontSize: '12px' }}
@@ -366,7 +387,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
                     formatter={(value: any) => [value, 'Qty Sold']}
                   />
                   <Bar dataKey="quantity_sold" radius={[0, 4, 4, 0]}>
-                    {((salesSummary?.top_products || []).slice(0, 5)).map((_: any, index: number) => (
+                    {((salesSummary?.top_products || summary?.top_products || []).slice(0, 5)).map((_: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={['#006FEE', '#06B6D4', '#10B981', '#F5A524', '#F31260'][index % 5]} />
                     ))}
                   </Bar>
@@ -393,7 +414,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectView }) =>
             ) : (summary.recent_sales || []).length === 0 ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', gap: '8px', padding: '32px' }}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                <span style={{ fontSize: '13px' }}>No transactions today</span>
+                <span style={{ fontSize: '13px' }}>No transactions for {formattedPeriodLabel}</span>
               </div>
             ) : (
               (summary.recent_sales || []).map((sale: any, i: number) => (

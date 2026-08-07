@@ -97,3 +97,92 @@ export interface ShiftZReport {
   printed_at: string;
 }
 
+export interface CashierSalesSummary {
+  user_id: number;
+  username: string;
+  full_name: string;
+  role: string;
+  invoices_count: number;
+  items_sold: number;
+  total_revenue: number;
+}
+
+export interface TopProductSummary {
+  medicine_id: number;
+  medicine_name: string;
+  category: string;
+  dosage: string;
+  quantity_sold: number;
+  unit_price: number;
+  buying_price: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+}
+
+export interface PaymentMethodSummary {
+  method: string;
+  count: number;
+  total: number;
+}
+
+export interface SalesTrendPoint {
+  date: string;
+  amount: number;
+}
+
+export interface ExpiringItemSummary {
+  id: number;
+  medicine_name: string;
+  batch_number: string;
+  expiry_date: string;
+  days_until_expiry: number;
+  quantity_remaining: number;
+}
+
+export interface LowStockItemSummary {
+  id: number;
+  medicine_name: string;
+  current_stock: number;
+  reorder_level: number;
+}
+
+export interface DashboardSummaryData {
+  sales_today: number;
+  total_orders: number;
+  total_items_sold: number;
+  total_profit: number;
+  profit_margin: number;
+  period_label: string;
+  start_date: string;
+  end_date: string;
+  total_medicines: number;
+  stock_valuation: number;
+  low_stock_count: number;
+  out_of_stock_count: number;
+  expiring_soon_count: number;
+  recent_sales: any[];
+  recent_purchases: any[];
+  expiring_items: ExpiringItemSummary[];
+  low_stock_items: LowStockItemSummary[];
+  sales_trend: SalesTrendPoint[];
+  who_sold: CashierSalesSummary[];
+  top_products: TopProductSummary[];
+}
+
+export interface SalesSummaryData {
+  today_total: number;
+  week_total: number;
+  month_total: number;
+  period_revenue: number;
+  total_sales: number;
+  total_items_sold: number;
+  total_profit: number;
+  profit_margin: number;
+  period_label: string;
+  start_date: string;
+  end_date: string;
+  by_method: PaymentMethodSummary[];
+  top_products: TopProductSummary[];
+  who_sold: CashierSalesSummary[];
+}

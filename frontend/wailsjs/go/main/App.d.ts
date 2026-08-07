@@ -5,6 +5,8 @@ import {services} from '../models';
 import {main} from '../models';
 import {db} from '../models';
 
+export function ActivateLicense(arg1:string):Promise<void>;
+
 export function AddBatch(arg1:models.Batch,arg2:number,arg3:string):Promise<models.Batch>;
 
 export function AddMedicine(arg1:models.Medicine,arg2:number,arg3:string):Promise<models.Medicine>;
@@ -58,6 +60,8 @@ export function GetDBConnectionStatus():Promise<main.ConnectionStatus>;
 export function GetDashboardSummary(arg1:string):Promise<services.DashboardSummary>;
 
 export function GetExpiringBatches(arg1:number):Promise<Array<models.Batch>>;
+
+export function GetLicenseStatus():Promise<main.LicenseStatusResponse>;
 
 export function GetLocalIP():Promise<string>;
 

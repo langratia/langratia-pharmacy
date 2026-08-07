@@ -1,14 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Package, Clock, Download, Users, Shield, BarChart3, Search } from 'lucide-react';
-import { Medicine, Batch } from '../../types';
-import { models, services } from '../../../wailsjs/go/models';
+import { 
+  Package, 
+  Clock, 
+  Download, 
+  Users, 
+  Shield, 
+  BarChart3, 
+  Search, 
+  TrendingUp, 
+  DollarSign, 
+  ShoppingBag,
+  CreditCard,
+  UserCheck
+} from 'lucide-react';
+import { Medicine, Batch, SalesSummaryData } from '../../types';
+import { models } from '../../../wailsjs/go/models';
 import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
+import { DateFilterBar } from '../../components/ui/DateFilterBar';
 import { formatCurrency } from '../../utils/formatters';
-import { ListMedicines, GetExpiringBatches, GetSalesSummary, ListUsers, GetCashierPerformance, ListAuditLogs } from '../../../wailsjs/go/main/App';
+import { 
+  ListMedicines, 
+  GetExpiringBatches, 
+  GetSalesSummary, 
+  ListUsers, 
+  GetCashierPerformance, 
+  ListAuditLogs 
+} from '../../../wailsjs/go/main/App';
 import { useAuth } from '../../context/AuthContext';
 
-type TabKey = 'inventory' | 'expiry' | 'performance' | 'sales' | 'audit';
+type TabKey = 'inventory' | 'expiry' | 'sales' | 'performance' | 'audit';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -19,8 +40,10 @@ function formatDate(dateStr: string): string {
 }
 
 function daysUntil(dateStr: string): number {
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr); target.setHours(0, 0, 0, 0);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
@@ -29,14 +52,22 @@ function downloadCSV(filename: string, rows: string[][]) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
+  a.href = url;
+  a.download = filename;
+  a.click();
   URL.revokeObjectURL(url);
 }
 
 async function tryLoad<T>(fn: () => Promise<T>, fb: () => Promise<T | undefined>): Promise<T | undefined> {
-  try { return await fn(); } catch (e) {
+  try {
+    return await fn();
+  } catch (e) {
     console.warn('Primary call failed, trying fallback...', e);
-    try { return await fb(); } catch (e2) { console.error('Fallback also failed:', e2); }
+    try {
+      return await fb();
+    } catch (e2) {
+      console.error('Fallback also failed:', e2);
+    }
   }
   return undefined;
 }
@@ -46,15 +77,15 @@ export const ReportsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabKey>('inventory');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [expiringBatches, setExpiringBatches] = useState<Batch[]>([]);
-  const [salesSummary, setSalesSummary] = useState<services.SalesSummary | null>(null);
+  const [salesSummary, setSalesSummary] = useState<SalesSummaryData | null>(null);
   const [allUsers, setAllUsers] = useState<models.User[]>([]);
-  const [cashierPerf, setCashierPerf] = useState<Map<number, services.CashierPerformance>>(new Map());
+  const [cashierPerf, setCashierPerf] = useState<Map<number, any>>(new Map());
   const [auditLogs, setAuditLogs] = useState<models.AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [salesPeriod, setSalesPeriod] = useState<string>('this_month');
+  const [salesPeriod, setSalesPeriod] = useState<string>('today');
   const abortRef = useRef(false);
 
   useEffect(() => {
@@ -89,7 +120,7 @@ export const ReportsPage: React.FC = () => {
         const users = await tryLoad(() => ListUsers(user!.id), () => (window as any)?.go?.main?.App?.ListUsers?.(user!.id));
         if (abortRef.current) return;
         setAllUsers(users || []);
-        const perfMap = new Map<number, services.CashierPerformance>();
+        const perfMap = new Map<number, any>();
         for (const u of (users || [])) {
           const perf = await tryLoad(() => GetCashierPerformance(u.id), () => (window as any)?.go?.main?.App?.GetCashierPerformance?.(u.id));
           if (perf) perfMap.set(u.id, perf);
@@ -100,7 +131,7 @@ export const ReportsPage: React.FC = () => {
       if (tab === 'sales') {
         const summary = await tryLoad(() => GetSalesSummary(salesPeriod), () => (window as any)?.go?.main?.App?.GetSalesSummary?.(salesPeriod));
         if (abortRef.current) return;
-        if (summary) setSalesSummary(summary);
+        if (summary) setSalesSummary(summary as any as SalesSummaryData);
       }
 
       if (tab === 'audit') {
@@ -141,18 +172,18 @@ export const ReportsPage: React.FC = () => {
   });
 
   const inventoryColumns: Column<Medicine>[] = [
-    { key: 'name', header: 'Medicine', width: '30%', accessor: (m) => <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{m.name} <span style={{ fontSize: '11px', color: 'var(--muted)' }}>({m.dosage_strength || m.medicine_form})</span></span> },
+    { key: 'name', header: 'Medicine', width: '30%', accessor: (m) => <span style={{ fontWeight: 600, color: 'var(--ink, #111827)' }}>{m.name} <span style={{ fontSize: '11px', color: 'var(--muted)' }}>({m.dosage_strength || m.medicine_form})</span></span> },
     { key: 'category', header: 'Category', width: '15%', accessor: (m) => <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{m.category || 'General'}</span> },
-    { key: 'buying_price', header: 'Buying Price (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums">{formatCurrency(m.buying_price)}</span> },
-    { key: 'selling_price', header: 'Selling Price (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ color: 'var(--blue)' }}>{formatCurrency(m.selling_price)}</span> },
-    { key: 'current_stock', header: 'In Stock', width: '10%', align: 'center' as const, accessor: (m) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{m.current_stock}</span> },
-    { key: 'valuation', header: 'Valuation (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ fontWeight: 700, color: 'var(--green)' }}>{formatCurrency(m.current_stock * m.buying_price)}</span> },
+    { key: 'buying_price', header: 'Buying Price (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ color: 'var(--ink, #111827)' }}>{formatCurrency(m.buying_price)}</span> },
+    { key: 'selling_price', header: 'Selling Price (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ color: 'var(--ink, #111827)', fontWeight: 600 }}>{formatCurrency(m.selling_price)}</span> },
+    { key: 'current_stock', header: 'In Stock', width: '10%', align: 'center' as const, accessor: (m) => <span style={{ fontWeight: 700, color: 'var(--ink, #111827)' }}>{m.current_stock}</span> },
+    { key: 'valuation', header: 'Valuation (UGX)', width: '15%', align: 'right' as const, accessor: (m) => <span className="tabular-nums" style={{ fontWeight: 700, color: 'var(--ink, #111827)' }}>{formatCurrency(m.current_stock * m.buying_price)}</span> },
   ];
 
   const expiryColumns: Column<Batch>[] = [
-    { key: 'batch_number', header: 'Batch #', width: '20%', accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{b.batch_number}</span> },
-    { key: 'medicine_name', header: 'Medicine Item', width: '35%', accessor: (b) => <span style={{ color: 'var(--ink)' }}>{b.medicine_name || `#${b.medicine_id}`}</span> },
-    { key: 'quantity_remaining', header: 'Qty at Risk', width: '15%', align: 'center' as const, accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--red)' }}>{b.quantity_remaining}</span> },
+    { key: 'batch_number', header: 'Batch #', width: '20%', accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--ink, #111827)' }}>{b.batch_number}</span> },
+    { key: 'medicine_name', header: 'Medicine Item', width: '35%', accessor: (b) => <span style={{ color: 'var(--ink, #111827)' }}>{b.medicine_name || `#${b.medicine_id}`}</span> },
+    { key: 'quantity_remaining', header: 'Qty at Risk', width: '15%', align: 'center' as const, accessor: (b) => <span style={{ fontWeight: 700, color: 'var(--ink, #111827)' }}>{b.quantity_remaining}</span> },
     {
       key: 'days_until_expiry', header: 'Days Left', width: '15%', align: 'center' as const,
       accessor: (b) => {
@@ -165,29 +196,29 @@ export const ReportsPage: React.FC = () => {
   ];
 
   const performanceColumns: Column<models.User>[] = [
-    { key: 'username', header: 'Username', width: '20%', accessor: (u) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{u.username}</span> },
-    { key: 'full_name', header: 'Staff Name', width: '25%', accessor: (u) => <span style={{ fontSize: '12px', color: 'var(--ink)' }}>{u.full_name || '—'}</span> },
+    { key: 'username', header: 'Username', width: '20%', accessor: (u) => <span style={{ fontWeight: 700, color: 'var(--ink, #111827)' }}>{u.username}</span> },
+    { key: 'full_name', header: 'Staff Name', width: '25%', accessor: (u) => <span style={{ fontSize: '12px', color: 'var(--ink, #111827)' }}>{u.full_name || '—'}</span> },
     { key: 'role', header: 'Role Privilege', width: '15%', accessor: (u) => <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--muted)' }}>{u.role}</span> },
     {
       key: 'today', header: 'Today Sales', width: '20%',
       accessor: (u) => {
         const p = cashierPerf.get(u.id);
-        return <div style={{ fontSize: '12px' }}><strong>{p?.today?.total_sales || 0} orders</strong> · <span className="tabular-nums" style={{ color: 'var(--blue)', fontWeight: 700 }}>UGX {formatCurrency(p?.today?.total_revenue || 0)}</span></div>;
+        return <div style={{ fontSize: '12px', color: 'var(--ink, #111827)' }}><strong>{p?.today?.total_sales || 0} orders</strong> · <span className="tabular-nums" style={{ color: 'var(--ink, #111827)', fontWeight: 700 }}>UGX {formatCurrency(p?.today?.total_revenue || 0)}</span></div>;
       }
     },
     {
       key: 'month', header: 'This Month', width: '20%',
       accessor: (u) => {
         const p = cashierPerf.get(u.id);
-        return <div style={{ fontSize: '12px' }}><strong>{p?.this_month?.total_sales || 0} orders</strong> · <span className="tabular-nums" style={{ color: 'var(--green)', fontWeight: 700 }}>UGX {formatCurrency(p?.this_month?.total_revenue || 0)}</span></div>;
+        return <div style={{ fontSize: '12px', color: 'var(--ink, #111827)' }}><strong>{p?.this_month?.total_sales || 0} orders</strong> · <span className="tabular-nums" style={{ color: 'var(--ink, #111827)', fontWeight: 700 }}>UGX {formatCurrency(p?.this_month?.total_revenue || 0)}</span></div>;
       }
     },
   ];
 
   const auditColumns: Column<models.AuditLog>[] = [
     { key: 'timestamp', header: 'Time', width: '20%', accessor: (log) => <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{new Date(log.timestamp).toLocaleString()}</span> },
-    { key: 'username', header: 'Operator', width: '15%', accessor: (log) => <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{log.username}</span> },
-    { key: 'action', header: 'System Action', width: '20%', accessor: (log) => <span style={{ fontWeight: 600, color: 'var(--blue)' }}>{log.action}</span> },
+    { key: 'username', header: 'Operator', width: '15%', accessor: (log) => <span style={{ fontWeight: 700, color: 'var(--ink, #111827)' }}>{log.username}</span> },
+    { key: 'action', header: 'System Action', width: '20%', accessor: (log) => <span style={{ fontWeight: 600, color: 'var(--brand-primary, #174B37)' }}>{log.action}</span> },
     { key: 'details', header: 'Details', width: '45%', accessor: (log) => <span style={{ fontSize: '11px', color: 'var(--muted)' }}>{log.details}</span> },
   ];
 
@@ -220,6 +251,24 @@ export const ReportsPage: React.FC = () => {
           })
         ];
         downloadCSV(`staff_performance_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+      } else if (activeTab === 'sales' && salesSummary) {
+        const rows = [
+          ['Report Period', salesSummary.period_label || salesPeriod],
+          ['Period Revenue (UGX)', String(salesSummary.period_revenue)],
+          ['Total Orders', String(salesSummary.total_sales)],
+          ['Units Sold', String(salesSummary.total_items_sold)],
+          ['Gross Profit (UGX)', String(salesSummary.total_profit)],
+          ['Profit Margin (%)', String(salesSummary.profit_margin.toFixed(1))],
+          [],
+          ['--- WHO SOLD (STAFF PERFORMANCE) ---'],
+          ['Staff Member', 'Role', 'Orders Processed', 'Units Sold', 'Total Revenue (UGX)'],
+          ...salesSummary.who_sold.map(w => [w.full_name || w.username, w.role, String(w.invoices_count), String(w.items_sold), String(w.total_revenue)]),
+          [],
+          ['--- PRODUCTS SOLD & PROFIT MARGINS ---'],
+          ['Medicine Name', 'Category', 'Units Sold', 'Unit Price (UGX)', 'Total Revenue (UGX)', 'Cost (UGX)', 'Profit (UGX)'],
+          ...salesSummary.top_products.map(p => [p.medicine_name, p.category, String(p.quantity_sold), String(p.unit_price), String(p.revenue), String(p.cost), String(p.profit)])
+        ];
+        downloadCSV(`sales_report_${salesPeriod}_${new Date().toISOString().slice(0, 10)}.csv`, rows);
       }
     } catch { /* export safeguard */ }
   };
@@ -232,12 +281,13 @@ export const ReportsPage: React.FC = () => {
       onClick={() => setActiveTab(key)}
       style={{
         height: '36px',
+        minHeight: 'unset',
         padding: '0 16px',
         fontSize: '13px',
         fontWeight: 600,
         borderRadius: 'var(--r)',
         background: activeTab === key ? 'var(--surface)' : 'transparent',
-        color: activeTab === key ? 'var(--blue)' : 'var(--muted)',
+        color: activeTab === key ? 'var(--ink, #111827)' : 'var(--muted)',
         border: activeTab === key ? '1px solid var(--line-strong)' : '1px solid transparent',
         boxShadow: activeTab === key ? 'var(--shadow-btn)' : 'none',
         display: 'flex',
@@ -255,14 +305,17 @@ export const ReportsPage: React.FC = () => {
           fontWeight: 700,
           padding: '2px 6px',
           borderRadius: '10px',
-          background: activeTab === key ? 'rgba(18,108,255,0.12)' : 'var(--surface-soft)',
-          color: activeTab === key ? 'var(--blue)' : 'var(--muted)'
+          background: 'var(--surface-soft)',
+          color: 'var(--ink, #111827)',
+          border: '1px solid var(--line)'
         }}>
           {count}
         </span>
       )}
     </button>
   );
+
+  const activePeriodLabel = salesSummary?.period_label || 'Selected Date';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', height: '100%', minHeight: 0, width: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
@@ -273,21 +326,19 @@ export const ReportsPage: React.FC = () => {
           {tabBtn('inventory', 'Inventory Stock', <Package size={14} />, medicines.length)}
           {tabBtn('expiry', 'Expiry Risk (90d)', <Clock size={14} />, expiringBatches.length)}
           {tabBtn('sales', 'Sales Reports', <BarChart3 size={14} />)}
-          {tabBtn('performance', 'Staff Performance', <Users size={14} />)}
-          {tabBtn('audit', 'Audit Logs', <Shield size={14} />, auditLogs.length)}
+          {tabBtn('performance', 'Staff Overview', <Users size={14} />)}
+          {tabBtn('audit', 'Audit Trail', <Shield size={14} />, auditLogs.length)}
         </div>
 
-        {activeTab !== 'sales' && (
-          <button onClick={handleExportCSV} disabled={isLoading} className="btn btn-primary" style={{ gap: '6px' }}>
-            <Download size={14} /> Export CSV
-          </button>
-        )}
+        <button onClick={handleExportCSV} disabled={isLoading} className="btn btn-primary" style={{ gap: '6px', minHeight: 'unset', height: '36px' }}>
+          <Download size={14} /> Export CSV
+        </button>
       </div>
 
       {/* ── Main Scrollable Body ── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
         
-        {/* Search bar & stock valuation strip */}
+        {/* Search bar & stock valuation strip for non-sales tabs */}
         {activeTab !== 'sales' && activeTab !== 'performance' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexShrink: 0 }}>
             <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
@@ -297,12 +348,12 @@ export const ReportsPage: React.FC = () => {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder={`Search ${activeTab} records…`}
-                style={{ width: '100%', paddingLeft: '36px', height: '38px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
+                style={{ width: '100%', paddingLeft: '36px', height: '38px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink, #111827)', outline: 'none', fontSize: '13px', boxSizing: 'border-box' }}
               />
             </div>
             {activeTab === 'inventory' && (
               <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--muted)', marginLeft: 'auto' }}>
-                Total Stock Valuation: <strong className="tabular-nums" style={{ color: 'var(--blue)', fontSize: '14px' }}>UGX {formatCurrency(totalValuation)}</strong>
+                Total Stock Valuation: <strong className="tabular-nums" style={{ color: 'var(--ink, #111827)', fontSize: '14px' }}>UGX {formatCurrency(totalValuation)}</strong>
               </div>
             )}
           </div>
@@ -311,7 +362,7 @@ export const ReportsPage: React.FC = () => {
         {fetchError && (
           <div style={{ padding: '10px 14px', fontSize: '13px', color: 'var(--red)', background: 'rgba(255,56,96,0.1)', border: '1px solid var(--red)', borderRadius: '8px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>{fetchError}</span>
-            <button onClick={() => loadTabData(activeTab)} className="btn" style={{ fontSize: '12px' }}>Retry</button>
+            <button onClick={() => loadTabData(activeTab)} className="btn" style={{ fontSize: '12px', minHeight: 'unset', height: '28px' }}>Retry</button>
           </div>
         )}
 
@@ -370,113 +421,180 @@ export const ReportsPage: React.FC = () => {
             />
           )}
 
+          {/* ── SALES REPORTS TAB WITH DATE FILTER & WHO-SOLD & PRODUCTS BREAKDOWN ── */}
           {activeTab === 'sales' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto', paddingRight: '4px' }}>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>Period Analysis</div>
-                <select 
-                  value={salesPeriod} 
-                  onChange={(e) => setSalesPeriod(e.target.value)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '24px',
-                    border: '1px solid var(--line)',
-                    background: 'var(--surface)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--ink)',
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="today">Today</option>
-                  <option value="this_week">This Week</option>
-                  <option value="this_month">This Month</option>
-                  <option value="last_month">Last Month</option>
-                </select>
-              </div>
+              {/* Date Filter Bar */}
+              <DateFilterBar
+                value={salesPeriod}
+                onChange={(newP) => setSalesPeriod(newP)}
+                periodLabel={activePeriodLabel}
+              />
 
-              {/* Sales Metric KPI Cards */}
+              {/* 4 Synchronized KPI Tiles (All Digits Black) */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                 <Panel style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Today's Revenue</div>
-                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
-                    UGX {formatCurrency(salesSummary?.today_total || 0)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Period Revenue
+                      </div>
+                      <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--ink, #111827)', marginTop: '4px' }}>
+                        UGX {formatCurrency(salesSummary?.period_revenue || 0)}
+                      </div>
+                    </div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-soft)', color: 'var(--ink, #111827)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line)' }}>
+                      <TrendingUp size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
+                    Sales for {activePeriodLabel}
                   </div>
                 </Panel>
 
                 <Panel style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>7-Day Revenue</div>
-                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--blue)' }}>
-                    UGX {formatCurrency(salesSummary?.week_total || 0)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Orders & Units Sold
+                      </div>
+                      <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--ink, #111827)', marginTop: '4px' }}>
+                        {salesSummary?.total_sales || 0} orders
+                      </div>
+                    </div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-soft)', color: 'var(--ink, #111827)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line)' }}>
+                      <ShoppingBag size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
+                    <strong style={{ color: 'var(--ink, #111827)' }}>{salesSummary?.total_items_sold || 0}</strong> medicine units
                   </div>
                 </Panel>
 
                 <Panel style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>Monthly Revenue</div>
-                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--green)' }}>
-                    UGX {formatCurrency(salesSummary?.month_total || 0)}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Gross Profit
+                      </div>
+                      <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--ink, #111827)', marginTop: '4px' }}>
+                        UGX {formatCurrency(salesSummary?.total_profit || 0)}
+                      </div>
+                    </div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-soft)', color: 'var(--ink, #111827)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line)' }}>
+                      <DollarSign size={16} />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
+                    Profit Margin: <strong style={{ color: 'var(--ink, #111827)' }}>{(salesSummary?.profit_margin || 0).toFixed(1)}%</strong>
                   </div>
                 </Panel>
 
                 <Panel style={{ padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
-                    Orders ({salesPeriod.replace('_', ' ')})
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Period Reference
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink, #111827)', marginTop: '4px' }}>
+                        {activePeriodLabel}
+                      </div>
+                    </div>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-soft)', color: 'var(--ink, #111827)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line)' }}>
+                      <Clock size={16} />
+                    </div>
                   </div>
-                  <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--ink)' }}>
-                    {salesSummary?.total_sales || 0}
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
+                    {salesSummary?.start_date} to {salesSummary?.end_date}
                   </div>
                 </Panel>
               </div>
 
-              {/* Payment Methods & Top Selling Products */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+              {/* ── WHO SOLD (Staff Sales Breakdown) & PAYMENT METHODS ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.2fr', gap: '14px' }}>
+                
+                {/* Who Sold Table */}
                 <Panel noPadding>
-                  <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Payment Methods</div>
-                  {!salesSummary || salesSummary.by_method.length === 0 ? (
-                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>No sales transactions yet.</div>
+                  <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink, #111827)' }}>Who Sold ({activePeriodLabel})</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Sales by cashier and staff members</div>
+                    </div>
+                    <UserCheck size={16} style={{ color: 'var(--ink, #111827)' }} />
+                  </div>
+
+                  {!salesSummary || (salesSummary.who_sold || []).length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>
+                      No staff sales recorded for {activePeriodLabel}.
+                    </div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                       <thead>
                         <tr style={{ background: 'var(--surface-soft)' }}>
-                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Method</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Orders</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Revenue</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Staff Member</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)' }}>Role</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Orders</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Revenue (UGX)</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {salesSummary.by_method.map(m => (
+                        {salesSummary.who_sold.map((cs) => (
+                          <tr key={cs.user_id} style={{ borderTop: '1px solid var(--line)' }}>
+                            <td style={{ padding: '8px 14px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              {cs.full_name || cs.username}
+                            </td>
+                            <td style={{ padding: '8px 14px', textAlign: 'center' }}>
+                              <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', background: 'var(--surface-soft)', padding: '2px 6px', borderRadius: '4px', color: 'var(--muted)' }}>
+                                {cs.role}
+                              </span>
+                            </td>
+                            <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--ink, #111827)' }}>{cs.invoices_count}</td>
+                            <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--ink, #111827)' }}>{cs.items_sold}</td>
+                            <td className="tabular-nums" style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 800, color: 'var(--ink, #111827)' }}>
+                              {formatCurrency(cs.total_revenue)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </Panel>
+
+                {/* Payment Methods Breakdown */}
+                <Panel noPadding>
+                  <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink, #111827)' }}>Payment Methods</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Cash vs Mobile distribution</div>
+                    </div>
+                    <CreditCard size={16} style={{ color: 'var(--ink, #111827)' }} />
+                  </div>
+
+                  {!salesSummary || (salesSummary.by_method || []).length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>
+                      No transactions recorded.
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-soft)' }}>
+                          <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Method</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Orders</th>
+                          <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Revenue (UGX)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salesSummary.by_method.map((m) => (
                           <tr key={m.method} style={{ borderTop: '1px solid var(--line)' }}>
-                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>💵 {m.method}</td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{m.count}</td>
-                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--blue)' }}>UGX {formatCurrency(m.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </Panel>
-
-                <Panel noPadding>
-                  <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Top Selling Medicines</div>
-                  {!salesSummary || salesSummary.top_products.length === 0 ? (
-                    <div style={{ padding: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>No sales transactions yet.</div>
-                  ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                      <thead>
-                        <tr style={{ background: 'var(--surface-soft)' }}>
-                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Item</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
-                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total Revenue (UGX)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {salesSummary.top_products.map(p => (
-                          <tr key={p.medicine_id} style={{ borderTop: '1px solid var(--line)' }}>
-                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{p.medicine_name}</td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{p.quantity_sold}</td>
-                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--blue)' }}>{formatCurrency(p.revenue)}</td>
+                            <td style={{ padding: '8px 14px', fontWeight: 600, color: 'var(--ink, #111827)' }}>
+                              {m.method.toLowerCase().includes('mobile') ? '📱 Mobile Money' : '💵 Cash'}
+                            </td>
+                            <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--ink, #111827)' }}>{m.count}</td>
+                            <td className="tabular-nums" style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              {formatCurrency(m.total)}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -484,6 +602,61 @@ export const ReportsPage: React.FC = () => {
                   )}
                 </Panel>
               </div>
+
+              {/* ── PRODUCTS SOLD & PROFIT BREAKDOWN TABLE ── */}
+              <Panel noPadding>
+                <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                      Products Sold & Profit Margins ({activePeriodLabel})
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                      Complete itemized sales volume, total revenue, estimated cost, and gross profit
+                    </div>
+                  </div>
+                  <button onClick={handleExportCSV} className="btn" style={{ fontSize: '11px', height: '28px', minHeight: 'unset', padding: '0 8px' }}>
+                    <Download size={12} /> Export List
+                  </button>
+                </div>
+
+                {!salesSummary || (salesSummary.top_products || []).length === 0 ? (
+                  <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>
+                    No medicine items sold during {activePeriodLabel}.
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--surface-soft)' }}>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Name</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Category</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Unit Price</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total Revenue</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Est. Cost</th>
+                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Gross Profit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {salesSummary.top_products.map((prod) => (
+                        <tr key={prod.medicine_id} style={{ borderTop: '1px solid var(--line)' }}>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                            {prod.medicine_name}
+                            {prod.dosage && <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400, marginLeft: '6px' }}>({prod.dosage})</span>}
+                          </td>
+                          <td style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: '12px' }}>{prod.category}</td>
+                          <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>{prod.quantity_sold}</td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--ink, #111827)' }}>{formatCurrency(prod.unit_price)}</td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>UGX {formatCurrency(prod.revenue)}</td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--ink, #111827)' }}>UGX {formatCurrency(prod.cost)}</td>
+                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 800, color: 'var(--ink, #111827)' }}>
+                            UGX {formatCurrency(prod.profit)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </Panel>
 
             </div>
           )}

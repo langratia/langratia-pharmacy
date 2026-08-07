@@ -47,11 +47,11 @@ function UnitsEditor({ units, onChange }: { units: MedicineUnit[], onChange: (un
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>Qty per Unit</label>
-            <input type="number" min="1" value={u.conversion_factor} onChange={e => handleChange(i, 'conversion_factor', parseInt(e.target.value) || 1)} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }} />
+            <input type="number" min="1" placeholder="1" value={u.conversion_factor || ''} onChange={e => handleChange(i, 'conversion_factor', e.target.value === '' ? '' : parseInt(e.target.value, 10))} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>Price (UGX)</label>
-            <input type="number" min="0" value={u.price} onChange={e => handleChange(i, 'price', parseFloat(e.target.value) || 0)} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }} />
+            <input type="number" min="0" placeholder="0" value={u.price || ''} onChange={e => handleChange(i, 'price', e.target.value === '' ? '' : parseFloat(e.target.value))} style={{ width: '100%', height: '32px', borderRadius: '4px', border: '1px solid var(--line)', padding: '0 8px', fontSize: '12px', color: 'var(--ink)', background: 'var(--surface)' }} />
           </div>
           <button type="button" onClick={() => handleRemove(i)} className="btn" style={{ height: '32px', padding: '0 8px', color: 'var(--red)' }}><X size={14}/></button>
         </div>
@@ -76,7 +76,7 @@ interface InventoryPageProps {
   onFilterChange?: (filter: string) => void;
 }
 
-const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'created_at'> & { current_stock?: number } = {
+const INITIAL_FORM: any = {
   name: '',
   generic_name: '',
   brand_name: '',
@@ -84,9 +84,9 @@ const INITIAL_FORM: Omit<Medicine, 'id' | 'current_stock' | 'is_archived' | 'cre
   dosage_strength: '',
   medicine_form: 'Tablet',
   pack_size: '10x10',
-  buying_price: 0,
-  selling_price: 0,
-  current_stock: 0,
+  buying_price: '',
+  selling_price: '',
+  current_stock: '',
   reorder_level: 10,
   manufacturer: '',
   supplier_id: undefined,
@@ -209,18 +209,18 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
       dosage_strength: med.dosage_strength,
       medicine_form: med.medicine_form,
       pack_size: med.pack_size,
-      buying_price: sanitizePriceInput(med.buying_price),
-      selling_price: sanitizePriceInput(med.selling_price),
-      current_stock: med.current_stock,
-      reorder_level: med.reorder_level,
+      buying_price: med.buying_price === 0 ? '' : med.buying_price,
+      selling_price: med.selling_price === 0 ? '' : med.selling_price,
+      current_stock: med.current_stock === 0 ? '' : med.current_stock,
+      reorder_level: med.reorder_level || 10,
       manufacturer: med.manufacturer,
       supplier_id: med.supplier_id,
       description: med.description,
-      tax_rate: med.tax_rate,
+      tax_rate: med.tax_rate || 0,
       requires_prescription: med.requires_prescription,
       product_status: med.product_status,
       units: med.units || []
-    });
+    } as any);
     if (openModal) {
       setIsEditModalOpen(true);
     }
@@ -247,7 +247,11 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
         const payload: Medicine = {
           id: 0,
           ...modalFormData,
-          current_stock: modalFormData.current_stock || 0,
+          buying_price: parseFloat(String(modalFormData.buying_price)) || 0,
+          selling_price: parseFloat(String(modalFormData.selling_price)) || 0,
+          current_stock: parseInt(String(modalFormData.current_stock), 10) || 0,
+          reorder_level: parseInt(String(modalFormData.reorder_level), 10) || 10,
+          tax_rate: parseFloat(String(modalFormData.tax_rate)) || 0,
           is_archived: false,
           created_at: new Date().toISOString()
         };
@@ -276,7 +280,11 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
         const payload: Medicine = {
           ...selectedMedicine,
           ...formData,
-          current_stock: formData.current_stock ?? selectedMedicine.current_stock
+          buying_price: parseFloat(String(formData.buying_price)) || 0,
+          selling_price: parseFloat(String(formData.selling_price)) || 0,
+          current_stock: formData.current_stock === '' ? selectedMedicine.current_stock : (parseInt(String(formData.current_stock), 10) || 0),
+          reorder_level: parseInt(String(formData.reorder_level), 10) || 10,
+          tax_rate: parseFloat(String(formData.tax_rate)) || 0,
         };
         await wailsApp.UpdateMedicine(payload, user?.id || 1, user?.username || 'admin');
         setIsEditModalOpen(false);
@@ -697,8 +705,9 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="number"
                     min="0"
                     step="0.01"
-                    value={modalFormData.buying_price}
-                    onChange={(e) => setModalFormData({ ...modalFormData, buying_price: sanitizePriceInput(e.target.value) })}
+                    placeholder="0"
+                    value={modalFormData.buying_price ?? ''}
+                    onChange={(e) => setModalFormData({ ...modalFormData, buying_price: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -708,9 +717,10 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="number"
                     min="0"
                     step="0.01"
+                    placeholder="0"
                     required
-                    value={modalFormData.selling_price}
-                    onChange={(e) => setModalFormData({ ...modalFormData, selling_price: sanitizePriceInput(e.target.value) })}
+                    value={modalFormData.selling_price ?? ''}
+                    onChange={(e) => setModalFormData({ ...modalFormData, selling_price: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--blue)', fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -722,8 +732,9 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   <input
                     type="number"
                     min="0"
-                    value={modalFormData.current_stock || 0}
-                    onChange={(e) => setModalFormData({ ...modalFormData, current_stock: parseInt(e.target.value) || 0 })}
+                    placeholder="0"
+                    value={modalFormData.current_stock ?? ''}
+                    onChange={(e) => setModalFormData({ ...modalFormData, current_stock: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -732,8 +743,9 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   <input
                     type="number"
                     min="0"
-                    value={modalFormData.reorder_level}
-                    onChange={(e) => setModalFormData({ ...modalFormData, reorder_level: parseInt(e.target.value) || 10 })}
+                    placeholder="10"
+                    value={modalFormData.reorder_level ?? ''}
+                    onChange={(e) => setModalFormData({ ...modalFormData, reorder_level: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -895,9 +907,10 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="number"
                     min="0"
                     step="0.01"
+                    placeholder="0"
                     disabled={!canEdit}
-                    value={formData.buying_price}
-                    onChange={(e) => setFormData({ ...formData, buying_price: sanitizePriceInput(e.target.value) })}
+                    value={formData.buying_price ?? ''}
+                    onChange={(e) => setFormData({ ...formData, buying_price: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -907,10 +920,11 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="number"
                     min="0"
                     step="0.01"
+                    placeholder="0"
                     required
                     disabled={!canEdit}
-                    value={formData.selling_price}
-                    onChange={(e) => setFormData({ ...formData, selling_price: sanitizePriceInput(e.target.value) })}
+                    value={formData.selling_price ?? ''}
+                    onChange={(e) => setFormData({ ...formData, selling_price: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--blue)', fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -922,9 +936,10 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   <input
                     type="number"
                     min="0"
+                    placeholder="0"
                     disabled={!canEdit}
-                    value={formData.current_stock || 0}
-                    onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) || 0 })}
+                    value={formData.current_stock ?? ''}
+                    onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', fontWeight: 700, boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -933,9 +948,10 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                   <input
                     type="number"
                     min="0"
+                    placeholder="10"
                     disabled={!canEdit}
-                    value={formData.reorder_level}
-                    onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
+                    value={formData.reorder_level ?? ''}
+                    onChange={(e) => setFormData({ ...formData, reorder_level: e.target.value })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>

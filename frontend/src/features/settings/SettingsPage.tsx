@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2, BarChart2, Trash2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ResetAndSeedDatabase, ClearSampleData,
+  ListUsers, CreateUser, ExportDatabase, ListAuditLogs,
   AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo,
   ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions,
   SetRolePermissions, GetAllPermissionDefs, DeactivateUser, GetCashierPerformance,
@@ -326,40 +326,6 @@ export const SettingsPage: React.FC = () => {
         setIsLoading(false);
       }
     }, 'Confirm identity to export database');
-  };
-
-  const handleResetSeedDB = () => {
-    if (!user || user.role !== 'admin') return;
-    if (!window.confirm('WARNING: Reset & Seed Database will wipe all existing data and create demo records. Continue?')) return;
-    requireReauth(async () => {
-      try {
-        setIsLoading(true);
-        await ResetAndSeedDatabase(user.id);
-        toast.success('Database reset & seeded with demo data');
-        window.location.reload();
-      } catch (err: any) {
-        toast.error(err.message || 'Reset failed');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 'Confirm identity to reset database');
-  };
-
-  const handleClearSampleData = () => {
-    if (!user || user.role !== 'admin') return;
-    if (!window.confirm('WARNING: Permanently delete all sample medicines, sales, and prescriptions? Continue?')) return;
-    requireReauth(async () => {
-      try {
-        setIsLoading(true);
-        await ClearSampleData(user.id);
-        toast.success('Sample data cleared successfully!');
-        window.location.reload();
-      } catch (err: any) {
-        toast.error(err.message || 'Wipe failed');
-      } finally {
-        setIsLoading(false);
-      }
-    }, 'Confirm identity to clear sample data');
   };
 
   const handleDeactivateUser = async (uId: number, username: string) => {
@@ -1115,29 +1081,6 @@ export const SettingsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {user?.role === 'admin' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div style={{ padding: '16px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r2)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <strong style={{ color: 'var(--red)' }}>Clear All Sample Data (Start Clean)</strong>
-                      <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Deletes all sample medicines, batches, sales, and prescriptions while preserving your user account.</span>
-                      <div>
-                        <button onClick={handleClearSampleData} className="btn btn-danger" style={{ padding: '8px 16px', fontSize: '12px', marginTop: '6px' }}>
-                          Clear Sample Data
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '16px', background: 'var(--surface-soft)', border: '1px solid var(--line)', borderRadius: 'var(--r2)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <strong style={{ color: 'var(--ink)' }}>Reset & Seed Demo Database</strong>
-                      <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Reinstates demo dataset (~100 sample medicines) for testing and evaluation.</span>
-                      <div>
-                        <button onClick={handleResetSeedDB} className="btn btn-secondary" style={{ padding: '8px 16px', fontSize: '12px', marginTop: '6px' }}>
-                          Reset & Seed Demo Database
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </Panel>
           </div>

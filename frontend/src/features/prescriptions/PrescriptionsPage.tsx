@@ -460,7 +460,7 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
             <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <input placeholder="Patient Name *" required value={patientName} onChange={e => setPatientName(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <input type="number" placeholder="Age *" value={patientAge} onChange={e => setPatientAge(parseInt(e.target.value, 10) || 0)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input type="number" placeholder="Age *" value={patientAge || ''} onChange={e => setPatientAge(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <input placeholder="Patient Phone" value={patientPhone} onChange={e => setPatientPhone(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
@@ -477,12 +477,12 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
                   <option value="">Select Medicine…</option>
                   {availableMedicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
-                <input type="number" placeholder="Quantity" value={qtyPrescribed} onChange={e => setQtyPrescribed(parseInt(e.target.value, 10) || 0)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input type="number" placeholder="Quantity" value={qtyPrescribed || ''} onChange={e => setQtyPrescribed(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                 <input placeholder="Dosage (e.g. 1 tablet)" value={dosage} onChange={e => setDosage(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
                 <input placeholder="Frequency (e.g. 3x daily)" value={frequency} onChange={e => setFrequency(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <input type="number" placeholder="Days" value={durationDays} onChange={e => setDurationDays(parseInt(e.target.value, 10) || 1)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <input type="number" placeholder="Days" value={durationDays || ''} onChange={e => setDurationDays(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
               </div>
               <button type="button" onClick={handleAddItemToRx} className="btn" style={{ gap: '6px' }}><Plus size={14} /> Add Line Item</button>
 

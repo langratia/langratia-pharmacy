@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	_ "modernc.org/sqlite"
@@ -123,8 +122,8 @@ func (db *DB) seedDefaultAdmin() error {
 			return err
 		}
 		_, err = db.Exec(`INSERT INTO users (username, password_hash, role, full_name, password_changed_at, active) 
-			VALUES (?, ?, 'admin', 'System Administrator', ?, 1)`,
-			"admin@amopharmacy", string(hashedPassword), time.Now())
+			VALUES (?, ?, 'admin', 'System Administrator', NULL, 1)`,
+			"admin@amopharmacy", string(hashedPassword))
 		if err != nil {
 			return fmt.Errorf("failed to seed default admin: %w", err)
 		}

@@ -87,7 +87,7 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 	defer tx.Rollback()
 
 	seq := atomic.AddInt64(&invoiceSeq, 1)
-	invoiceNumber := fmt.Sprintf("INV-POS-%s-%06d-%d", time.Now().Format("20060102150405"), seq%1000000, time.Now().UnixNano()%100000)
+	invoiceNumber := fmt.Sprintf("INV-%s-%04d", time.Now().Format("060102"), seq)
 
 	grossAmount := 0.0
 	for _, item := range items {

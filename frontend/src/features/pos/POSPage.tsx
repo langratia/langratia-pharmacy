@@ -719,10 +719,15 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
           <div style={{ marginBottom: '8px' }}>
             {modalInput({
               type: 'number',
-              value: discountAmount,
+              value: discountAmount === 0 ? '' : discountAmount,
               min: 0,
               max: discountType === 'percent' ? 100 : undefined,
               onChange: (e) => {
+                if (e.target.value === '') {
+                  setDiscountError('');
+                  setDiscountAmount(0);
+                  return;
+                }
                 const val = parseFloat(e.target.value) || 0;
                 if (discountType === 'percent' && val > 100) {
                   setDiscountError('Percentage cannot exceed 100%');

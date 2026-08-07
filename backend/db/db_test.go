@@ -21,15 +21,15 @@ func TestInitDBAndSchema(t *testing.T) {
 	}
 	defer database.Close()
 
-	// Verify Fresh DB starts with 0 users (requiring first-time onboarding setup)
+	// Verify Fresh DB starts with 1 default admin user
 	var count int
 	err = database.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query users count: %v", err)
 	}
 
-	if count != 0 {
-		t.Errorf("expected 0 users on fresh DB initialization, got %d", count)
+	if count != 1 {
+		t.Errorf("expected 1 default admin user on fresh DB initialization, got %d", count)
 	}
 }
 

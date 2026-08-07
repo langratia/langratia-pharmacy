@@ -37,6 +37,22 @@ export namespace main {
 	        this.friendly_message = source["friendly_message"];
 	    }
 	}
+	export class LicenseStatusResponse {
+	    is_locked: boolean;
+	    machine_id: string;
+	    reason: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LicenseStatusResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.is_locked = source["is_locked"];
+	        this.machine_id = source["machine_id"];
+	        this.reason = source["reason"];
+	    }
+	}
 	export class NetworkStatus {
 	    is_host: boolean;
 	    db_path: string;
@@ -1039,6 +1055,60 @@ export namespace services {
 		}
 	}
 	
+	export class CashierSalesSummary {
+	    user_id: number;
+	    username: string;
+	    full_name: string;
+	    role: string;
+	    invoices_count: number;
+	    items_sold: number;
+	    total_revenue: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CashierSalesSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.user_id = source["user_id"];
+	        this.username = source["username"];
+	        this.full_name = source["full_name"];
+	        this.role = source["role"];
+	        this.invoices_count = source["invoices_count"];
+	        this.items_sold = source["items_sold"];
+	        this.total_revenue = source["total_revenue"];
+	    }
+	}
+	export class TopProductSummary {
+	    medicine_id: number;
+	    medicine_name: string;
+	    category: string;
+	    dosage: string;
+	    quantity_sold: number;
+	    unit_price: number;
+	    buying_price: number;
+	    revenue: number;
+	    cost: number;
+	    profit: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TopProductSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.medicine_id = source["medicine_id"];
+	        this.medicine_name = source["medicine_name"];
+	        this.category = source["category"];
+	        this.dosage = source["dosage"];
+	        this.quantity_sold = source["quantity_sold"];
+	        this.unit_price = source["unit_price"];
+	        this.buying_price = source["buying_price"];
+	        this.revenue = source["revenue"];
+	        this.cost = source["cost"];
+	        this.profit = source["profit"];
+	    }
+	}
 	export class SalesTrendPoint {
 	    date: string;
 	    amount: number;
@@ -1095,6 +1165,13 @@ export namespace services {
 	}
 	export class DashboardSummary {
 	    sales_today: number;
+	    total_orders: number;
+	    total_items_sold: number;
+	    total_profit: number;
+	    profit_margin: number;
+	    period_label: string;
+	    start_date: string;
+	    end_date: string;
 	    total_medicines: number;
 	    stock_valuation: number;
 	    low_stock_count: number;
@@ -1105,6 +1182,8 @@ export namespace services {
 	    expiring_items: ExpiringItemSummary[];
 	    low_stock_items: LowStockItemSummary[];
 	    sales_trend: SalesTrendPoint[];
+	    who_sold: CashierSalesSummary[];
+	    top_products: TopProductSummary[];
 	
 	    static createFrom(source: any = {}) {
 	        return new DashboardSummary(source);
@@ -1113,6 +1192,13 @@ export namespace services {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.sales_today = source["sales_today"];
+	        this.total_orders = source["total_orders"];
+	        this.total_items_sold = source["total_items_sold"];
+	        this.total_profit = source["total_profit"];
+	        this.profit_margin = source["profit_margin"];
+	        this.period_label = source["period_label"];
+	        this.start_date = source["start_date"];
+	        this.end_date = source["end_date"];
 	        this.total_medicines = source["total_medicines"];
 	        this.stock_valuation = source["stock_valuation"];
 	        this.low_stock_count = source["low_stock_count"];
@@ -1123,6 +1209,8 @@ export namespace services {
 	        this.expiring_items = this.convertValues(source["expiring_items"], ExpiringItemSummary);
 	        this.low_stock_items = this.convertValues(source["low_stock_items"], LowStockItemSummary);
 	        this.sales_trend = this.convertValues(source["sales_trend"], SalesTrendPoint);
+	        this.who_sold = this.convertValues(source["who_sold"], CashierSalesSummary);
+	        this.top_products = this.convertValues(source["top_products"], TopProductSummary);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1203,31 +1291,21 @@ export namespace services {
 	        this.quantity_prescribed = source["quantity_prescribed"];
 	    }
 	}
-	export class TopProductSummary {
-	    medicine_id: number;
-	    medicine_name: string;
-	    quantity_sold: number;
-	    revenue: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new TopProductSummary(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.medicine_id = source["medicine_id"];
-	        this.medicine_name = source["medicine_name"];
-	        this.quantity_sold = source["quantity_sold"];
-	        this.revenue = source["revenue"];
-	    }
-	}
 	export class SalesSummary {
 	    today_total: number;
 	    week_total: number;
 	    month_total: number;
+	    period_revenue: number;
 	    total_sales: number;
+	    total_items_sold: number;
+	    total_profit: number;
+	    profit_margin: number;
+	    period_label: string;
+	    start_date: string;
+	    end_date: string;
 	    by_method: PaymentMethodSummary[];
 	    top_products: TopProductSummary[];
+	    who_sold: CashierSalesSummary[];
 	
 	    static createFrom(source: any = {}) {
 	        return new SalesSummary(source);
@@ -1238,9 +1316,17 @@ export namespace services {
 	        this.today_total = source["today_total"];
 	        this.week_total = source["week_total"];
 	        this.month_total = source["month_total"];
+	        this.period_revenue = source["period_revenue"];
 	        this.total_sales = source["total_sales"];
+	        this.total_items_sold = source["total_items_sold"];
+	        this.total_profit = source["total_profit"];
+	        this.profit_margin = source["profit_margin"];
+	        this.period_label = source["period_label"];
+	        this.start_date = source["start_date"];
+	        this.end_date = source["end_date"];
 	        this.by_method = this.convertValues(source["by_method"], PaymentMethodSummary);
 	        this.top_products = this.convertValues(source["top_products"], TopProductSummary);
+	        this.who_sold = this.convertValues(source["who_sold"], CashierSalesSummary);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
