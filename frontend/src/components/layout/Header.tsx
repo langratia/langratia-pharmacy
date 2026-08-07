@@ -157,9 +157,12 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
     };
   }, [user]);
 
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
+      setSelectedIndex(0);
       return;
     }
     const timer = setTimeout(async () => {
@@ -167,11 +170,20 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
       try {
         const results = await GlobalSearch(searchQuery.trim(), user?.role || 'cashier');
         setSearchResults(results || []);
+        setSelectedIndex(0);
       } catch {}
       finally { setIsSearching(false); }
     }, 200);
     return () => clearTimeout(timer);
   }, [searchQuery, user]);
+
+  useEffect(() => {
+    if (!showSearchModal) {
+      setSearchQuery('');
+      setSearchResults([]);
+      setSelectedIndex(0);
+    }
+  }, [showSearchModal]);
 
   const activeNotifications = React.useMemo(() => {
     if (!notifications) return [];
@@ -685,6 +697,19 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (searchResults.length === 0) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => (prev + 1) % searchResults.length);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => (prev - 1 + searchResults.length) % searchResults.length);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSearchResultClick(searchResults[selectedIndex]);
+                  }
+                }}
                 placeholder="Search medicines, invoices, suppliers…"
                 style={{
                   flex: 1,
@@ -712,7 +737,9 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                     No results for "{searchQuery}"
                   </div>
                 ) : (
-                  searchResults.map((item) => (
+                  searchResults.map((item, idx) => {
+                    const isSelected = idx === selectedIndex;
+                    return (
                     <div
                       key={`${item.category}_${item.id}`}
                       onClick={() => handleSearchResultClick(item)}
@@ -723,10 +750,11 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                         justifyContent: 'space-between',
                         cursor: 'pointer',
                         borderBottom: '1px solid var(--line)',
+                        background: isSelected ? 'var(--overlay-active)' : 'transparent',
+                        borderLeft: isSelected ? '3px solid var(--brand-primary)' : '3px solid transparent',
                         transition: 'background 0.15s ease',
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--overlay-hover)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      onMouseEnter={() => setSelectedIndex(idx)}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div
@@ -734,8 +762,9 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                             width: '36px',
                             height: '36px',
                             borderRadius: '8px',
-                            background: 'var(--surface)',
-                            border: '1px solid var(--line)',
+                            background: isSelected ? 'var(--bg)' : 'var(--surface)',
+                            border: isSelected ? '1px solid var(--brand-primary)' : '1px solid var(--line)',
+                            color: isSelected ? 'var(--brand-primary)' : 'inherit',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -753,9 +782,10 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
                           </div>
                         </div>
                       </div>
-                      <ChevronRight size={16} style={{ color: 'var(--muted-dark)' }} />
+                      <ChevronRight size={16} style={{ color: isSelected ? 'var(--ink)' : 'var(--muted-dark)' }} />
                     </div>
-                  ))
+                  )})
+
                 )}
               </div>
             )}

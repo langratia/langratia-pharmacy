@@ -49,6 +49,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
   const [categories, setCategories] = useState<string[]>(['All']);
   const [category, setCategory] = useState('All');
   const [search, setSearch] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('pos_draft_cart');
@@ -123,6 +124,7 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
       try { data = await ListMedicines(debouncedSearch, category === 'All' ? '' : category, false); }
       catch { const w = (window as any)?.go?.main?.App; if (w?.ListMedicines) data = await w.ListMedicines(debouncedSearch, category === 'All' ? '' : category, false); }
       setMedicines(data?.length > 0 ? data : []);
+      setSelectedIndex(0);
     } catch (err: any) { console.error(err); toast.error('Failed to load medicines'); }
     finally { setIsLoading(false); }
   }, [debouncedSearch, category]);
@@ -256,10 +258,25 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 <Search size={15} />
               </span>
               <input
+                autoFocus
                 ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (medicines.length === 0) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => (prev + 1) % medicines.length);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => (prev - 1 + medicines.length) % medicines.length);
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const med = medicines[selectedIndex];
+                    if (med && med.current_stock > 0) handleAddToCart(med);
+                  }
+                }}
                 placeholder="Search medicines… [F2]"
                 style={{ width: '100%', height: '40px', padding: '0 12px 0 38px', fontSize: '14px', background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: '8px', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', minHeight: 'unset' }}
                 onFocus={(e) => { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px rgba(18,108,255,0.2)'; }}
@@ -349,17 +366,24 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   <p>Try a different search term or category.</p>
                 </div>
               ) : (
-                medicines.map(med => {
+                medicines.map((med, idx) => {
                   const isOutOfStock = med.current_stock <= 0;
                   const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
                   const inCart = cart.find(c => c.medicine.id === med.id);
+                  const isSelected = idx === selectedIndex;
 
                   return (
                     <div
                       key={med.id}
                       onClick={() => !isOutOfStock && handleAddToCart(med)}
+                      onMouseEnter={() => setSelectedIndex(idx)}
                       className={isLowStock ? 'product-card low-stock' : inCart ? 'product-card selected' : 'product-card'}
-                      style={{ opacity: isOutOfStock ? 0.45 : 1, cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                      style={{ 
+                        opacity: isOutOfStock ? 0.45 : 1, 
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                        borderColor: isSelected ? 'var(--brand-primary)' : '',
+                        boxShadow: isSelected ? '0 0 0 3px rgba(18,108,255,0.2)' : ''
+                      }}
                     >
                       {/* Badges row */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
@@ -440,24 +464,25 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                   </tr>
                 </thead>
                 <tbody>
-                  {medicines.map(med => {
+                  {medicines.map((med, idx) => {
                     const isOutOfStock = med.current_stock <= 0;
                     const isLowStock = !isOutOfStock && med.current_stock <= med.reorder_level;
                     const inCart = cart.find(c => c.medicine.id === med.id);
+                    const isSelected = idx === selectedIndex;
 
                     return (
                       <tr
                         key={med.id}
                         onClick={() => !isOutOfStock && handleAddToCart(med)}
+                        onMouseEnter={() => setSelectedIndex(idx)}
                         style={{
                           borderBottom: '1px solid var(--line)',
-                          background: inCart ? 'var(--overlay-active)' : 'transparent',
+                          background: isSelected ? (inCart ? 'var(--overlay-active)' : 'var(--overlay-hover)') : (inCart ? 'var(--overlay-active)' : 'transparent'),
+                          borderLeft: isSelected ? '3px solid var(--brand-primary)' : '3px solid transparent',
                           opacity: isOutOfStock ? 0.45 : 1,
                           cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                           transition: 'background 0.15s ease'
                         }}
-                        onMouseEnter={(e) => { if (!inCart && !isOutOfStock) e.currentTarget.style.background = 'var(--surface-hover)'; }}
-                        onMouseLeave={(e) => { if (!inCart && !isOutOfStock) e.currentTarget.style.background = 'transparent'; }}
                       >
                         <td style={{ padding: '12px 16px' }}>
                           <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{med.name}</div>
