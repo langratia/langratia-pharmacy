@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Building2, Save } from 'lucide-react';
 import { GetPharmacyConfig, UpdatePharmacyConfig } from '../../../wailsjs/go/main/App';
 import { models } from '../../../wailsjs/go/models';
+import { capitalizeWords } from '../../utils/formatters';
 
 const currencyOptions = ['UGX', 'USD', 'EUR', 'GBP', 'KES', 'TZS', 'RWF', 'BIF', 'SSP', 'ZAR'];
 const dateFormatOptions = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY', 'DD.MM.YYYY'];
@@ -94,11 +95,11 @@ export const PharmacySetupTab: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
           <div>
             <label style={labelStyle}>Pharmacy Name *</label>
-            <input type="text" required value={cfg.pharmacy_name} onChange={e => update('pharmacy_name', e.target.value)} style={inputStyle} />
+            <input type="text" required value={cfg.pharmacy_name} onChange={e => update('pharmacy_name', capitalizeWords(e.target.value))} style={inputStyle} />
           </div>
           <div>
             <label style={labelStyle}>Address</label>
-            <input type="text" value={cfg.address} onChange={e => update('address', e.target.value)} style={inputStyle} />
+            <input type="text" value={cfg.address} onChange={e => update('address', capitalizeWords(e.target.value))} style={inputStyle} />
           </div>
         </div>
       </div>
@@ -129,7 +130,7 @@ export const PharmacySetupTab: React.FC = () => {
           </div>
           <div>
             <label style={labelStyle}>Operating Hours</label>
-            <input type="text" value={cfg.operating_hours} onChange={e => update('operating_hours', e.target.value)} placeholder="e.g. Mon-Fri 8AM-8PM" style={inputStyle} />
+            <input type="text" value={cfg.operating_hours} onChange={e => update('operating_hours', capitalizeWords(e.target.value))} placeholder="e.g. Mon-Fri 8AM-8PM" style={inputStyle} />
           </div>
         </div>
       </div>

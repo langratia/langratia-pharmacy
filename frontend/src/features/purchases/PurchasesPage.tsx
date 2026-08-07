@@ -3,7 +3,7 @@ import { Plus, Trash2, Truck, X, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, capitalizeWords } from '../../utils/formatters';
 import { ListPurchases, RecordPurchase, ListMedicines, ListSuppliers, ListPurchaseItems } from '../../../wailsjs/go/main/App';
 import { services, models } from '../../../wailsjs/go/models';
 
@@ -292,7 +292,7 @@ export const PurchasesPage: React.FC = () => {
                   <input
                     placeholder="e.g. PO-98402"
                     value={invoiceNumber}
-                    onChange={e => { setInvoiceNumber(e.target.value); clearError(); }}
+                    onChange={e => { setInvoiceNumber(capitalizeWords(e.target.value)); clearError(); }}
                     required
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }}
                   />
@@ -326,7 +326,7 @@ export const PurchasesPage: React.FC = () => {
                   <input
                     placeholder="Optional details..."
                     value={notes}
-                    onChange={e => setNotes(e.target.value)}
+                    onChange={e => setNotes(capitalizeWords(e.target.value))}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -353,7 +353,7 @@ export const PurchasesPage: React.FC = () => {
                     <input
                       placeholder="e.g. BATCH-01"
                       value={batchNum}
-                      onChange={e => setBatchNum(e.target.value)}
+                      onChange={e => setBatchNum(capitalizeWords(e.target.value))}
                       style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }}
                     />
                   </div>

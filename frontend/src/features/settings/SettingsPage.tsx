@@ -12,7 +12,7 @@ import {
 import { models, services } from '../../../wailsjs/go/models';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, capitalizeWords } from '../../utils/formatters';
 import { Panel } from '../../components/ui/Panel';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
@@ -808,7 +808,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>Full Name *</label>
-                    <input type="text" required value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })} style={inputStyle} />
+                    <input type="text" required value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: capitalizeWords(e.target.value) })} style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Username *</label>
@@ -820,7 +820,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
                   <div>
                     <label style={labelStyle}>Branch</label>
-                    <input type="text" value={newUser.branch} onChange={e => setNewUser({ ...newUser, branch: e.target.value })} style={inputStyle} />
+                    <input type="text" value={newUser.branch} onChange={e => setNewUser({ ...newUser, branch: capitalizeWords(e.target.value) })} style={inputStyle} />
                   </div>
                   <div>
                     <label style={labelStyle}>Role Privilege</label>

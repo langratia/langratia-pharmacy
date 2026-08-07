@@ -692,7 +692,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     placeholder="e.g. 500mg"
                     value={modalFormData.dosage_strength}
-                    onChange={(e) => setModalFormData({ ...modalFormData, dosage_strength: e.target.value })}
+                    onChange={(e) => setModalFormData({ ...modalFormData, dosage_strength: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -755,7 +755,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     placeholder="e.g. 10x10"
                     value={modalFormData.pack_size}
-                    onChange={(e) => setModalFormData({ ...modalFormData, pack_size: e.target.value })}
+                    onChange={(e) => setModalFormData({ ...modalFormData, pack_size: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -894,7 +894,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     disabled={!canEdit}
                     value={formData.dosage_strength}
-                    onChange={(e) => setFormData({ ...formData, dosage_strength: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, dosage_strength: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
@@ -961,7 +961,7 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                     type="text"
                     disabled={!canEdit}
                     value={formData.pack_size}
-                    onChange={(e) => setFormData({ ...formData, pack_size: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, pack_size: capitalizeWords(e.target.value) })}
                     style={{ width: '100%', height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', boxSizing: 'border-box', outline: 'none', fontSize: '13px' }}
                   />
                 </div>
