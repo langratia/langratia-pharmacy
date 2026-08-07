@@ -16,6 +16,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { SearchBar } from '../../components/ui/SearchBar';
 import { DataGrid, Column } from '../../components/ui/DataGrid';
 import { SplitPane } from '../../components/ui/SplitPane';
+import { capitalizeWords } from '../../utils/formatters';
 import { 
   ListPrescriptions, 
   CreatePrescription, 
@@ -453,49 +454,168 @@ export const PrescriptionsPage: React.FC<PrescriptionsPageProps> = ({ onSelectVi
 
       {showNewModal && (
         <div className="modal-overlay" onClick={handleCloseNewModal}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--surface-soft)', border: '1px solid var(--line-strong)', borderRadius: 'var(--r2)', width: '540px', padding: '28px', boxShadow: 'var(--shadow-dropdown)', animation: 'popupEnter 0.2s cubic-bezier(0.16,1,0.3,1) forwards' }}>
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              background: 'var(--surface-soft)', 
+              border: '1px solid var(--line-strong)', 
+              borderRadius: 'var(--r2)', 
+              width: '560px', 
+              maxWidth: '92vw', 
+              maxHeight: '90vh', 
+              overflowY: 'auto', 
+              padding: '24px', 
+              boxSizing: 'border-box', 
+              boxShadow: 'var(--shadow-dropdown)', 
+              animation: 'popupEnter 0.2s cubic-bezier(0.16,1,0.3,1) forwards' 
+            }}
+          >
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px', letterSpacing: '-0.2px' }}>New Prescription</h2>
-            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '20px' }}>Fill in patient and doctor details, then add medication line items.</p>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '18px' }}>Fill in patient and doctor details, then add medication line items.</p>
 
-            <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <input placeholder="Patient Name *" required value={patientName} onChange={e => setPatientName(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <input type="number" placeholder="Age *" value={patientAge || ''} onChange={e => setPatientAge(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+            <form onSubmit={handleCreatePrescriptionSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Patient Name *</label>
+                  <input 
+                    placeholder="e.g. John Doe" 
+                    required 
+                    value={patientName} 
+                    onChange={e => setPatientName(capitalizeWords(e.target.value))} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Age *</label>
+                  <input 
+                    type="number" 
+                    placeholder="Age" 
+                    value={patientAge || ''} 
+                    onChange={e => setPatientAge(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Patient Phone</label>
+                  <input 
+                    placeholder="e.g. 0770000000" 
+                    value={patientPhone} 
+                    onChange={e => setPatientPhone(e.target.value)} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <input placeholder="Patient Phone" value={patientPhone} onChange={e => setPatientPhone(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <input placeholder="Doctor Name *" required value={doctorName} onChange={e => setDoctorName(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Doctor Name *</label>
+                  <input 
+                    placeholder="e.g. Dr. Smith" 
+                    required 
+                    value={doctorName} 
+                    onChange={e => setDoctorName(capitalizeWords(e.target.value))} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Doctor Contact</label>
+                  <input 
+                    placeholder="e.g. Hospital or Tel" 
+                    value={doctorContact} 
+                    onChange={e => setDoctorContact(e.target.value)} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <input placeholder="Doctor Contact" value={doctorContact} onChange={e => setDoctorContact(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <textarea placeholder="Notes (optional)" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', resize: 'none', outline: 'none', fontSize: '13px' }} />
+
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Notes (optional)</label>
+                <textarea 
+                  placeholder="Additional instructions or clinical notes..." 
+                  value={notes} 
+                  onChange={e => setNotes(e.target.value)} 
+                  rows={2} 
+                  style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', resize: 'none', outline: 'none', fontSize: '13px' }} 
+                />
               </div>
 
               <div style={{ borderTop: '1px solid var(--line)', paddingTop: '14px', fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>Add Medication Line Item</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <select value={selectedMedId} onChange={e => setSelectedMedId(Number(e.target.value))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }}>
-                  <option value="">Select Medicine…</option>
-                  {availableMedicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-                <input type="number" placeholder="Quantity" value={qtyPrescribed || ''} onChange={e => setQtyPrescribed(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Medicine *</label>
+                  <select 
+                    value={selectedMedId} 
+                    onChange={e => setSelectedMedId(Number(e.target.value))} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }}
+                  >
+                    <option value="">Select Medicine…</option>
+                    {availableMedicines.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Quantity</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    placeholder="Qty" 
+                    value={qtyPrescribed || ''} 
+                    onChange={e => setQtyPrescribed(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                <input placeholder="Dosage (e.g. 1 tablet)" value={dosage} onChange={e => setDosage(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <input placeholder="Frequency (e.g. 3x daily)" value={frequency} onChange={e => setFrequency(e.target.value)} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
-                <input type="number" placeholder="Days" value={durationDays || ''} onChange={e => setDurationDays(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} style={{ height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-soft)', color: 'var(--ink)', outline: 'none', minHeight: 'unset', fontSize: '13px' }} />
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Dosage</label>
+                  <input 
+                    placeholder="e.g. 1 tablet" 
+                    value={dosage} 
+                    onChange={e => setDosage(e.target.value)} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Frequency</label>
+                  <input 
+                    placeholder="e.g. 3x daily" 
+                    value={frequency} 
+                    onChange={e => setFrequency(e.target.value)} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Duration (Days)</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    placeholder="Days" 
+                    value={durationDays || ''} 
+                    onChange={e => setDurationDays(e.target.value === '' ? ('' as any) : parseInt(e.target.value, 10))} 
+                    style={{ width: '100%', boxSizing: 'border-box', minWidth: 0, height: '38px', padding: '0 12px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)', outline: 'none', fontSize: '13px' }} 
+                  />
+                </div>
               </div>
-              <button type="button" onClick={handleAddItemToRx} className="btn" style={{ gap: '6px' }}><Plus size={14} /> Add Line Item</button>
 
-              <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--line)', padding: '8px', borderRadius: '8px', background: 'var(--surface)' }}>
-                {rxItems.map((item, idx) => (
-                  <div key={`${item.medicine_id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '6px 4px', borderBottom: '1px solid var(--line)', color: 'var(--ink)' }}>
-                    <span>{item.medicine_name} — {item.dosage} {item.frequency} {item.duration_days}d ×{item.quantity_prescribed}</span>
-                    <button type="button" onClick={() => setRxItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: 'var(--red)', background: 'transparent', cursor: 'pointer', minHeight: 'unset', padding: '0' }}><Trash2 size={14} /></button>
-                  </div>
-                ))}
+              <button type="button" onClick={handleAddItemToRx} className="btn" style={{ gap: '6px', justifyContent: 'center' }}>
+                <Plus size={14} /> Add Line Item
+              </button>
+
+              <div style={{ maxHeight: '140px', overflowY: 'auto', border: '1px solid var(--line)', padding: '8px', borderRadius: '8px', background: 'var(--surface)', width: '100%', boxSizing: 'border-box' }}>
+                {rxItems.length === 0 ? (
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', padding: '12px' }}>No items added yet. Fill in medicine details above and click Add Line Item.</div>
+                ) : (
+                  rxItems.map((item, idx) => (
+                    <div key={`${item.medicine_id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '6px 4px', borderBottom: idx < rxItems.length - 1 ? '1px solid var(--line)' : 'none', color: 'var(--ink)' }}>
+                      <span><strong>{item.medicine_name}</strong> — {item.dosage} {item.frequency} for {item.duration_days}d (Qty: {item.quantity_prescribed})</span>
+                      <button type="button" onClick={() => setRxItems(prev => prev.filter((_, i) => i !== idx))} style={{ border: 'none', color: 'var(--red)', background: 'transparent', cursor: 'pointer', minHeight: 'unset', padding: '4px' }}><Trash2 size={14} /></button>
+                    </div>
+                  ))
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '8px' }}>
                 <button type="button" onClick={handleCloseNewModal} className="btn" disabled={isSubmitting}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting} style={{ gap: '6px' }}>
                   {isSubmitting ? 'Saving…' : 'Save Prescription'}
