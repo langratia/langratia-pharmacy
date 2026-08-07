@@ -70,6 +70,10 @@ export function DeactivateUser(arg1, arg2) {
   return window['go']['main']['App']['DeactivateUser'](arg1, arg2);
 }
 
+export function DeleteMedicine(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DeleteMedicine'](arg1, arg2, arg3);
+}
+
 export function EnableMainServerMode(arg1) {
   return window['go']['main']['App']['EnableMainServerMode'](arg1);
 }

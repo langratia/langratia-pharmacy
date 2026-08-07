@@ -39,6 +39,8 @@ export function CreateUser(arg1:string,arg2:string,arg3:string,arg4:string,arg5:
 
 export function DeactivateUser(arg1:number,arg2:number):Promise<void>;
 
+export function DeleteMedicine(arg1:number,arg2:number,arg3:string):Promise<void>;
+
 export function EnableMainServerMode(arg1:number):Promise<void>;
 
 export function ExportDatabase(arg1:string,arg2:number,arg3:string):Promise<void>;

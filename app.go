@@ -859,6 +859,17 @@ func (a *App) ArchiveMedicine(id int64, archive bool, userID int64, username str
 	return a.medicineService.ArchiveMedicine(id, archive, userID, username)
 }
 
+func (a *App) DeleteMedicine(id int64, userID int64, username string) error {
+	if a.apiURL != "" {
+		return api.CallRPC(a.apiURL, "DeleteMedicine", nil, id, userID, username)
+	}
+
+	if a.medicineService == nil {
+		return fmt.Errorf("service not initialized")
+	}
+	return a.medicineService.DeleteMedicine(id, userID, username)
+}
+
 func (a *App) ListMedicines(search, category string, includeArchived bool) ([]models.Medicine, error) {
 	if a.
 		apiURL != "" {

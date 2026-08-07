@@ -12,7 +12,9 @@ import {
   Boxes,
   Pill,
   X,
-  CheckCircle2
+  CheckCircle2,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { Medicine, Supplier, MedicineUnit } from '../../types';
 
@@ -313,6 +315,37 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
     }
   };
 
+  const handleDeleteMedicine = async (med: Medicine) => {
+    if (!canEdit) return toast.error('You do not have permission to delete medicines');
+    if (!window.confirm(`Are you sure you want to delete "${med.name}" from inventory?`)) return;
+
+    try {
+      setIsLoading(true);
+      const wailsApp = (window as any)?.go?.main?.App;
+      if (wailsApp && typeof wailsApp.DeleteMedicine === 'function') {
+        await wailsApp.DeleteMedicine(med.id, user?.id || 1, user?.username || 'admin');
+        toast.success(`Medicine "${med.name}" deleted successfully.`);
+        if (selectedMedicine?.id === med.id) {
+          setSelectedMedicine(null);
+          setIsEditModalOpen(false);
+        }
+        fetchMedicines();
+      } else if (wailsApp && typeof wailsApp.ArchiveMedicine === 'function') {
+        await wailsApp.ArchiveMedicine(med.id, true, user?.id || 1, user?.username || 'admin');
+        toast.success(`Medicine "${med.name}" deleted successfully.`);
+        if (selectedMedicine?.id === med.id) {
+          setSelectedMedicine(null);
+          setIsEditModalOpen(false);
+        }
+        fetchMedicines();
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete medicine');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // CSV Bulk Import Handler
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -475,6 +508,54 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
           </span>
         );
       }
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '10%',
+      align: 'center' as const,
+      accessor: (med) => (
+        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => handleSelectMedicine(med, true)}
+            title="Edit Medicine"
+            style={{
+              padding: '4px 8px',
+              borderRadius: '6px',
+              border: '1px solid var(--line)',
+              background: 'var(--surface)',
+              color: 'var(--blue)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Edit3 size={13} />
+          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => handleDeleteMedicine(med)}
+              title="Delete Medicine"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '6px',
+                border: '1px solid rgba(239,68,68,0.3)',
+                background: 'rgba(239,68,68,0.1)',
+                color: 'var(--red)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      )
     }
   ];
 
@@ -978,12 +1059,12 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({ initialFilter, onF
                 {canEdit && selectedMedicine && (
                   <button
                     type="button"
-                    onClick={() => handleToggleArchive(selectedMedicine)}
-                    className={selectedMedicine.is_archived ? 'btn' : 'btn btn-danger'}
+                    onClick={() => handleDeleteMedicine(selectedMedicine)}
+                    className="btn btn-danger"
                     style={{ gap: '6px' }}
                   >
-                    {selectedMedicine.is_archived ? <RotateCcw size={14} /> : <Archive size={14} />}
-                    <span>{selectedMedicine.is_archived ? 'Restore SKU' : 'Archive SKU'}</span>
+                    <Trash2 size={14} />
+                    <span>Delete Medicine</span>
                   </button>
                 )}
                 <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto' }}>

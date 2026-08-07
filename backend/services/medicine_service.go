@@ -184,6 +184,11 @@ func (s *MedicineService) ArchiveMedicine(id int64, archive bool, userID int64, 
 	return nil
 }
 
+// DeleteMedicine deletes (archives) a medicine from active inventory.
+func (s *MedicineService) DeleteMedicine(id int64, userID int64, username string) error {
+	return s.ArchiveMedicine(id, true, userID, username)
+}
+
 // ListMedicines retrieves medicines based on search term, category, and archived state.
 func (s *MedicineService) ListMedicines(search, category string, includeArchived bool) ([]models.Medicine, error) {
 	query := `SELECT ` + medicineCols + `, s.name as supplier_name ` + medicineJoin + ` WHERE 1=1`
