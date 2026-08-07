@@ -743,6 +743,7 @@ export const SettingsPage: React.FC = () => {
 
         {can('manage_users') && navTabBtn('permissions', 'Permissions', <CheckSquare size={15} />)}
         {can('manage_settings') && navTabBtn('pharmacy', 'Pharmacy Setup', <Building2 size={15} />)}
+        {can('manage_settings') && navTabBtn('network', 'Network Server', <Network size={15} />)}
       </div>
 
       {/* Main Content Area — SCROLLABLE BODY */}
@@ -892,6 +893,75 @@ export const SettingsPage: React.FC = () => {
               style={{ flex: 1, height: '100%' }}
             />
           </Panel>
+        )}
+
+        {/* ── TAB: DB & BACKUPS ── */}
+        {activeTab === 'backups' && (
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <Panel title="DATABASE BACKUPS & PRODUCTION SETUP">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+                
+                {/* Export Database Backup */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--line)',
+                  background: 'var(--surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Download size={16} style={{ color: 'var(--blue)' }} /> Export Database Backup
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
+                      Create a standalone SQLite database backup file of all current sales, stock, and configuration records.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleExportDB}
+                    disabled={isLoading}
+                    className="btn btn-primary"
+                    style={{ padding: '0 16px', fontSize: '12px', whiteSpace: 'nowrap', minHeight: 'unset', height: '36px', fontWeight: 700 }}
+                  >
+                    Export Backup (.db)
+                  </button>
+                </div>
+
+                {/* Production Clean Install & Sample Data Wipe */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--line)',
+                  background: 'var(--surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Trash2 size={16} style={{ color: 'var(--red)' }} /> Production Clean Install Mode
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
+                      Wipe all sample medicines, inventory, sales, purchases, and prescriptions to reset the system to a clean, brand-new database for deployment.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleClearSampleData}
+                    disabled={isLoading}
+                    className="btn btn-danger"
+                    style={{ padding: '0 16px', fontSize: '12px', whiteSpace: 'nowrap', minHeight: 'unset', height: '36px', fontWeight: 700 }}
+                  >
+                    Wipe Sample Data
+                  </button>
+                </div>
+
+              </div>
+            </Panel>
+          </div>
         )}
 
         {/* ── TAB: NETWORK SETUP ── */}
