@@ -91,47 +91,14 @@ export const PharmacySetupTab: React.FC = () => {
         <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--line)', paddingBottom: '10px' }}>
           <Building2 size={16} style={{ color: 'var(--blue)' }} /> PHARMACY INFORMATION
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
           <div>
             <label style={labelStyle}>Pharmacy Name *</label>
             <input type="text" required value={cfg.pharmacy_name} onChange={e => update('pharmacy_name', e.target.value)} style={inputStyle} />
           </div>
           <div>
-            <label style={labelStyle}>Logo (URL or Path)</label>
-            <input type="text" value={cfg.logo} onChange={e => update('logo', e.target.value)} placeholder="/path/to/logo.png" style={inputStyle} />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
             <label style={labelStyle}>Address</label>
             <input type="text" value={cfg.address} onChange={e => update('address', e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Phone</label>
-            <input type="text" value={cfg.phone} onChange={e => update('phone', e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Email</label>
-            <input type="email" value={cfg.email} onChange={e => update('email', e.target.value)} style={inputStyle} />
-          </div>
-        </div>
-      </div>
-
-      {/* Licensing & Tax */}
-      <div style={cardStyle}>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--line)', paddingBottom: '10px' }}>
-          LICENSING & REGISTRATION
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-          <div>
-            <label style={labelStyle}>License Number</label>
-            <input type="text" value={cfg.license_number} onChange={e => update('license_number', e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Registration Number</label>
-            <input type="text" value={cfg.registration_number} onChange={e => update('registration_number', e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Tax Number (TIN)</label>
-            <input type="text" value={cfg.tax_number} onChange={e => update('tax_number', e.target.value)} style={inputStyle} />
           </div>
         </div>
       </div>
