@@ -668,8 +668,7 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
           <div
             ref={searchRef}
             onClick={(e) => e.stopPropagation()}
-            <div
-              style={{
+            style={{
                 width: '680px',
                 maxWidth: '92vw',
                 background: 'var(--surface-soft)',
