@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Shield, Users, Database, UserPlus, Network, Key, Edit3, Lock, Unlock, LogOut, RefreshCw, Activity, CheckSquare, Building2, BarChart2, Trash2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
-  ListUsers, CreateUser, ExportDatabase, ListAuditLogs,
+  ListUsers, CreateUser, ExportDatabase, ListAuditLogs, ClearSampleData,
   AutoDiscoverServer, EnableMainServerMode, ChangePassword, AdminResetPassword, GetUser, UpdateUserInfo,
   ReactivateUser, LockUser, UnlockUser, ForceLogout, GetLoginHistory, GetUserActivity, GetRolePermissions,
   SetRolePermissions, GetAllPermissionDefs, DeactivateUser, GetCashierPerformance,
@@ -326,6 +326,23 @@ export const SettingsPage: React.FC = () => {
         setIsLoading(false);
       }
     }, 'Confirm identity to export database');
+  };
+
+  const handleClearSampleData = () => {
+    if (!user || user.role !== 'admin') return toast.error('Admin privileges required');
+    requireReauth(async () => {
+      if (!window.confirm('Wipe all sample data (medicines, stock, sales, purchases, prescriptions)? This will reset the database to a clean, empty state ready for production.')) return;
+      try {
+        setIsLoading(true);
+        await ClearSampleData(user.id);
+        toast.success('All sample data wiped! Database is clean for production.');
+        setTimeout(() => window.location.reload(), 1000);
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to wipe sample data');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 'Confirm identity to wipe sample data');
   };
 
   const handleDeactivateUser = async (uId: number, username: string) => {
@@ -1011,6 +1028,35 @@ export const SettingsPage: React.FC = () => {
                       {isSavingPath ? 'Saving...' : 'Apply Path'}
                     </button>
                   </div>
+                </div>
+
+                {/* 5. Production Clean Install & Sample Data Wipe */}
+                <div style={{
+                  padding: '20px',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--r2)',
+                  background: 'var(--surface)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <Trash2 size={16} style={{ color: 'var(--red)' }} /> Production Clean Install Mode
+                    </div>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0 }}>
+                      Wipe all sample medicines, inventory, sales, purchases, and prescriptions to reset the system to a clean, brand-new database for deployment.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleClearSampleData}
+                    disabled={isLoading}
+                    className="btn btn-danger"
+                    style={{ padding: '0 16px', fontSize: '12px', whiteSpace: 'nowrap', minHeight: 'unset', height: '36px', fontWeight: 700 }}
+                  >
+                    Wipe Sample Data
+                  </button>
                 </div>
 
               </div>
