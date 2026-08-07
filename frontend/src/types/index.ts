@@ -178,6 +178,8 @@ export interface SalesSummaryData {
   total_sales: number;
   total_items_sold: number;
   total_profit: number;
+  total_discounts?: number;
+  avg_discount_pct?: number;
   profit_margin: number;
   period_label: string;
   start_date: string;

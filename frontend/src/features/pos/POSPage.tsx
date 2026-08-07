@@ -213,11 +213,23 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
 
   /* ── Totals ──────────────────────────────────────────────────────── */
   const grossTotal = cart.reduce((sum, item) => sum + (getItemUnitPrice(item) * item.quantity), 0);
+  const itemLevelSavings = cart.reduce((sum, item) => {
+    const regPrice = item.selectedUnit?.price || item.medicine.selling_price;
+    const curPrice = getItemUnitPrice(item);
+    if (curPrice < regPrice) {
+      return sum + ((regPrice - curPrice) * item.quantity);
+    }
+    return sum;
+  }, 0);
+  const regularGrossTotal = grossTotal + itemLevelSavings;
+
   let calculatedDiscount = 0;
   if (discountAmount > 0) {
     calculatedDiscount = discountType === 'percent' ? grossTotal * (discountAmount / 100) : discountAmount;
     if (calculatedDiscount > grossTotal) calculatedDiscount = grossTotal;
   }
+  const totalSavings = itemLevelSavings + calculatedDiscount;
+  const overallSavingsPct = regularGrossTotal > 0 ? Math.round((totalSavings / regularGrossTotal) * 100) : 0;
   const netTotal = Math.max(0, grossTotal - calculatedDiscount);
   const tendered = parseFloat(tenderedAmount) || 0;
   const change = Math.max(0, tendered - netTotal);
@@ -732,7 +744,23 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                       </button>
                     </div>
 
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>UGX {formatCurrency(lineTotal)}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {hasCustomPrice && currentUnitPrice < regularUnitPrice && (
+                          <span style={{ fontSize: '11px', color: 'var(--muted)', textDecoration: 'line-through' }}>
+                            UGX {formatCurrency(regularUnitPrice * item.quantity)}
+                          </span>
+                        )}
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: hasCustomPrice && currentUnitPrice < regularUnitPrice ? 'var(--green)' : 'var(--ink)' }}>
+                          UGX {formatCurrency(lineTotal)}
+                        </span>
+                      </div>
+                      {hasCustomPrice && currentUnitPrice < regularUnitPrice && (
+                        <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: 700 }}>
+                          Saved UGX {formatCurrency((regularUnitPrice - currentUnitPrice) * item.quantity)} ({Math.round(((regularUnitPrice - currentUnitPrice) / regularUnitPrice) * 100)}% off)
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -744,10 +772,10 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
         <div style={{ borderTop: '1px solid var(--line)', padding: '18px 20px', background: 'var(--surface-soft)', flexShrink: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', fontSize: '13px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
-              <span>Subtotal</span>
-              <span>UGX {formatCurrency(grossTotal)}</span>
+              <span>Subtotal {itemLevelSavings > 0 ? '(Regular)' : ''}</span>
+              <span style={{ textDecoration: itemLevelSavings > 0 ? 'line-through' : 'none' }}>UGX {formatCurrency(regularGrossTotal)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: calculatedDiscount > 0 ? 'var(--green)' : 'var(--muted)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: totalSavings > 0 ? 'var(--green)' : 'var(--muted)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>Discount</span>
                 <button
@@ -756,8 +784,13 @@ export const POSPage: React.FC<POSPageProps> = ({ externalCartItems, onClearExte
                 >
                   F4 Edit
                 </button>
+                {overallSavingsPct > 0 && (
+                  <span style={{ fontSize: '10px', padding: '1px 6px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--green)', borderRadius: '4px', fontWeight: 700 }}>
+                    {overallSavingsPct}% OFF
+                  </span>
+                )}
               </div>
-              <span>- UGX {formatCurrency(calculatedDiscount)}</span>
+              <span style={{ fontWeight: totalSavings > 0 ? 700 : 400 }}>- UGX {formatCurrency(totalSavings)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 800, color: 'var(--ink)', paddingTop: '10px', borderTop: '1px solid var(--line)', letterSpacing: '-0.3px' }}>
               <span>Total</span>

@@ -72,6 +72,8 @@ type SalesSummary struct {
 	TotalSales     int                    `json:"total_sales"`
 	TotalItemsSold int                    `json:"total_items_sold"`
 	TotalProfit    float64                `json:"total_profit"`
+	TotalDiscounts float64                `json:"total_discounts"`
+	AvgDiscountPct float64                `json:"avg_discount_pct"`
 	ProfitMargin   float64                `json:"profit_margin"`
 	PeriodLabel    string                 `json:"period_label"`
 	StartDate      string                 `json:"start_date"`
@@ -527,6 +529,12 @@ func (s *ReportService) GetSalesSummary(period string) (*SalesSummary, error) {
 		if subtotalRev > 0 {
 			ss.ProfitMargin = (ss.TotalProfit / subtotalRev) * 100
 		}
+	}
+
+	// Total discounts for period
+	_ = s.db.QueryRow(`SELECT COALESCE(SUM(discount_amount), 0.0) FROM sales WHERE date(sale_date, 'localtime') >= date(?) AND date(sale_date, 'localtime') <= date(?)`, startDateStr, endDateStr).Scan(&ss.TotalDiscounts)
+	if (ss.PeriodRevenue + ss.TotalDiscounts) > 0 {
+		ss.AvgDiscountPct = (ss.TotalDiscounts / (ss.PeriodRevenue + ss.TotalDiscounts)) * 100.0
 	}
 
 	// By payment method

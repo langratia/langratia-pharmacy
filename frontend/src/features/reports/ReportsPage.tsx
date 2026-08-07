@@ -259,6 +259,8 @@ export const ReportsPage: React.FC = () => {
           ['Units Sold', String(salesSummary.total_items_sold)],
           ['Gross Profit (UGX)', String(salesSummary.total_profit)],
           ['Profit Margin (%)', String(salesSummary.profit_margin.toFixed(1))],
+          ['Total Discounts Granted (UGX)', String(salesSummary.total_discounts || 0)],
+          ['Average Discount Rate (%)', String((salesSummary.avg_discount_pct || 0).toFixed(1))],
           [],
           ['--- WHO SOLD (STAFF PERFORMANCE) ---'],
           ['Staff Member', 'Role', 'Orders Processed', 'Units Sold', 'Total Revenue (UGX)'],
@@ -495,18 +497,18 @@ export const ReportsPage: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Period Reference
+                        Discounts & Savings Granted
                       </div>
-                      <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink, #111827)', marginTop: '4px' }}>
-                        {activePeriodLabel}
+                      <div className="tabular-nums" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--green)', marginTop: '4px' }}>
+                        UGX {formatCurrency(salesSummary?.total_discounts || 0)}
                       </div>
                     </div>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--surface-soft)', color: 'var(--ink, #111827)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--line)' }}>
-                      <Clock size={16} />
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(16,185,129,0.12)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(16,185,129,0.3)' }}>
+                      <DollarSign size={16} />
                     </div>
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
-                    {salesSummary?.start_date} to {salesSummary?.end_date}
+                    Avg Discount Rate: <strong style={{ color: 'var(--green)' }}>{(salesSummary?.avg_discount_pct || 0).toFixed(1)}%</strong>
                   </div>
                 </Panel>
               </div>

@@ -89,9 +89,21 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 	seq := atomic.AddInt64(&invoiceSeq, 1)
 	invoiceNumber := fmt.Sprintf("INV-%s-%04d", time.Now().Format("060102"), seq)
 
+	regularGrossAmount := 0.0
 	grossAmount := 0.0
 	for _, item := range items {
 		grossAmount += item.UnitPrice * float64(item.Quantity)
+		var catalogSellingPrice float64
+		_ = tx.QueryRow(`SELECT selling_price FROM medicines WHERE id = ?`, item.MedicineID).Scan(&catalogSellingPrice)
+		factor := item.ConversionFactor
+		if factor <= 0 {
+			factor = 1
+		}
+		if catalogSellingPrice > 0 {
+			regularGrossAmount += catalogSellingPrice * float64(factor) * float64(item.Quantity)
+		} else {
+			regularGrossAmount += item.UnitPrice * float64(item.Quantity)
+		}
 	}
 
 	// Calculate net amount after discount
@@ -107,10 +119,16 @@ func (s *SalesService) ProcessSale(userID int64, username string, items []CartIt
 		}
 	}
 
+	// Total discount granted = regular catalog gross amount - net amount charged
+	totalDiscountGiven := regularGrossAmount - netAmount
+	if totalDiscountGiven < 0 {
+		totalDiscountGiven = 0
+	}
+
 	// 1. Insert Sale record
 	res, err := tx.Exec(
 		`INSERT INTO sales (invoice_number, user_id, total_amount, payment_method, discount_amount, discount_type, shift_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		invoiceNumber, userID, netAmount, paymentMethod, discountAmount, discountType, shiftID,
+		invoiceNumber, userID, netAmount, paymentMethod, totalDiscountGiven, discountType, shiftID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sale invoice: %w", err)

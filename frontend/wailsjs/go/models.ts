@@ -1299,6 +1299,8 @@ export namespace services {
 	    total_sales: number;
 	    total_items_sold: number;
 	    total_profit: number;
+	    total_discounts: number;
+	    avg_discount_pct: number;
 	    profit_margin: number;
 	    period_label: string;
 	    start_date: string;
@@ -1320,6 +1322,8 @@ export namespace services {
 	        this.total_sales = source["total_sales"];
 	        this.total_items_sold = source["total_items_sold"];
 	        this.total_profit = source["total_profit"];
+	        this.total_discounts = source["total_discounts"];
+	        this.avg_discount_pct = source["avg_discount_pct"];
 	        this.profit_margin = source["profit_margin"];
 	        this.period_label = source["period_label"];
 	        this.start_date = source["start_date"];
