@@ -668,62 +668,66 @@ export const Header: React.FC<HeaderProps> = ({ onSelectView, activeView }) => {
           <div
             ref={searchRef}
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '580px',
-              maxWidth: '90vw',
-              background: 'var(--surface-soft)',
-              borderRadius: 'var(--r2)',
-              boxShadow: 'var(--shadow-dropdown)',
-              border: '1px solid var(--line-strong)',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              animation: 'popupEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-            }}
-          >
-            {/* Search input */}
             <div
               style={{
-                padding: '16px 18px',
-                borderBottom: '1px solid var(--line)',
+                width: '680px',
+                maxWidth: '92vw',
+                background: 'var(--surface-soft)',
+                borderRadius: 'var(--r2)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.15), 0 0 0 1px var(--line-strong)',
+                border: 'none',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                animation: 'popupEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
               }}
             >
-              <Search size={18} style={{ color: 'var(--muted)', flexShrink: 0 }} />
-              <input
-                autoFocus
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (searchResults.length === 0) return;
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSelectedIndex(prev => (prev + 1) % searchResults.length);
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSelectedIndex(prev => (prev - 1 + searchResults.length) % searchResults.length);
-                  } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearchResultClick(searchResults[selectedIndex]);
-                  }
-                }}
-                placeholder="Search medicines, invoices, suppliers…"
+              {/* Search input */}
+              <div
                 style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '15px',
-                  color: 'var(--ink)',
-                  padding: 0,
-                  height: 'auto',
-                  minHeight: 'unset',
+                  padding: '22px 28px',
+                  borderBottom: '1px solid var(--line)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  background: 'var(--surface)',
                 }}
-              />
-            </div>
+              >
+                <Search size={24} style={{ color: 'var(--blue)', flexShrink: 0 }} />
+                <input
+                  autoFocus
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (searchResults.length === 0) return;
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSelectedIndex(prev => (prev + 1) % searchResults.length);
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedIndex(prev => (prev - 1 + searchResults.length) % searchResults.length);
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSearchResultClick(searchResults[selectedIndex]);
+                    }
+                  }}
+                  placeholder="Search medicines, invoices, suppliers…"
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '22px',
+                    fontWeight: 500,
+                    color: 'var(--ink)',
+                    padding: 0,
+                    height: 'auto',
+                    minHeight: 'unset',
+                    letterSpacing: '-0.3px',
+                  }}
+                />
+              </div>
 
             {/* Results */}
             {searchQuery.trim() && (
