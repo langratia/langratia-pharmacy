@@ -86,6 +86,7 @@ export const ReportsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [salesPeriod, setSalesPeriod] = useState<string>('today');
+  const [salesViewMode, setSalesViewMode] = useState<'transactions' | 'product_totals'>('transactions');
   const abortRef = useRef(false);
 
   useEffect(() => {
@@ -262,11 +263,26 @@ export const ReportsPage: React.FC = () => {
           ['Total Discounts Granted (UGX)', String(salesSummary.total_discounts || 0)],
           ['Average Discount Rate (%)', String((salesSummary.avg_discount_pct || 0).toFixed(1))],
           [],
+          ['--- ITEMIZED TRANSACTIONS AUDIT LOG (EACH SALE INDEPENDENT) ---'],
+          ['Invoice Number', 'Date & Time', 'Cashier', 'Medicine Name', 'Quantity Sold', 'Catalog Price (UGX)', 'Actual Sold Price (UGX)', 'Price Status / Variance', 'Line Total (UGX)', 'Payment Method'],
+          ...(salesSummary.detailed_sales || []).map(d => [
+            d.invoice_number,
+            formatDate(d.sale_date),
+            d.cashier_name,
+            d.medicine_name + (d.dosage ? ` (${d.dosage})` : ''),
+            `${d.quantity_sold} ${d.unit_name || ''}`,
+            String(d.catalog_price || d.unit_price),
+            String(d.unit_price),
+            d.price_variance && Math.abs(d.price_variance) >= 0.5 ? (d.price_variance < 0 ? `${Math.round(d.price_variance)}% Discount` : `+${Math.round(d.price_variance)}% Higher`) : 'Standard',
+            String(d.subtotal),
+            d.payment_method
+          ]),
+          [],
           ['--- WHO SOLD (STAFF PERFORMANCE) ---'],
           ['Staff Member', 'Role', 'Orders Processed', 'Units Sold', 'Total Revenue (UGX)'],
           ...salesSummary.who_sold.map(w => [w.full_name || w.username, w.role, String(w.invoices_count), String(w.items_sold), String(w.total_revenue)]),
           [],
-          ['--- PRODUCTS SOLD & PROFIT MARGINS ---'],
+          ['--- PRODUCTS SOLD & PROFIT MARGINS (SUMMARY TOTALS) ---'],
           ['Medicine Name', 'Category', 'Units Sold', 'Catalog Price (UGX)', 'Actual Sold Price (UGX)', 'Price Status / Variance', 'Total Revenue (UGX)', 'Cost (UGX)', 'Profit (UGX)'],
           ...salesSummary.top_products.map(p => [
             p.medicine_name,
@@ -615,80 +631,170 @@ export const ReportsPage: React.FC = () => {
                 </Panel>
               </div>
 
-              {/* ── PRODUCTS SOLD & PROFIT BREAKDOWN TABLE ── */}
+              {/* ── ITEMIZED SALES TRANSACTIONS OR PRODUCT BREAKDOWN TABLE ── */}
               <Panel noPadding>
-                <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)' }}>
+                <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--line)', flexWrap: 'wrap', gap: '10px' }}>
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
-                      Products Sold & Profit Margins ({activePeriodLabel})
+                      {salesViewMode === 'transactions' ? `Itemized Sales Transactions Audit Log (${activePeriodLabel})` : `Products Sold Summary & Profit Margins (${activePeriodLabel})`}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
-                      Complete itemized sales volume, total revenue, estimated cost, and gross profit
+                      {salesViewMode === 'transactions' ? 'Every sale transaction listed independently with date, cashier, custom prices, discounts & profit' : 'Aggregated total sales volume and revenue grouped per medicine SKU'}
                     </div>
                   </div>
-                  <button onClick={handleExportCSV} className="btn" style={{ fontSize: '11px', height: '28px', minHeight: 'unset', padding: '0 8px' }}>
-                    <Download size={12} /> Export List
-                  </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* View mode toggle switcher */}
+                    <div style={{ display: 'flex', background: 'var(--surface-soft)', padding: '3px', borderRadius: '8px', border: '1px solid var(--line)' }}>
+                      <button
+                        type="button"
+                        onClick={() => setSalesViewMode('transactions')}
+                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 700, borderRadius: '6px', border: 'none', background: salesViewMode === 'transactions' ? 'var(--surface)' : 'transparent', color: salesViewMode === 'transactions' ? 'var(--blue)' : 'var(--muted)', cursor: 'pointer', boxShadow: salesViewMode === 'transactions' ? 'var(--shadow-sm)' : 'none', minHeight: 'unset', height: 'auto', transform: 'none' }}
+                      >
+                        📄 Individual Transactions
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSalesViewMode('product_totals')}
+                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 700, borderRadius: '6px', border: 'none', background: salesViewMode === 'product_totals' ? 'var(--surface)' : 'transparent', color: salesViewMode === 'product_totals' ? 'var(--blue)' : 'var(--muted)', cursor: 'pointer', boxShadow: salesViewMode === 'product_totals' ? 'var(--shadow-sm)' : 'none', minHeight: 'unset', height: 'auto', transform: 'none' }}
+                      >
+                        📊 Product Summaries
+                      </button>
+                    </div>
+
+                    <button onClick={handleExportCSV} className="btn" style={{ fontSize: '11px', height: '28px', minHeight: 'unset', padding: '0 8px' }}>
+                      <Download size={12} /> Export List
+                    </button>
+                  </div>
                 </div>
 
-                {!salesSummary || (salesSummary.top_products || []).length === 0 ? (
-                  <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>
-                    No medicine items sold during {activePeriodLabel}.
-                  </div>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--surface-soft)' }}>
-                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Name</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Category</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Catalog Price</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Actual Sold Price</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)' }}>Price Variance</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total Revenue</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Est. Cost</th>
-                        <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Gross Profit</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {salesSummary.top_products.map((prod) => (
-                        <tr key={prod.medicine_id} style={{ borderTop: '1px solid var(--line)' }}>
-                          <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
-                            {prod.medicine_name}
-                            {prod.dosage && <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400, marginLeft: '6px' }}>({prod.dosage})</span>}
-                          </td>
-                          <td style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: '12px' }}>{prod.category}</td>
-                          <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>{prod.quantity_sold}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)', fontSize: '12px' }}>
-                            UGX {formatCurrency(prod.catalog_price || prod.unit_price)}
-                          </td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>
-                            UGX {formatCurrency(prod.unit_price)}
-                          </td>
-                          <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                            {prod.price_variance !== undefined && Math.abs(prod.price_variance) >= 0.5 ? (
-                              prod.price_variance < 0 ? (
-                                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--green)', fontWeight: 700, display: 'inline-block' }}>
-                                  {Math.round(prod.price_variance)}% Discount
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.35)', color: '#d97706', fontWeight: 700, display: 'inline-block' }}>
-                                  +{Math.round(prod.price_variance)}% Higher
-                                </span>
-                              )
-                            ) : (
-                              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'var(--surface-soft)', border: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 600, display: 'inline-block' }}>
-                                Standard
-                              </span>
-                            )}
-                          </td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>{formatCurrency(prod.revenue)}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>{formatCurrency(prod.cost)}</td>
-                          <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: prod.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>{formatCurrency(prod.profit)}</td>
+                {salesViewMode === 'transactions' ? (
+                  /* ── VIEW 1: INDIVIDUAL SALES TRANSACTIONS AUDIT LOG (Each Sale Independent) ── */
+                  !salesSummary || (salesSummary.detailed_sales || []).length === 0 ? (
+                    <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>
+                      No individual sale transactions recorded during {activePeriodLabel}.
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-soft)' }}>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Invoice & Time</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Cashier</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Name</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Qty Sold</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Catalog Price</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Actual Sold Price</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)' }}>Price Status / Variance</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Line Total</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Gross Profit</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {(salesSummary.detailed_sales || []).map((saleItem, idx) => (
+                          <tr key={`${saleItem.sale_id}_${saleItem.medicine_id}_${idx}`} style={{ borderTop: '1px solid var(--line)' }}>
+                            <td style={{ padding: '10px 14px' }}>
+                              <div style={{ fontWeight: 700, color: 'var(--blue)', fontSize: '12px' }}>{saleItem.invoice_number}</div>
+                              <div style={{ fontSize: '10px', color: 'var(--muted)' }}>{formatDate(saleItem.sale_date)}</div>
+                            </td>
+                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink, #111827)', fontSize: '12px' }}>{saleItem.cashier_name}</td>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              {saleItem.medicine_name}
+                              {saleItem.dosage && <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400, marginLeft: '6px' }}>({saleItem.dosage})</span>}
+                            </td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              {saleItem.quantity_sold} <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400 }}>{saleItem.unit_name}</span>
+                            </td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)', fontSize: '12px' }}>
+                              UGX {formatCurrency(saleItem.catalog_price || saleItem.unit_price)}
+                            </td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              UGX {formatCurrency(saleItem.unit_price)}
+                            </td>
+                            <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                              {saleItem.price_variance !== undefined && Math.abs(saleItem.price_variance) >= 0.5 ? (
+                                saleItem.price_variance < 0 ? (
+                                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--green)', fontWeight: 700, display: 'inline-block' }}>
+                                    {Math.round(saleItem.price_variance)}% Discount
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.35)', color: '#d97706', fontWeight: 700, display: 'inline-block' }}>
+                                    +{Math.round(saleItem.price_variance)}% Higher
+                                  </span>
+                                )
+                              ) : (
+                                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'var(--surface-soft)', border: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 600, display: 'inline-block' }}>
+                                  Standard
+                                </span>
+                              )}
+                            </td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>UGX {formatCurrency(saleItem.subtotal)}</td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: saleItem.gross_profit >= 0 ? 'var(--green)' : 'var(--red)' }}>UGX {formatCurrency(saleItem.gross_profit)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
+                ) : (
+                  /* ── VIEW 2: AGGREGATED PRODUCT SUMMARIES ── */
+                  !salesSummary || (salesSummary.top_products || []).length === 0 ? (
+                    <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--muted)' }}>
+                      No medicine items sold during {activePeriodLabel}.
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-soft)' }}>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Medicine Name</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Category</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Units Sold</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Catalog Price</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Actual Sold Price</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'center', fontWeight: 600, color: 'var(--muted)' }}>Price Variance</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Total Revenue</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Est. Cost</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)' }}>Gross Profit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {salesSummary.top_products.map((prod) => (
+                          <tr key={prod.medicine_id} style={{ borderTop: '1px solid var(--line)' }}>
+                            <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              {prod.medicine_name}
+                              {prod.dosage && <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400, marginLeft: '6px' }}>({prod.dosage})</span>}
+                            </td>
+                            <td style={{ padding: '10px 14px', color: 'var(--muted)', fontSize: '12px' }}>{prod.category}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>{prod.quantity_sold}</td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)', fontSize: '12px' }}>
+                              UGX {formatCurrency(prod.catalog_price || prod.unit_price)}
+                            </td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>
+                              UGX {formatCurrency(prod.unit_price)}
+                            </td>
+                            <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                              {prod.price_variance !== undefined && Math.abs(prod.price_variance) >= 0.5 ? (
+                                prod.price_variance < 0 ? (
+                                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--green)', fontWeight: 700, display: 'inline-block' }}>
+                                    {Math.round(prod.price_variance)}% Discount
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(245,158,11,0.14)', border: '1px solid rgba(245,158,11,0.35)', color: '#d97706', fontWeight: 700, display: 'inline-block' }}>
+                                    +{Math.round(prod.price_variance)}% Higher
+                                  </span>
+                                )
+                              ) : (
+                                <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: 'var(--surface-soft)', border: '1px solid var(--line)', color: 'var(--muted)', fontWeight: 600, display: 'inline-block' }}>
+                                  Standard
+                                </span>
+                              )}
+                            </td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--ink, #111827)' }}>UGX {formatCurrency(prod.revenue)}</td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--muted)' }}>UGX {formatCurrency(prod.cost)}</td>
+                            <td className="tabular-nums" style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: prod.profit >= 0 ? 'var(--green)' : 'var(--red)' }}>UGX {formatCurrency(prod.profit)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )
                 )}
               </Panel>
 

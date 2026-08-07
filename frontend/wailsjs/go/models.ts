@@ -1235,6 +1235,48 @@ export namespace services {
 		    return a;
 		}
 	}
+	export class DetailedSaleItem {
+	    sale_id: number;
+	    invoice_number: string;
+	    sale_date: string;
+	    cashier_name: string;
+	    medicine_id: number;
+	    medicine_name: string;
+	    dosage: string;
+	    quantity_sold: number;
+	    unit_name: string;
+	    unit_price: number;
+	    catalog_price: number;
+	    price_variance: number;
+	    buying_price: number;
+	    subtotal: number;
+	    gross_profit: number;
+	    payment_method: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DetailedSaleItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.sale_id = source["sale_id"];
+	        this.invoice_number = source["invoice_number"];
+	        this.sale_date = source["sale_date"];
+	        this.cashier_name = source["cashier_name"];
+	        this.medicine_id = source["medicine_id"];
+	        this.medicine_name = source["medicine_name"];
+	        this.dosage = source["dosage"];
+	        this.quantity_sold = source["quantity_sold"];
+	        this.unit_name = source["unit_name"];
+	        this.unit_price = source["unit_price"];
+	        this.catalog_price = source["catalog_price"];
+	        this.price_variance = source["price_variance"];
+	        this.buying_price = source["buying_price"];
+	        this.subtotal = source["subtotal"];
+	        this.gross_profit = source["gross_profit"];
+	        this.payment_method = source["payment_method"];
+	    }
+	}
 	
 	export class IncomingStockItem {
 	    medicine_id: number;
@@ -1311,6 +1353,7 @@ export namespace services {
 	    end_date: string;
 	    by_method: PaymentMethodSummary[];
 	    top_products: TopProductSummary[];
+	    detailed_sales: DetailedSaleItem[];
 	    who_sold: CashierSalesSummary[];
 	
 	    static createFrom(source: any = {}) {
@@ -1334,6 +1377,7 @@ export namespace services {
 	        this.end_date = source["end_date"];
 	        this.by_method = this.convertValues(source["by_method"], PaymentMethodSummary);
 	        this.top_products = this.convertValues(source["top_products"], TopProductSummary);
+	        this.detailed_sales = this.convertValues(source["detailed_sales"], DetailedSaleItem);
 	        this.who_sold = this.convertValues(source["who_sold"], CashierSalesSummary);
 	    }
 	

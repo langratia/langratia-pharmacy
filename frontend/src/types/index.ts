@@ -172,6 +172,25 @@ export interface DashboardSummaryData {
   top_products: TopProductSummary[];
 }
 
+export interface DetailedSaleItem {
+  sale_id: number;
+  invoice_number: string;
+  sale_date: string;
+  cashier_name: string;
+  medicine_id: number;
+  medicine_name: string;
+  dosage: string;
+  quantity_sold: number;
+  unit_name: string;
+  unit_price: number;
+  catalog_price?: number;
+  price_variance?: number;
+  buying_price: number;
+  subtotal: number;
+  gross_profit: number;
+  payment_method: string;
+}
+
 export interface SalesSummaryData {
   today_total: number;
   week_total: number;
@@ -188,5 +207,6 @@ export interface SalesSummaryData {
   end_date: string;
   by_method: PaymentMethodSummary[];
   top_products: TopProductSummary[];
+  detailed_sales?: DetailedSaleItem[];
   who_sold: CashierSalesSummary[];
 }

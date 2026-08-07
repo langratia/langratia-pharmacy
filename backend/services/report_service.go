@@ -66,6 +66,25 @@ type TopProductSummary struct {
 	Profit        float64 `json:"profit"`
 }
 
+type DetailedSaleItem struct {
+	SaleID        int64   `json:"sale_id"`
+	InvoiceNumber string  `json:"invoice_number"`
+	SaleDate      string  `json:"sale_date"`
+	CashierName   string  `json:"cashier_name"`
+	MedicineID    int64   `json:"medicine_id"`
+	MedicineName  string  `json:"medicine_name"`
+	Dosage        string  `json:"dosage"`
+	QuantitySold  int     `json:"quantity_sold"`
+	UnitName      string  `json:"unit_name"`
+	UnitPrice     float64 `json:"unit_price"`
+	CatalogPrice  float64 `json:"catalog_price"`
+	PriceVariance float64 `json:"price_variance"`
+	BuyingPrice   float64 `json:"buying_price"`
+	Subtotal      float64 `json:"subtotal"`
+	GrossProfit   float64 `json:"gross_profit"`
+	PaymentMethod string  `json:"payment_method"`
+}
+
 type SalesSummary struct {
 	TodayTotal     float64                `json:"today_total"`
 	WeekTotal      float64                `json:"week_total"`
@@ -82,6 +101,7 @@ type SalesSummary struct {
 	EndDate        string                 `json:"end_date"`
 	ByMethod       []PaymentMethodSummary `json:"by_method"`
 	TopProducts    []TopProductSummary    `json:"top_products"`
+	DetailedSales  []DetailedSaleItem     `json:"detailed_sales"`
 	WhoSold        []CashierSalesSummary  `json:"who_sold"`
 }
 
@@ -630,6 +650,59 @@ func (s *ReportService) GetSalesSummary(period string) (*SalesSummary, error) {
 			var cs CashierSalesSummary
 			if err := whoRows.Scan(&cs.UserID, &cs.Username, &cs.FullName, &cs.Role, &cs.InvoicesCount, &cs.ItemsSold, &cs.TotalRevenue); err == nil {
 				ss.WhoSold = append(ss.WhoSold, cs)
+			}
+		}
+	}
+
+	// Itemized Sales Transactions Audit Log for the period
+	detailRows, err := s.db.Query(`
+		SELECT 
+			s.id,
+			s.invoice_number,
+			s.sale_date,
+			COALESCE(NULLIF(u.full_name, ''), u.username, 'Cashier'),
+			si.medicine_id,
+			COALESCE(m.name, 'Unknown Medicine'),
+			COALESCE(m.dosage_strength, ''),
+			si.quantity,
+			COALESCE(si.unit_name, 'Item'),
+			si.unit_price,
+			COALESCE(m.selling_price, 0.0),
+			COALESCE(m.buying_price, 0.0),
+			si.subtotal,
+			COALESCE(si.subtotal - (si.quantity * COALESCE(m.buying_price, 0.0)), 0.0),
+			s.payment_method
+		FROM sale_items si
+		JOIN sales s ON si.sale_id = s.id
+		LEFT JOIN medicines m ON si.medicine_id = m.id
+		LEFT JOIN users u ON s.user_id = u.id
+		WHERE date(s.sale_date, 'localtime') >= date(?) AND date(s.sale_date, 'localtime') <= date(?)
+		ORDER BY s.sale_date DESC, s.id DESC`, startDateStr, endDateStr)
+	if err == nil {
+		defer detailRows.Close()
+		for detailRows.Next() {
+			var ds DetailedSaleItem
+			if detailRows.Scan(
+				&ds.SaleID,
+				&ds.InvoiceNumber,
+				&ds.SaleDate,
+				&ds.CashierName,
+				&ds.MedicineID,
+				&ds.MedicineName,
+				&ds.Dosage,
+				&ds.QuantitySold,
+				&ds.UnitName,
+				&ds.UnitPrice,
+				&ds.CatalogPrice,
+				&ds.BuyingPrice,
+				&ds.Subtotal,
+				&ds.GrossProfit,
+				&ds.PaymentMethod,
+			) == nil {
+				if ds.CatalogPrice > 0 {
+					ds.PriceVariance = ((ds.UnitPrice - ds.CatalogPrice) / ds.CatalogPrice) * 100.0
+				}
+				ss.DetailedSales = append(ss.DetailedSales, ds)
 			}
 		}
 	}
