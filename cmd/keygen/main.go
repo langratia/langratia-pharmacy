@@ -12,8 +12,10 @@ import (
 	"os"
 )
 
-// YOUR PRIVATE KEY - NEVER SHARE THIS OR COMPILE IT INTO THE CUSTOMER APP
-const privateKeyPEM = `-----BEGIN EC PRIVATE KEY-----
+// Sample/Demo Private Key for development and local testing.
+// In production deployments, provide your own private key via the LANGRATIA_LICENSE_PRIVATE_KEY
+// environment variable or pass a path to a PEM key file.
+const samplePrivateKeyPEM = `-----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIHoIiOROCslFbcxv/GCJaLsb9sRE7ewUj6NsEAKXJoUcoAoGCCqGSM49
 AwEHoUQDQgAEpg5rCaweIpTDA9f99kuecSr/A90RSdd0zihmLsX9sMvWSo+MNgkf
 exh2uHfjQ98ynFFot38PFcI+IPA/Q0JjBA==
@@ -26,14 +28,26 @@ type LicensePayload struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run main.go <Customer-Machine-ID>")
+		fmt.Println("Usage: go run main.go <Customer-Machine-ID> [optional-path-to-private-key.pem]")
 		os.Exit(1)
 	}
 
 	customerMachineID := os.Args[1]
 
-	// 1. Load Private Key
-	block, _ := pem.Decode([]byte(privateKeyPEM))
+	// 1. Load Private Key (from file argument, environment variable, or fallback sample)
+	pemData := []byte(samplePrivateKeyPEM)
+	if len(os.Args) >= 3 {
+		fileBytes, err := os.ReadFile(os.Args[2])
+		if err != nil {
+			fmt.Printf("Error reading key file %s: %v\n", os.Args[2], err)
+			os.Exit(1)
+		}
+		pemData = fileBytes
+	} else if envKey := os.Getenv("LANGRATIA_LICENSE_PRIVATE_KEY"); envKey != "" {
+		pemData = []byte(envKey)
+	}
+
+	block, _ := pem.Decode(pemData)
 	if block == nil {
 		panic("failed to parse PEM block containing the private key")
 	}

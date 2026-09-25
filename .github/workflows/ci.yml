@@ -1,0 +1,65 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  backend-test:
+    name: Backend Tests & Lint (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.0'
+          check-latest: true
+          cache: true
+
+      - name: Go Vet & Format Check
+        run: |
+          go vet ./...
+
+      - name: Run Backend Unit Tests
+        run: |
+          go test -v -short -race ./...
+        if: runner.os != 'Windows'
+
+      - name: Run Backend Unit Tests (Windows)
+        run: |
+          go test -v -short ./...
+        if: runner.os == 'Windows'
+
+  frontend-build:
+    name: Frontend Build & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Frontend Build & TypeScript Validation
+        run: |
+          cd frontend
+          npm run build

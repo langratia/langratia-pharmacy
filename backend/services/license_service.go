@@ -7,14 +7,23 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"app/backend/db"
 )
 
-// The embedded SECRET KEY used to verify licenses symmetrically.
-const secretKey = "LANGRATIA_OFFLINE_SECRET_KEY_V1_2026"
+// Default embedded SECRET KEY used for offline license verification demonstration.
+// Override in production via the LANGRATIA_LICENSE_SECRET_KEY environment variable.
+const defaultSecretKey = "LANGRATIA_OFFLINE_SECRET_KEY_V1_2026"
+
+func getSecretKey() string {
+	if k := os.Getenv("LANGRATIA_LICENSE_SECRET_KEY"); k != "" {
+		return k
+	}
+	return defaultSecretKey
+}
 
 type LicenseService struct {
 	db *db.DB
@@ -142,7 +151,7 @@ func (s *LicenseService) GetMachineID() (string, error) {
 
 // GenerateLicense deterministically generates the 16-character license key for a given Machine ID.
 func (s *LicenseService) GenerateLicense(machineID string) string {
-	mac := hmac.New(sha256.New, []byte(secretKey))
+	mac := hmac.New(sha256.New, []byte(getSecretKey()))
 	mac.Write([]byte(machineID))
 	hashBytes := mac.Sum(nil)
 	hashHex := strings.ToUpper(hex.EncodeToString(hashBytes))

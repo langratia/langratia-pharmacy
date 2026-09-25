@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerabilities
+    url: https://github.com/allaninfo-comp/langratia-pharmacy/security/advisories/new
+    about: Please report security vulnerabilities privately here.
+  - name: Ask Questions & Discussions
+    url: https://github.com/allaninfo-comp/langratia-pharmacy/discussions
+    about: Ask questions or discuss pharmacy workflows with the community.
